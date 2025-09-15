@@ -102,14 +102,7 @@ def audience_evaluator_node(
 
     joke = state.get("joke", "")
 
-    # Define audience personas (mirroring the DSPy example)
-    profiles = [
-        "35-year-old comedy club owner who has seen every major standup special and demands originality",
-        "42-year-old comedy critic who writes for The New Yorker and analyzes joke structure and social commentary",
-        "38-year-old professional comedian who performs nightly and is tired of hacky material",
-        "45-year-old comedy festival curator who looks for unique voices and fresh perspectives",
-        "40-year-old comedy writing professor who teaches advanced joke construction and timing",
-    ]
+    # Audience profiles are handled by the prompt; no local list needed.
 
     # Use structured output with Pydantic
     structured_llm = llm.with_structured_output(AudienceSignature)

@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from typing import Any, Dict, Literal, cast
 from langchain_core.runnables import RunnableConfig
 from src.agent.graph import graph
+from src.agent.models import JokeGeneratorState
 
 # Load environment variables
 load_dotenv()
@@ -18,7 +19,7 @@ def test_basic_functionality():
     print("=" * 40)
     
     # Test with programming topic
-    initial_state = {
+    initial_state: JokeGeneratorState = {
         "topic": "programming",
         "lm_type": cast(Literal["cheap", "smart"], "cheap"),
     }
