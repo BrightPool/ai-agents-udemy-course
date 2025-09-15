@@ -16,11 +16,11 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 
-from agent.models import (
+from src.agent.models import (
+    AudienceSignature,
+    ComedianSignature,
     Context,
     JokeGeneratorState,
-    ComedianSignature,
-    AudienceSignature,
 )
 
 # Load environment variables from .env file if it exists
@@ -87,7 +87,9 @@ def comedian_node(
 
     human_message = HumanMessage(content=f"Tell me a funny joke about {topic}")
 
-    response = cast(ComedianSignature, structured_llm.invoke([system_message, human_message]))
+    response = cast(
+        ComedianSignature, structured_llm.invoke([system_message, human_message])
+    )
 
     return {"joke": response.joke, "topic": response.topic}
 
@@ -106,7 +108,7 @@ def audience_evaluator_node(
         "42-year-old comedy critic who writes for The New Yorker and analyzes joke structure and social commentary",
         "38-year-old professional comedian who performs nightly and is tired of hacky material",
         "45-year-old comedy festival curator who looks for unique voices and fresh perspectives",
-        "40-year-old comedy writing professor who teaches advanced joke construction and timing"
+        "40-year-old comedy writing professor who teaches advanced joke construction and timing",
     ]
 
     # Use structured output with Pydantic
@@ -118,7 +120,7 @@ def audience_evaluator_node(
         1. A short reaction explaining their inner thought process when hearing the joke
         2. A rating on this scale:
            - "hilarious" (5 points)
-           - "funny" (4 points) 
+           - "funny" (4 points)
            - "meh" (3 points)
            - "not funny" (2 points)
            - "offensive" (1 point)
@@ -128,7 +130,9 @@ def audience_evaluator_node(
 
     human_message = HumanMessage(content=f"Evaluate this joke: {joke}")
 
-    response = cast(AudienceSignature, structured_llm.invoke([system_message, human_message]))
+    response = cast(
+        AudienceSignature, structured_llm.invoke([system_message, human_message])
+    )
 
     # Calculate average score
     rating_scores = {
@@ -145,7 +149,7 @@ def audience_evaluator_node(
     return {
         "audience_responses": response.responses,
         "audience_reactions": response.reactions,
-        "audience_score": avg_score
+        "audience_score": avg_score,
     }
 
 
