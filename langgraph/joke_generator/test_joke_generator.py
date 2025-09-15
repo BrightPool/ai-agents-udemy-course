@@ -4,7 +4,7 @@
 
 import os
 from dotenv import load_dotenv
-from typing import Any, Dict, cast
+from typing import Any, Dict, Literal, cast
 from langchain_core.runnables import RunnableConfig
 from src.agent.graph import graph
 
@@ -20,7 +20,7 @@ def test_basic_functionality():
     # Test with programming topic
     initial_state = {
         "topic": "programming",
-        "lm_type": "cheap"
+        "lm_type": cast(Literal["cheap", "smart"], "cheap"),
     }
     
     print("Generating joke about 'programming'...")

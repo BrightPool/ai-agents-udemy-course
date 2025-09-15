@@ -53,10 +53,10 @@ def create_audience_evaluator():
         def evaluate_joke(self, joke: str) -> AudienceEvaluationResult:
             """Evaluate a joke using the LangGraph audience evaluator."""
             # Run the graph with just the audience evaluation
-            initial_state = {
+            initial_state: JokeGeneratorState = {
                 "topic": "evaluation",
                 "joke": joke,
-                "lm_type": "cheap"
+                "lm_type": cast(Literal["cheap", "smart"], "cheap"),
             }
 
             # Run the graph
