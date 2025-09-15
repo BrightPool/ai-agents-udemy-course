@@ -8,7 +8,7 @@ including dataset evaluation and comparison between different models.
 
 import os
 import random
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, Literal, cast
 
 from dotenv import load_dotenv
 
@@ -16,7 +16,7 @@ from professional_jokes_dataset import (
     PROFESSIONAL_JOKES,
 )
 from src.agent.graph import graph
-from src.agent.models import AudienceEvaluationResult
+from src.agent.models import AudienceEvaluationResult, JokeGeneratorState
 from langchain_core.runnables import RunnableConfig
 
 # Load environment variables
@@ -110,7 +110,7 @@ def metric_with_feedback(
 
 
 def evaluate_dataset(
-    jokes: List[Dict[str, Any]], lm_type: str = "cheap"
+    jokes: List[Dict[str, Any]], lm_type: Literal["cheap", "smart"] = "cheap"
 ) -> List[Dict[str, Any]]:
     """Evaluate a dataset of jokes using the LangGraph system."""
     results = []
@@ -125,7 +125,7 @@ def evaluate_dataset(
         print(f"Evaluating joke {i + 1}/{len(jokes)}: {topic}")
 
         # Generate new joke for comparison
-        initial_state = {"topic": topic, "lm_type": lm_type}
+        initial_state: JokeGeneratorState = {"topic": topic, "lm_type": cast(Literal["cheap", "smart"], lm_type)}
 
         config_dict: Dict[str, Any] = {
             "context": {"openai_api_key": os.getenv("OPENAI_API_KEY")}
@@ -163,8 +163,9 @@ def compare_models_on_topics(topics: List[str]) -> Dict[str, Any]:
         print("-" * 50)
 
         # Test both models
-        for lm_type in ["cheap", "smart"]:
-            initial_state = {"topic": topic, "lm_type": lm_type}
+        for lm_type_value in ["cheap", "smart"]:
+            lm_type = cast(Literal["cheap", "smart"], lm_type_value)
+            initial_state: JokeGeneratorState = {"topic": topic, "lm_type": lm_type}
 
             config_dict: Dict[str, Any] = {
                 "context": {"openai_api_key": os.getenv("OPENAI_API_KEY")}
