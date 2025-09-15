@@ -6,7 +6,6 @@ import shlex
 import shutil
 import subprocess
 from typing import Any, Dict, List
-import time
 
 import aiofiles
 import ffmpeg  # type: ignore[import-untyped]
