@@ -1,0 +1,26 @@
+{
+  "traces": [],
+  "train": [],
+  "demos": [],
+  "signature": {
+    "instructions": "Task\n- Write one funny, original joke based on a provided topic that could impress seasoned comedy professionals.\n\nInput format\n- You will receive:\n  - topic: a single word or short phrase (e.g., Entertainment, Culture, Misunderstanding).\n\nOutput format\n- Return only the joke text as plain text (no preamble, labels, quotes, hashtags, emojis, or explanations).\n- Length: 1–2 sentences, ideally 15–35 words.\n- End on the strongest, most surprising concrete word or phrase.\n\nAudience bar (what the joke must satisfy)\n- Club owner who’s seen everything: wants a fresh angle with a crisp, earned twist.\n- Pro comedian: allergic to hack premises and groaner puns.\n- Festival curator: seeks a distinctive voice and memorable perspective.\n- Critic: values clear structure and a touch of smart social/cultural observation.\n- Comedy-writing professor: expects economy, tight setup→turn, and timing.\n\nHard avoids\n- No single, obvious pun or one-note wordplay.\n- No stock setups: “X walks into a bar,” “objects go to therapy,” “Wi‑Fi vs commitment,” petri‑dish “culture grows on people,” franchise/sequel therapy, or any prefab template.\n- Don’t lean on familiar premises unless the angle is unmistakably novel:\n  - “Disaster turned into a hustle/startup spin.”\n  - “Cats own the humans” dynamic.\n  - “Vengeance isn’t cinematic; it’s paperwork/shipping.”\n- Avoid listy rule-of-three unless you truly subvert it; no filler tags (“these days,” “amirite,” “that’s just Monday,” “now more than ever”).\n- No punching down, slurs, or needlessly cruel targets.\n- Specifically avoid stale tech overlays:\n  - Religion-as-tech/app/loyalty/gamified salvation (points, tiers, QR codes at the pearly gates, CAPTCHAs for heaven).\n  - Identity-as-software (updates, release notes, patches, rollbacks, versioning).\n  - Any premise that reduces to “X but like an app/algorithm.”\n\nRecommended approach\n1) Narrow the topic to one vivid, contemporary angle or image. Prefer behind-the-scenes behavior, quiet rules/etiquette, ritual mechanics, trend performance, or how meaning/status is performed (e.g., awards-season rituals, museum etiquette, audience behavior).\n2) Brainstorm 3–5 distinct premises. Immediately discard anything that feels familiar, tweet-y, or pun-led. Quick test: would a jaded comic say “I’ve heard that”? If yes, toss it.\n3) Choose the freshest premise and write one tight setup that clearly frames an expectation.\n4) Use one strong device only—misdirection, semantic flip, framing shift, or compressed analogy—and make the turn feel earned, not clever-for-its-own-sake.\n5) Prefer specific nouns and surprising, concrete imagery over abstractions; keep verbs active; trim every extra word.\n6) Land the twist on the final word or phrase; make it a charged, concrete image rather than an adverb or vague tag.\n7) Optional: add one very short, smart tag only if it elevates the premise and isn’t stock.\n\nSelf-check before returning\n- Is the angle genuinely unexpected (not “religion-as-loyalty-program,” “identity-as-update,” or “X as an app/algorithm”)?\n- Is the structure clear (setup → turn → concise payoff) with tight timing?\n- Is there a subtle social/cultural observation or perspective that feels current?\n- Would a club owner not roll their eyes, and a pro comic not groan?\n- Are there zero filler tags, hacky tropes, or listy padding?\n- Does it end on the strongest, most surprising concrete word or phrase?\n- Does it fit 1–2 sentences and roughly 15–35 words?\n- Is it unmistakably original (not echoing common “cats-as-landlords,” “hustle-from-ruin,” or “revenge-as-bureaucracy” beats)?\n\nDeliverable\n- One joke that follows all the above, returned as plain text only.",
+    "fields": [
+      {
+        "prefix": "Topic:",
+        "description": "The message to analyze"
+      },
+      {
+        "prefix": "Joke:",
+        "description": "A funny joke about the topic"
+      }
+    ]
+  },
+  "lm": null,
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.13",
+      "dspy": "3.0.3",
+      "cloudpickle": "3.1"
+    }
+  }
+}
