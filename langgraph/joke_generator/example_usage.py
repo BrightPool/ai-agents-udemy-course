@@ -10,7 +10,7 @@ import os
 from dotenv import load_dotenv
 
 from src.agent.graph import graph
-from src.agent.models import AudienceEvaluationResult
+from src.agent.models import AudienceEvaluationResult, JokeGeneratorState
 from typing import Any, Dict, cast
 from langchain_core.runnables import RunnableConfig
 
@@ -48,7 +48,7 @@ def create_audience_evaluator():
         def evaluate_joke(self, joke: str) -> AudienceEvaluationResult:
             """Evaluate a joke using the LangGraph audience evaluator."""
             # Run the graph with just the audience evaluation
-            initial_state = {
+            initial_state: JokeGeneratorState = {
                 "topic": "evaluation",
                 "joke": joke,
                 "lm_type": "cheap"
@@ -76,7 +76,7 @@ def create_audience_evaluator():
 def generate_joke_with_evaluation(topic: str, lm_type: str = "cheap"):
     """Generate a joke and evaluate it using the LangGraph system."""
     # Initial state for joke generation
-    initial_state = {"topic": topic, "lm_type": lm_type}
+    initial_state: JokeGeneratorState = {"topic": topic, "lm_type": lm_type}  # type: ignore[assignment]
 
     # Run the complete graph
     config_dict: Dict[str, Any] = {
