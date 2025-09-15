@@ -11,6 +11,7 @@ import aiofiles
 import ffmpeg  # type: ignore[import-untyped]
 import httpx
 from elevenlabs.client import ElevenLabs
+from openai import OpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -24,6 +25,9 @@ from .models import (
     SubtitleRequest,
     TextToSpeechRequest,
     VideoCreationRequest,
+    ASSStyle,
+    OpenAITranscriptionRequest,
+    OpenAITranscriptionVerboseJson,
 )
 
 
@@ -183,10 +187,20 @@ def generate_ass_file_tool(request: SubtitleRequest) -> str:
             secs = seconds % 60
             return f"{hours}:{minutes:02d}:{secs:05.2f}"
 
-        words = [w for w in request.subtitle_text.split() if w]
-        total_words = max(1, len(words))
-        per_word_cs = int(round((request.duration / total_words) * 100))
-        karaoke_chunks = "".join([f"{{\\k{per_word_cs}}}{w} " for w in words])
+        # Build karaoke chunks: prefer precise word timings if provided
+        karaoke_chunks = ""
+        if getattr(request, "words", None):
+            pieces = []
+            for w in request.words:  # type: ignore[union-attr]
+                dur_cs = max(1, int(round(max(0.01, float(w.end) - float(w.start)) * 100)))
+                pieces.append(f"{{\\k{dur_cs}}}{w.word}")
+            karaoke_chunks = " ".join(pieces)
+        else:
+            base_text: str = request.subtitle_text or ""
+            words = [w for w in base_text.split() if w]
+            total_words = max(1, len(words))
+            per_word_cs = int(round((request.duration / total_words) * 100))
+            karaoke_chunks = "".join([f"{{\\k{per_word_cs}}}{w} " for w in words])
 
         start_ts = _fmt_time(request.start_time)
         end_ts = _fmt_time(request.start_time + request.duration)
@@ -200,15 +214,16 @@ def generate_ass_file_tool(request: SubtitleRequest) -> str:
             "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, "
             "ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, "
             "Alignment, MarginL, MarginR, MarginV, Encoding\n"
-            f"Style: Default,Arial,{request.font_size},{request.font_color},{request.highlight_color},&H00000000,"
+            f"Style: {request.style_name if hasattr(request, 'style_name') else 'Default'},Arial,{request.font_size},{request.font_color},{request.highlight_color},&H00000000,"
             f"&H80000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1\n\n"
             "[Events]\n"
             "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
-            f"Dialogue: 0,{start_ts},{end_ts},Default,,0,0,0,,{karaoke_chunks.strip()}\n"
+            f"Dialogue: 0,{start_ts},{end_ts},{request.style_name if hasattr(request, 'style_name') else 'Default'},,0,0,0,,{karaoke_chunks.strip()}\n"
         )
 
         # Save ASS file
-        filename = f"subtitle_{hash(request.subtitle_text) % 10000}.ass"
+        seed = request.subtitle_text or (" ".join([w.word for w in (request.words or [])]) if getattr(request, "words", None) else "subtitle")
+        filename = f"subtitle_{abs(hash(seed)) % 100000}.ass"
         filepath = f"/tmp/subtitles/{filename}"
 
         with open(filepath, "w", encoding="utf-8") as f:
@@ -699,6 +714,53 @@ def list_recent_renders(renders: List[dict] | None = None, limit: int = 2) -> Di
         return {"renders": trimmed}
     except Exception as e:
         return {"renders": [], "error": str(e)}
+
+
+@tool
+def transcribe_audio_openai(request: OpenAITranscriptionRequest) -> Dict[str, Any]:
+    """Transcribe an audio file using OpenAI SDK (verbose_json with word timings)."""
+    try:
+        if not os.path.exists(request.file_path):
+            return {"error": f"File not found: {request.file_path}"}
+
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            return {"error": "OPENAI_API_KEY environment variable not set"}
+
+        client = OpenAI(api_key=api_key)
+        with open(request.file_path, "rb") as audio_file:
+            kwargs: Dict[str, Any] = {
+                "file": audio_file,
+                "model": request.model,
+                "response_format": request.response_format,
+            }
+            if request.timestamp_granularities:
+                kwargs["timestamp_granularities"] = request.timestamp_granularities
+            if request.prompt:
+                kwargs["prompt"] = request.prompt
+            if request.language:
+                kwargs["language"] = request.language
+
+            tr = client.audio.transcriptions.create(**kwargs)  # type: ignore[arg-type]
+
+        # Normalize result to dict and validate
+        try:
+            if hasattr(tr, "model_dump"):
+                payload = tr.model_dump()  # type: ignore[assignment]
+            elif hasattr(tr, "to_dict"):
+                payload = tr.to_dict()  # type: ignore[assignment]
+            else:
+                payload = json.loads(str(tr))
+        except Exception:
+            payload = {"text": getattr(tr, "text", ""), "words": getattr(tr, "words", None)}
+
+        try:
+            typed = OpenAITranscriptionVerboseJson(**payload)
+            return typed.model_dump()
+        except Exception:
+            return payload
+    except Exception as e:
+        return {"error": f"Transcription failed: {e}"}
 
 
 # Initialize tmp directories
