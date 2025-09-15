@@ -112,6 +112,11 @@ cp .env.example .env
 # Edit .env and add your API keys
 LANGSMITH_API_KEY=lsv2...
 ANTHROPIC_API_KEY=sk-ant-api03-...
+# FAL auth is used for queueing and fetching generated videos
+FAL_API_KEY=key-...
+FAL_AUTH_HEADER_NAME=Authorization
+FAL_QUEUE_URL=https://queue.fal.run/fal-ai/veo3
+FAL_REQUEST_URL_BASE=https://queue.fal.run/fal-ai/veo3/requests
 ```
 
 ### 5. Launch LangGraph Server

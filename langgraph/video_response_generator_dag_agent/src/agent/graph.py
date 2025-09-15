@@ -16,14 +16,13 @@ import subprocess
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
+from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 import httpx
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage
 from langchain_core.utils import convert_to_secret_str
-from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 
 from agent.models import (
@@ -84,12 +83,9 @@ class VideoAgentState(TypedDict, total=False):
     result: Dict[str, str]
 
 
-def _get_llm(config: RunnableConfig) -> ChatAnthropic:
-    """Construct the Anthropic chat model using config context or env var."""
-    ctx: Dict[str, Any] = cast(Dict[str, Any], config.get("context", {})) if isinstance(config, dict) else {}
-    api_key_value = ctx.get("anthropic_api_key") if isinstance(ctx, dict) else None
-    if not api_key_value:
-        api_key_value = os.getenv("ANTHROPIC_API_KEY")
+def _get_llm() -> ChatAnthropic:
+    """Construct the Anthropic chat model using environment variables."""
+    api_key_value = os.getenv("ANTHROPIC_API_KEY")
     return ChatAnthropic(
         model_name="claude-3-5-sonnet-20241022",
         api_key=convert_to_secret_str(api_key_value or ""),
@@ -103,7 +99,7 @@ def _ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def init_and_create_directory(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+def init_and_create_directory(state: VideoAgentState) -> VideoAgentState:
     """Initialize execution and create a working directory under /tmp."""
     execution_id = uuid.uuid4().hex
     work_dir = Path(f"/tmp/n8n/{execution_id}")
@@ -120,7 +116,7 @@ def init_and_create_directory(state: VideoAgentState, _: RunnableConfig) -> Vide
     }
 
 
-def define_personas(_: VideoAgentState, __: RunnableConfig) -> VideoAgentState:
+def define_personas(_: VideoAgentState) -> VideoAgentState:
     """Define a catalog of personas to mirror the n8n node."""
     personas: Dict[str, Dict[str, str]] = {
         "Omar US Developer": {
@@ -182,7 +178,7 @@ def define_personas(_: VideoAgentState, __: RunnableConfig) -> VideoAgentState:
     return {"personas": personas}
 
 
-def set_persona(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+def set_persona(state: VideoAgentState) -> VideoAgentState:
     """Select the active persona based on input selection."""
     selection = state.get("persona_selection")
     personas = state.get("personas", {})
@@ -191,14 +187,12 @@ def set_persona(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
     return {"persona": personas[selection]}
 
 
-def generate_buying_situations(
-    state: VideoAgentState, config: RunnableConfig
-) -> VideoAgentState:
+def generate_buying_situations(state: VideoAgentState) -> VideoAgentState:
     """Ask the LLM to propose three buying situations for the persona."""
     persona = state.get("persona")
     if persona is None:
         raise KeyError("persona missing; ensure set_persona ran before this node")
-    llm = _get_llm(config)
+    llm = _get_llm()
     system = SystemMessage(
         content=(
             "Role play as {name}, a {age} {gender} from {location}, works as a {occupation} "
@@ -258,9 +252,7 @@ def generate_buying_situations(
     }
 
 
-def generate_prompt_for_current(
-    state: VideoAgentState, config: RunnableConfig
-) -> VideoAgentState:
+def generate_prompt_for_current(state: VideoAgentState) -> VideoAgentState:
     """Generate a Veo3 prompt for the current buying situation."""
     persona = state.get("persona")
     if persona is None:
@@ -272,7 +264,7 @@ def generate_prompt_for_current(
     if not (0 <= idx < len(situations_list)):
         raise IndexError("situation_index out of range")
     situation = situations_list[idx]
-    llm = _get_llm(config)
+    llm = _get_llm()
 
     template = (
         "You are a director of a qualitative research agency that specialises in creating realistic simulated testimonials that capture buying situations for new product concepts.\n\n"
@@ -283,14 +275,8 @@ def generate_prompt_for_current(
         "   - A scene appearance that is realistic and convincing considering the persona background\n"
         "   - A short 6–8 second quote that captures the emotion/reason for choosing the product\n"
         "3. Assemble a final prompt string that combines these elements into a realistic video reaction setup.\n\n"
-        "Respond only with a valid JSON object (no Markdown, no commentary).\n\n"
-        "The JSON must have:\n"
-        '- "scene_description.persona" (character-based background)\n'
-        '- "scene_description.appearance" (physical/behavioral detail in the scene)\n'
-        '- "quote" (the 6–8 second soundbite)\n'
-        '- "prompt_string" (a single ready-to-use string in this format: \n'
-        '  The subject is [persona]. [appearance]. The subject looks directly into the phone camera, engaging with the viewer as if filming a personal story or reaction video. The lighting is natural and imperfect. They say: "[quote]")\n\n'
-        "Persona\n"
+        "Return a structured object strictly matching this Pydantic schema: PromptOutput(prompt: PromptModel(scene_description: SceneDescription(persona, appearance), quote, prompt_string)). No markdown."
+        "\n\nPersona\n"
         f"Name: {persona['name']}\n"
         f"Age: {persona['age']}\n"
         f"Gender: {persona['gender']}\n"
@@ -306,32 +292,11 @@ def generate_prompt_for_current(
         f"Conclusion: {situation.conclusion}"
     )
 
-    raw_content = llm.invoke([SystemMessage(content=template)]).content  # type: ignore[arg-type]
-    text = raw_content if isinstance(raw_content, str) else json.dumps(raw_content)
-    data = None
-    for _ in range(2):
-        try:
-            data = json.loads(text)
-            break
-        except Exception:
-            repair_raw = llm.invoke(
-                [
-                    SystemMessage(
-                        content="Repair and return valid JSON only, schema: {prompt:{scene_description:{persona,appearance},quote,prompt_string}}"
-                    ),
-                    SystemMessage(content=text),
-                ]
-            ).content  # type: ignore[arg-type]
-            text = repair_raw if isinstance(repair_raw, str) else json.dumps(repair_raw)
-    if data is None:
-        raise ValueError("Failed to parse prompt JSON")
-    validated = (
-        PromptOutput.model_validate({"prompt": data})
-        if "prompt" not in data
-        else PromptOutput.model_validate(data)
-    )
-    prompts_json = state.get("prompts_json", []) + [validated]
-    prompt_strings = state.get("prompt_strings", []) + [validated.prompt.prompt_string]
+    structured_llm = llm.with_structured_output(PromptOutput)
+    response = structured_llm.invoke([SystemMessage(content=template)])
+
+    prompts_json = state.get("prompts_json", []) + [response]
+    prompt_strings = state.get("prompt_strings", []) + [response.prompt.prompt_string]
     return {
         "prompts_json": prompts_json,
         "prompt_strings": prompt_strings,
@@ -349,7 +314,7 @@ def next_prompt_or_submit(
     return "submit_fal_requests"
 
 
-def increment_prompt_index(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+def increment_prompt_index(state: VideoAgentState) -> VideoAgentState:
     """Increment the situation index for the next prompt generation."""
     return {"situation_index": state.get("situation_index", 0) + 1}
 
@@ -366,7 +331,7 @@ def _fal_headers() -> Dict[str, str]:
     return {name: value} if value else {}
 
 
-def submit_fal_requests(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+def submit_fal_requests(state: VideoAgentState) -> VideoAgentState:
     """Submit prompt strings to the FAL queue API and collect request IDs."""
     base_url = os.getenv("FAL_QUEUE_URL", "https://queue.fal.run/fal-ai/veo3")
     headers = _fal_headers()
@@ -386,13 +351,13 @@ def submit_fal_requests(state: VideoAgentState, _: RunnableConfig) -> VideoAgent
     return {"fal_requests": fal_requests}
 
 
-def wait_30_seconds(_: VideoAgentState, __: RunnableConfig) -> VideoAgentState:
+def wait_30_seconds(_: VideoAgentState) -> VideoAgentState:
     """Sleep for 30 seconds between polling attempts."""
     time.sleep(30)
     return {}
 
 
-def poll_statuses(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+def poll_statuses(state: VideoAgentState) -> VideoAgentState:
     """Poll FAL status endpoints and mark completion when all are done."""
     headers = _fal_headers()
     statuses: List[str] = []
@@ -414,7 +379,7 @@ def all_completed_router(
     return "fetch_video_urls" if state.get("all_complete") else "wait_again"
 
 
-def fetch_video_urls(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+def fetch_video_urls(state: VideoAgentState) -> VideoAgentState:
     """Fetch finalized video URLs from FAL request endpoints."""
     base_url = os.getenv(
         "FAL_REQUEST_URL_BASE", "https://queue.fal.run/fal-ai/veo3/requests"
@@ -440,7 +405,7 @@ def fetch_video_urls(state: VideoAgentState, _: RunnableConfig) -> VideoAgentSta
     return {"video_urls": video_urls}
 
 
-def download_videos(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+def download_videos(state: VideoAgentState) -> VideoAgentState:
     """Download video files to the working directory."""
     work_dir_str = state.get("work_dir")
     if not work_dir_str:
@@ -462,7 +427,7 @@ def download_videos(state: VideoAgentState, _: RunnableConfig) -> VideoAgentStat
     return {"downloaded_files": files}
 
 
-def prepare_concat_file(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+def prepare_concat_file(state: VideoAgentState) -> VideoAgentState:
     """Prepare ffmpeg concat file listing downloaded videos."""
     work_dir_str = state.get("work_dir")
     if not work_dir_str:
@@ -480,7 +445,7 @@ def _which(cmd: str) -> Optional[str]:
     return shutil.which(cmd)
 
 
-def merge_videos_ffmpeg(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+def merge_videos_ffmpeg(state: VideoAgentState) -> VideoAgentState:
     """Merge downloaded videos using ffmpeg concat demuxer."""
     work_dir_str = state.get("work_dir")
     if not work_dir_str:
@@ -509,7 +474,7 @@ def merge_videos_ffmpeg(state: VideoAgentState, _: RunnableConfig) -> VideoAgent
     return {"final_output_path": str(final_path)}
 
 
-def complete(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+def complete(state: VideoAgentState) -> VideoAgentState:
     """Produce the final result payload with a local URL reference."""
     execution_id = state.get("execution_id")
     if not execution_id:
@@ -527,7 +492,7 @@ def complete(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
 def prompt_loop_router(
     _: VideoAgentState,
 ) -> Literal["generate_prompt_for_current", "increment_index_and_loop"]:
-    """Always generate first, then decide whether to continue the loop."""
+    """Generate first, then decide whether to continue the loop."""
     return "generate_prompt_for_current"
 
 
