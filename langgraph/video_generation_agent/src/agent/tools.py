@@ -2,18 +2,26 @@
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+import shlex
+import shutil
+import subprocess
+from typing import Any, Dict, List
+import time
 
 import aiofiles
 import ffmpeg  # type: ignore[import-untyped]
 import httpx
-from elevenlabs import ElevenLabs
+from elevenlabs.client import ElevenLabs
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from .media_assets import MEDIA_LIBRARY_ASSETS
 from .models import (
+    AssetSearchRequest,
+    AssetSearchResult,
+    FFmpegExecuteRequest,
+    MediaSearchRequest,
     SubtitleRequest,
     TextToSpeechRequest,
     VideoCreationRequest,
@@ -35,16 +43,11 @@ class ToolExecutionError(Exception):
 
 
 @tool
-async def search_unsplash_media(
-    query: str, count: int = 1, media_type: str = "photo", quality: str = "regular"
-) -> List[str]:
-    """Search Unsplash for images or videos and download them to /tmp folder.
+async def search_unsplash_media(request: MediaSearchRequest) -> List[str]:
+    """Search Unsplash for photos and download them to /tmp folder.
 
     Args:
-        query: Search query for media
-        count: Number of items to download (max 10)
-        media_type: Type of media to search ("photo" or "video")
-        quality: Image quality for photos (raw, full, regular, small, thumb)
+        request: MediaSearchRequest with query, count, media_type and quality
 
     Returns:
         List of paths to downloaded media
@@ -54,50 +57,65 @@ async def search_unsplash_media(
         if not access_key:
             raise ValueError("UNSPLASH_ACCESS_KEY environment variable not set")
 
+        # Unsplash official API does not support video search/download
+        if request.media_type == "video":
+            return [
+                "Unsplash API does not provide videos. Set media_type='photo' for Unsplash."
+            ]
+
         # Search for media
         async with httpx.AsyncClient() as client:
-            endpoint = "search/photos" if media_type == "photo" else "search/videos"
+            endpoint = "search/photos"
+            headers = {
+                "Authorization": f"Client-ID {access_key}",
+                "Accept-Version": "v1",
+            }
+            params: Dict[str, Any] = {
+                "query": request.query,
+                "per_page": min(request.count, 30),
+                "page": request.page,
+                "content_filter": request.content_filter,
+            }
+            if request.media_type == "photo" and request.orientation:
+                params["orientation"] = request.orientation
+
             response = await client.get(
-                f"https://api.unsplash.com/{endpoint}",
-                params={
-                    "query": query,
-                    "per_page": min(count, 10),
-                    "client_id": access_key,
-                },
+                f"https://api.unsplash.com/{endpoint}", params=params, headers=headers
             )
             response.raise_for_status()
             data = response.json()
 
         # Create tmp directory
-        media_dir = f"/tmp/unsplash_{media_type}s"
+        media_dir = "/tmp/unsplash_photos"
         os.makedirs(media_dir, exist_ok=True)
 
         downloaded_paths = []
 
         # Download media
         async with httpx.AsyncClient() as client:
-            for i, item in enumerate(data["results"]):
-                if media_type == "photo":
-                    media_url = item["urls"][quality]
-                    filename = (
-                        f"unsplash_{query.replace(' ', '_')}_{i}_{item['id']}.jpg"
-                    )
-                else:  # video
-                    media_url = item["video_files"][0]["link"]  # Get first video file
-                    filename = (
-                        f"unsplash_video_{query.replace(' ', '_')}_{i}_{item['id']}.mp4"
-                    )
+            for i, item in enumerate(data.get("results", [])):
+                # Track download event as per API guidelines
+                try:
+                    download_loc = item.get("links", {}).get("download_location")
+                    if download_loc:
+                        await client.get(download_loc, headers=headers)
+                except Exception:
+                    pass
+
+                # Respect hotlinking and keep ixid params; use returned URLs
+                media_url = item["urls"][request.quality]
+                filename = (
+                    f"unsplash_{request.query.replace(' ', '_')}_{i}_{item['id']}.jpg"
+                )
 
                 filepath = f"{media_dir}/{filename}"
 
-                async with client.stream("GET", media_url) as response:
-                    response.raise_for_status()
-
+                async with client.stream("GET", media_url, headers=headers) as resp2:
+                    resp2.raise_for_status()
                     async with aiofiles.open(filepath, "wb") as f:
-                        async for chunk in response.aiter_bytes():
+                        async for chunk in resp2.aiter_bytes():
                             await f.write(chunk)
-
-                    downloaded_paths.append(filepath)
+                downloaded_paths.append(filepath)
 
         return downloaded_paths
 
@@ -124,9 +142,11 @@ def elevenlabs_text_to_speech(request: TextToSpeechRequest) -> str:
         # Initialize ElevenLabs client
         client = ElevenLabs(api_key=api_key)
 
-        # Generate audio using the correct method
+        # Generate audio using the official client (streaming bytes)
         audio = client.text_to_speech.convert(
-            text=request.text, voice_id=request.voice_id, model_id=request.model
+            text=request.text,
+            voice_id=request.voice_id,
+            model_id=request.model,
         )
 
         # Save to tmp directory
@@ -157,7 +177,21 @@ def generate_ass_file_tool(request: SubtitleRequest) -> str:
     try:
         os.makedirs("/tmp/subtitles", exist_ok=True)
 
-        # Create ASS file content
+        # Build ASS with karaoke highlighting per-word
+        def _fmt_time(seconds: float) -> str:
+            hours = int(seconds // 3600)
+            minutes = int((seconds % 3600) // 60)
+            secs = seconds % 60
+            return f"{hours}:{minutes:02d}:{secs:05.2f}"
+
+        words = [w for w in request.subtitle_text.split() if w]
+        total_words = max(1, len(words))
+        per_word_cs = int(round((request.duration / total_words) * 100))
+        karaoke_chunks = "".join([f"{{\\k{per_word_cs}}}{w} " for w in words])
+
+        start_ts = _fmt_time(request.start_time)
+        end_ts = _fmt_time(request.start_time + request.duration)
+
         ass_content = (
             "[Script Info]\n"
             "Title: Generated Subtitle\n"
@@ -167,13 +201,11 @@ def generate_ass_file_tool(request: SubtitleRequest) -> str:
             "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, "
             "ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, "
             "Alignment, MarginL, MarginR, MarginV, Encoding\n"
-            f"Style: Default,Arial,{request.font_size},{request.font_color},&H000000FF,&H00000000,"
+            f"Style: Default,Arial,{request.font_size},{request.font_color},{request.highlight_color},&H00000000,"
             f"&H80000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1\n\n"
             "[Events]\n"
-            "Format: Layer, Start, End, Style, Name, MarginL, MarginR, "
-            "MarginV, Effect, Text\n"
-            f"Dialogue: 0,{request.start_time:.2f},{request.start_time + request.duration:.2f},Default,,0,0,0,,"
-            f"{request.subtitle_text}\n"
+            "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+            f"Dialogue: 0,{start_ts},{end_ts},Default,,0,0,0,,{karaoke_chunks.strip()}\n"
         )
 
         # Save ASS file
@@ -190,42 +222,64 @@ def generate_ass_file_tool(request: SubtitleRequest) -> str:
 
 
 @tool
-def search_media_library(
-    query: str, asset_type: Optional[str] = None
-) -> List[Dict[str, Any]]:
+def search_media_library(request: AssetSearchRequest) -> AssetSearchResult:
     """Search the hardcoded media library for assets.
 
     Args:
-        query: Search query (searches in description and tags)
-        asset_type: Filter by asset type (image, audio, video)
+        request: AssetSearchRequest with filters for type, tags, ids
 
     Returns:
-        List of matching assets with metadata
+        AssetSearchResult containing matching assets and total count
     """
     try:
-        query_lower = query.lower()
-        results = []
+        results: List[Any] = []
 
         for asset in MEDIA_LIBRARY_ASSETS:
-            # Filter by type if specified
-            if asset_type and asset.type != asset_type:
+            # Filter by type
+            if request.asset_type and asset.type != request.asset_type:
                 continue
 
-            # Search in description and tags
-            searchable_text = (f"{asset.description} {' '.join(asset.tags)}").lower()
+            # Filter by ids
+            if request.ids_any and asset.id not in set(request.ids_any):
+                continue
 
-            if query_lower in searchable_text:
-                results.append(asset)
+            # Filter by tags_any
+            if request.tags_any and not any(t in asset.tags for t in request.tags_any):
+                continue
 
-        return results
+            # Filter by tags_all
+            if request.tags_all and not all(t in asset.tags for t in request.tags_all):
+                continue
 
-    except (KeyError, TypeError) as e:
-        return [{"error": f"Error searching media library: {str(e)}"}]
+            # Filter by free-text query
+            if request.query:
+                searchable_text = (
+                    f"{asset.filename} {asset.description} {' '.join(asset.tags)}"
+                ).lower()
+                if request.query.lower() not in searchable_text:
+                    continue
+
+            results.append(asset)
+
+        return AssetSearchResult(assets=list(results), total_count=len(results))
+
+    except (KeyError, TypeError):
+        return AssetSearchResult(assets=[], total_count=0)
 
 
 @tool
-def analyze_video_quality(video_path: str) -> Dict[str, Any]:
+def analyze_video_quality(
+    video_path: str,
+    recent_renders: List[Dict[str, Any]] | None = None,
+    target_quality_score: float | None = None,
+) -> Dict[str, Any]:
     """Analyze video quality with an LLM and return combined scoring.
+
+    Inputs:
+        - video_path: Path to the video to evaluate
+        - recent_renders: Optional list of recent render dicts (<=3 recommended) providing
+          prior ffmpeg command, output paths, quality scores/breakdowns, created_at, media_used
+        - target_quality_score: Optional target score (0-10) for calibration context
 
     Returns dict:
         - quality_score: float (0-10)
@@ -257,16 +311,65 @@ def analyze_video_quality(video_path: str) -> Dict[str, Any]:
                 meta["audio_channels"] = a0.get("channels")
             meta["duration"] = fmt.get("duration")
             meta["bit_rate"] = fmt.get("bit_rate")
+            # Additional lightweight file info
+            try:
+                stat = os.stat(video_path)
+                meta["file_size_bytes"] = stat.st_size
+                meta["modified_time"] = getattr(stat, "st_mtime", None)
+                meta["created_time"] = getattr(stat, "st_ctime", None)
+            except Exception:
+                pass
+            try:
+                base = os.path.basename(video_path)
+                meta["file_name"] = base
+                meta["file_extension"] = os.path.splitext(base)[1].lower()
+            except Exception:
+                pass
         except Exception:
             # Non-fatal
             meta = {}
+
+        # Prepare prior renders context (most recent first, trimmed)
+        prior_context: Dict[str, Any] = {"recent_renders": []}
+        if target_quality_score is not None:
+            prior_context["target_quality_score"] = float(target_quality_score)
+        try:
+            renders_list = list(recent_renders or [])
+            try:
+                renders_list = sorted(
+                    renders_list,
+                    key=lambda r: float(r.get("created_at", 0.0) or 0.0),
+                    reverse=True,
+                )
+            except Exception:
+                pass
+            trimmed: List[Dict[str, Any]] = []
+            for r in renders_list[:3]:
+                try:
+                    trimmed.append(
+                        {
+                            "generated_video_file_path": r.get(
+                                "generated_video_file_path", ""
+                            ),
+                            "ffmpeg_command": r.get("ffmpeg_command", ""),
+                            "quality_score": r.get("quality_score", None),
+                            "quality_breakdown": r.get("quality_breakdown", None),
+                            "created_at": r.get("created_at", None),
+                            "media_used": r.get("media_used", []),
+                        }
+                    )
+                except Exception:
+                    continue
+            prior_context["recent_renders"] = trimmed
+        except Exception:
+            prior_context["recent_renders"] = []
 
         api_key = os.getenv("GOOGLE_API_KEY", "")
         if not api_key:
             return {"error": "GOOGLE_API_KEY not set for quality analysis"}
 
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
+            model="gemini-2.5-flash",
             google_api_key=api_key,
             temperature=0.2,
         )
@@ -294,13 +397,18 @@ Scores must be integers.
 Evaluate the video using the provided metadata. You cannot view the file; judge based on plausible expectations.
 Video Path: {video_path}
 Metadata: {metadata}
+
+ Prior renders (most recent first) and target, for calibration:
+ {prior_context}
                     """.strip(),
                 ),
             ]
         )
 
         messages = prompt.format_messages(
-            video_path=video_path, metadata=json.dumps(meta)
+            video_path=video_path,
+            metadata=json.dumps(meta),
+            prior_context=json.dumps(prior_context),
         )
         resp = llm.invoke(messages)
         content = getattr(resp, "content", "")
@@ -344,27 +452,27 @@ Metadata: {metadata}
 
 @tool
 def create_video(request: VideoCreationRequest) -> Dict[str, str]:
-    """Create a video using ffmpeg with multiple input files.
+    """Create an ffmpeg command string for the requested video composition.
 
-    Args:
-        request: VideoCreationRequest object containing video creation parameters
+    This does not execute ffmpeg. It returns a single command string and
+    optional notes. Use `execute_ffmpeg` to run the command separately.
 
-    Returns:
-        Path to the created video or error message
+    Returns: { ffmpeg_command, output_path, notes }
     """
     try:
-        # Ensure output directory exists
-        os.makedirs(os.path.dirname(request.output_path), exist_ok=True)
+        if not request.input_files:
+            raise ToolExecutionError("No input files provided")
 
-        # Separate input files by type
-        images = []
-        videos = []
-        audio_files = []
+        # Partition input files by type and verify existence
+        images: List[str] = []
+        videos: List[str] = []
+        audio_files: List[str] = []
 
         for file_path in request.input_files:
+            if not isinstance(file_path, str):
+                continue
             if not os.path.exists(file_path):
                 continue
-
             ext = os.path.splitext(file_path)[1].lower()
             if ext in [".jpg", ".jpeg", ".png", ".bmp"]:
                 images.append(file_path)
@@ -373,77 +481,225 @@ def create_video(request: VideoCreationRequest) -> Dict[str, str]:
             elif ext in [".mp3", ".wav", ".aac", ".m4a"]:
                 audio_files.append(file_path)
 
-        # Build ffmpeg command
-        inputs = []
-
-        # Add images
-        for img in images:
-            inputs.append(ffmpeg.input(img, loop=1, t=request.duration))
-
-        # Add videos
-        for vid in videos:
-            inputs.append(ffmpeg.input(vid))
-
-        # Add audio
-        for audio in audio_files:
-            inputs.append(ffmpeg.input(audio))
-
-        if not inputs:
+        if not images and not videos and not audio_files:
             raise ToolExecutionError("No valid input files found")
 
-        # Create video stream
-        if len(inputs) == 1:
-            video_stream = inputs[0].video
-        else:
-            # Concatenate multiple inputs
-            video_stream = ffmpeg.concat(*inputs, v=1, a=0)
+        # Choose primary visual source: prefer first video, else first image
+        primary_visual = videos[0] if videos else (images[0] if images else None)
+        if primary_visual is None:
+            raise ToolExecutionError("No visual input (image/video) provided")
 
-        # Scale to desired resolution
-        width, height = request.resolution.split("x")
-        video_stream = video_stream.filter("scale", width, height)
-
-        # Add audio if available
-        if audio_files:
-            audio_stream = ffmpeg.input(audio_files[0])
-            output = ffmpeg.output(
-                video_stream,
-                audio_stream,
-                request.output_path,
-                vcodec="libx264",
-                acodec="aac",
-                r=request.fps,
-                t=request.duration,
-            )
-        else:
-            output = ffmpeg.output(
-                video_stream,
-                request.output_path,
-                vcodec="libx264",
-                r=request.fps,
-                t=request.duration,
-            )
-
-        # Compose command string (best-effort) for observability
-        try:
-            command_str = ffmpeg.compile(output)
-        except Exception:
-            command_str = "ffmpeg <compiled>"
-
-        # Run ffmpeg
-        try:
-            ffmpeg.run(output, overwrite_output=True, quiet=True)
-        except Exception as e:
+        # Build an LLM plan for the ffmpeg command
+        api_key = os.getenv("GOOGLE_API_KEY", "")
+        if not api_key:
             raise ToolExecutionError(
-                f"FFmpeg failed: {e}",
-                command=command_str,  # type: ignore[str-bytes-safe]
+                "GOOGLE_API_KEY not set; cannot plan ffmpeg command with LLM"
             )
 
-        return {"output_path": request.output_path, "ffmpeg_command": command_str}
+        # Use a stronger model for command generation
+        llm = ChatGoogleGenerativeAI(
+            model=os.getenv("GOOGLE_VIDEO_CMD_MODEL", "gemini-2.5-pro"),
+            google_api_key=api_key,
+            temperature=0.2,
+        )
+
+        # Prepare prompt with strict JSON output
+        planning_prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    (
+                        "You are an expert ffmpeg engineer. Generate a SINGLE safe ffmpeg command "
+                        "that will run non-interactively and overwrite outputs (use -y). "
+                        "Respect the requested duration, fps, and resolution, maintaining aspect via scale+pad. "
+                        "If the primary visual is an image, loop it for the duration. If subtitles exist, overlay them. "
+                        "Prefer H.264 video (libx264, CRF 18-20, preset veryfast) and AAC audio 192k. "
+                        "Ensure cross-platform compatibility by adding -pix_fmt yuv420p. "
+                        'Return ONLY compact JSON: {"command": string, "notes": string}. '
+                        "Quote all file paths with single quotes. Do not include comments or backticks."
+                    ),
+                ),
+                (
+                    "human",
+                    (
+                        "Inputs JSON:\n{inputs}\n\n"
+                        "Primary visual: '{primary}'.\n"
+                        "Desired resolution: {resolution}, fps: {fps}, duration: {duration}s.\n"
+                        "Subtitle file: {subtitle}.\n"
+                        "Output path: '{output}'.\n"
+                        "Generate the command starting with 'ffmpeg'."
+                    ),
+                ),
+            ]
+        )
+
+        inputs_dict: Dict[str, Any] = {
+            "images": images,
+            "videos": videos,
+            "audio": audio_files,
+        }
+
+        messages = planning_prompt.format_messages(
+            inputs=json.dumps(inputs_dict),
+            primary=primary_visual,
+            resolution=request.resolution,
+            fps=request.fps,
+            duration=request.duration,
+            subtitle=(request.subtitle_path or ""),
+            output=request.output_path,
+        )
+
+        llm_resp = llm.invoke(messages)
+        llm_text = getattr(llm_resp, "content", "")
+
+        # Extract JSON and read command
+        try:
+            start = llm_text.find("{")
+            end = llm_text.rfind("}")
+            payload = (
+                llm_text[start : end + 1] if start != -1 and end != -1 else llm_text
+            )
+            plan_obj = json.loads(payload)
+            planned_command = str(plan_obj.get("command", "")).strip()
+            if not planned_command:
+                raise ValueError("No 'command' field produced by LLM")
+        except Exception as e:
+            raise ToolExecutionError(f"Failed to parse LLM plan: {e}")
+
+        # Safety and normalization: ensure 'ffmpeg' prefix and '-y', ensure output path present
+        if not planned_command.lower().startswith("ffmpeg"):
+            planned_command = f"ffmpeg {planned_command}"
+
+        if " -y " not in f" {planned_command} ":
+            # insert after 'ffmpeg'
+            parts = planned_command.split()
+            if parts and parts[0].lower() == "ffmpeg":
+                parts.insert(1, "-y")
+                planned_command = " ".join(parts)
+
+        if request.output_path not in planned_command:
+            planned_command = f"{planned_command} '{request.output_path}'"
+
+        return {
+            "output_path": request.output_path,
+            "ffmpeg_command": planned_command,
+            "notes": str(plan_obj.get("notes", "")),
+        }
 
     except ToolExecutionError:
         raise
     except (OSError, RuntimeError, ValueError) as e:
         raise ToolExecutionError(f"Error creating video: {str(e)}")
+
+
+@tool
+def execute_ffmpeg(request: FFmpegExecuteRequest) -> Dict[str, str]:
+    """Execute a provided ffmpeg command via subprocess with timeout and logs.
+
+    Ensures '-y' overwrite flag is present. If output_path is provided, creates
+    its parent directory ahead of time. Returns stdout/stderr tails for debugging.
+    """
+    try:
+        if not isinstance(request.command, str) or not request.command.strip():
+            raise ToolExecutionError("Command must be a non-empty string")
+
+        if not shutil.which("ffmpeg"):
+            raise ToolExecutionError("ffmpeg not found on PATH. Please install ffmpeg.")
+
+        # Ensure output directory exists if provided
+        if request.output_path:
+            out_dir = os.path.dirname(request.output_path) or "."
+            os.makedirs(out_dir, exist_ok=True)
+
+        planned_command = request.command.strip()
+        if not planned_command.lower().startswith("ffmpeg"):
+            planned_command = f"ffmpeg {planned_command}"
+
+        if " -y " not in f" {planned_command} ":
+            parts = planned_command.split()
+            if parts and parts[0].lower() == "ffmpeg":
+                parts.insert(1, "-y")
+                planned_command = " ".join(parts)
+
+        try:
+            cmd_list = shlex.split(planned_command)
+        except Exception as e:
+            raise ToolExecutionError(f"Invalid command: {e}", command=planned_command)
+
+        try:
+            completed = subprocess.run(
+                cmd_list,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=max(10, int(getattr(request, "timeout_seconds", 180))),
+            )
+        except subprocess.TimeoutExpired:
+            raise ToolExecutionError(
+                f"FFmpeg timed out after {getattr(request, 'timeout_seconds', 180)}s",
+                command=planned_command,
+            )
+        except OSError as e:
+            raise ToolExecutionError(
+                f"Failed to run ffmpeg: {e}", command=planned_command
+            )
+
+        stdout_tail = (completed.stdout or "")[-2000:]
+        stderr_tail = (completed.stderr or "")[-4000:]
+
+        if completed.returncode != 0:
+            raise ToolExecutionError(
+                f"FFmpeg failed with code {completed.returncode}: {stderr_tail[-800:]}",
+                command=planned_command,
+            )
+
+        return {
+            "output_path": request.output_path or "",
+            "ffmpeg_command": planned_command,
+            "stdout_tail": stdout_tail,
+            "stderr_tail": stderr_tail,
+        }
+    except ToolExecutionError:
+        raise
+    except (OSError, RuntimeError, ValueError) as e:
+        raise ToolExecutionError(f"Error executing ffmpeg: {str(e)}")
+
+
+@tool
+def list_recent_renders(renders: List[dict] | None = None, limit: int = 2) -> Dict[str, Any]:
+    """Return the most recent render records for LLM context.
+
+    Provide agent state's renders as list[dict] (e.g., via model_dump). Returns up to
+    `limit` items with ffmpeg command, output path, quality, and media used.
+    """
+    try:
+        if not renders:
+            return {"renders": []}
+        try:
+            sorted_items = sorted(
+                renders,
+                key=lambda r: float(r.get("created_at", 0.0) or 0.0),
+                reverse=True,
+            )
+        except Exception:
+            sorted_items = list(renders)
+
+        trimmed: List[Dict[str, Any]] = []
+        for r in sorted_items[: max(1, int(limit))]:
+            trimmed.append(
+                {
+                    "ffmpeg_command": r.get("ffmpeg_command", ""),
+                    "generated_video_file_path": r.get("generated_video_file_path", ""),
+                    "quality_score": r.get("quality_score", None),
+                    "quality_breakdown": r.get("quality_breakdown", None),
+                    "created_at": r.get("created_at", None),
+                    "media_used": r.get("media_used", []),
+                }
+            )
+
+        return {"renders": trimmed}
+    except Exception as e:
+        return {"renders": [], "error": str(e)}
 
 
 # Initialize tmp directories
@@ -459,3 +715,81 @@ def initialize_tmp_directories():
 
     for directory in directories:
         os.makedirs(directory, exist_ok=True)
+
+
+def _safe_remove_path(path: str) -> tuple[bool, str | None]:
+    """Attempt to remove a file or directory tree safely.
+
+    Returns (success, error_message_or_None).
+    """
+    try:
+        if not os.path.exists(path):
+            return True, None
+        if os.path.isdir(path) and not os.path.islink(path):
+            shutil.rmtree(path, ignore_errors=False)
+        else:
+            os.remove(path)
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+
+def cleanup_tmp_directories(preserve_paths: List[str] | None = None) -> Dict[str, Any]:
+    """Cleanup temporary files created by the video generation agent.
+
+    This removes files from known temp directories while preserving any paths
+    explicitly listed in `preserve_paths` (e.g., the final video output).
+
+    It intentionally does NOT delete the media library directory `/tmp/assets`.
+
+    Returns a summary dict with keys: removed_files, errors, preserved, directories_processed.
+    """
+    preserved: set[str] = set(preserve_paths or [])
+
+    # Directories that hold ephemeral artifacts
+    target_directories: List[str] = [
+        "/tmp/unsplash",          # documented location
+        "/tmp/unsplash_photos",   # actual download location used by tool
+        "/tmp/audio",
+        "/tmp/subtitles",
+        "/tmp/videos",            # keep final video if preserved
+    ]
+
+    removed: List[str] = []
+    errors: List[str] = []
+    processed: List[str] = []
+
+    for directory in target_directories:
+        if not os.path.isdir(directory):
+            continue
+        processed.append(directory)
+
+        try:
+            for name in os.listdir(directory):
+                candidate = os.path.join(directory, name)
+                # Preserve any explicitly preserved file
+                if candidate in preserved:
+                    continue
+                ok, err = _safe_remove_path(candidate)
+                if ok:
+                    removed.append(candidate)
+                elif err:
+                    errors.append(f"{candidate}: {err}")
+        except Exception as e:
+            errors.append(f"{directory}: {e}")
+
+        # Optionally remove empty aux directories (but keep /tmp/videos for future runs)
+        try:
+            if directory != "/tmp/videos" and not os.listdir(directory):
+                # best-effort remove empty dir
+                os.rmdir(directory)
+        except Exception:
+            # non-fatal
+            pass
+
+    return {
+        "removed_files": removed,
+        "errors": errors,
+        "preserved": sorted(list(preserved)),
+        "directories_processed": processed,
+    }
