@@ -16,7 +16,7 @@ import subprocess
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
 
 import httpx
 from dotenv import load_dotenv
@@ -116,7 +116,7 @@ def init_and_create_directory(state: VideoAgentState) -> VideoAgentState:
     }
 
 
-def define_personas(_: VideoAgentState) -> VideoAgentState:
+def define_personas(state: VideoAgentState) -> VideoAgentState:
     """Define a catalog of personas to mirror the n8n node."""
     personas: Dict[str, Dict[str, str]] = {
         "Omar US Developer": {
@@ -293,10 +293,12 @@ def generate_prompt_for_current(state: VideoAgentState) -> VideoAgentState:
     )
 
     structured_llm = llm.with_structured_output(PromptOutput)
-    response = structured_llm.invoke([SystemMessage(content=template)])
+    response = cast(PromptOutput, structured_llm.invoke([SystemMessage(content=template)]))
 
-    prompts_json = state.get("prompts_json", []) + [response]
-    prompt_strings = state.get("prompt_strings", []) + [response.prompt.prompt_string]
+    existing_prompts = cast(List[PromptOutput], state.get("prompts_json", []))
+    prompts_json: List[PromptOutput] = [*existing_prompts, response]
+    existing_strings = cast(List[str], state.get("prompt_strings", []))
+    prompt_strings: List[str] = [*existing_strings, response.prompt.prompt_string]
     return {
         "prompts_json": prompts_json,
         "prompt_strings": prompt_strings,
@@ -351,7 +353,7 @@ def submit_fal_requests(state: VideoAgentState) -> VideoAgentState:
     return {"fal_requests": fal_requests}
 
 
-def wait_30_seconds(_: VideoAgentState) -> VideoAgentState:
+def wait_30_seconds(state: VideoAgentState) -> VideoAgentState:
     """Sleep for 30 seconds between polling attempts."""
     time.sleep(30)
     return {}
@@ -490,7 +492,7 @@ def complete(state: VideoAgentState) -> VideoAgentState:
 
 
 def prompt_loop_router(
-    _: VideoAgentState,
+    state: VideoAgentState,
 ) -> Literal["generate_prompt_for_current", "increment_index_and_loop"]:
     """Generate first, then decide whether to continue the loop."""
     return "generate_prompt_for_current"
