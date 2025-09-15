@@ -16,22 +16,21 @@ import subprocess
 import time
 import uuid
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
 
 import httpx
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage
 from langchain_core.utils import convert_to_secret_str
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
-from langgraph.runtime import Runtime
 
 from agent.models import (
     BuyingSituation,
     BuyingSituationsOutput,
     PromptOutput,
 )
-
 
 # Load environment variables from .env file if it exists
 _current_file = Path(__file__)
@@ -42,11 +41,18 @@ if _env_file.exists():
 
 
 class Context(TypedDict):
+    """Execution context passed via RunnableConfig.context."""
+
     anthropic_api_key: str
     max_iterations: int
 
 
 class VideoAgentState(TypedDict, total=False):
+    """Mutable state for the video agent across DAG nodes.
+
+    Marked total=False because nodes incrementally add keys as they progress.
+    """
+
     # Inputs
     persona_selection: str
     image_path: Optional[str]
@@ -78,11 +84,10 @@ class VideoAgentState(TypedDict, total=False):
     result: Dict[str, str]
 
 
-def _get_llm(runtime: Runtime[Context]) -> ChatAnthropic:
-    ctx = getattr(runtime, "context", None)
-    api_key_value = None
-    if isinstance(ctx, dict):
-        api_key_value = ctx.get("anthropic_api_key")
+def _get_llm(config: RunnableConfig) -> ChatAnthropic:
+    """Construct the Anthropic chat model using config context or env var."""
+    ctx: Dict[str, Any] = cast(Dict[str, Any], config.get("context", {})) if isinstance(config, dict) else {}
+    api_key_value = ctx.get("anthropic_api_key") if isinstance(ctx, dict) else None
     if not api_key_value:
         api_key_value = os.getenv("ANTHROPIC_API_KEY")
     return ChatAnthropic(
@@ -98,7 +103,8 @@ def _ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def init_and_create_directory(state: VideoAgentState, runtime: Runtime[Context]) -> VideoAgentState:
+def init_and_create_directory(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+    """Initialize execution and create a working directory under /tmp."""
     execution_id = uuid.uuid4().hex
     work_dir = Path(f"/tmp/n8n/{execution_id}")
     _ensure_dir(work_dir)
@@ -114,7 +120,8 @@ def init_and_create_directory(state: VideoAgentState, runtime: Runtime[Context])
     }
 
 
-def define_personas(_: VideoAgentState, __: Runtime[Context]) -> VideoAgentState:
+def define_personas(_: VideoAgentState, __: RunnableConfig) -> VideoAgentState:
+    """Define a catalog of personas to mirror the n8n node."""
     personas: Dict[str, Dict[str, str]] = {
         "Omar US Developer": {
             "name": "Omar Ali",
@@ -175,7 +182,8 @@ def define_personas(_: VideoAgentState, __: Runtime[Context]) -> VideoAgentState
     return {"personas": personas}
 
 
-def set_persona(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
+def set_persona(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+    """Select the active persona based on input selection."""
     selection = state.get("persona_selection")
     personas = state.get("personas", {})
     if not selection or selection not in personas:
@@ -183,35 +191,43 @@ def set_persona(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
     return {"persona": personas[selection]}
 
 
-def generate_buying_situations(state: VideoAgentState, runtime: Runtime[Context]) -> VideoAgentState:
-    persona = state["persona"]
-    llm = _get_llm(runtime)
-    system = SystemMessage(content=(
-        "Role play as {name}, a {age} {gender} from {location}, works as a {occupation} "
-        "earning {income}. {background}. You have been invited to review a new product "
-        "concept and reveal some deep, personal, and meaningful insights into when you would buy this offer. "
-        "Your responses should be great examples of initial reactions to the concept, but also reveal what moments "
-        "triggered you to search for this product, how you considered competing alternatives, and why ultimately you "
-        "chose to buy this specific offer.\n\n"
-        "Respond only with a valid JSON object. No markdown, code blocks, explanation, or escape characters — just raw JSON.\n\n"
-        "Rules:\n"
-        "- Always choose exactly 3 buying_situations.\n"
-        "- Return only a single root-level JSON object (no arrays).\n"
-        "- Do not wrap the JSON in quotes.\n"
-        "- Do not insert escape characters like \\n or \\\".\n"
-        "- Ensure all property names and string values use standard double quotes (\").\n"
-        "- Ensure each buying_situation includes: situation, location, trigger, evaluation, conclusion.\n"
-        "- Do not stop mid-way; close all braces and brackets.\n"
-    ).format(**persona))
+def generate_buying_situations(
+    state: VideoAgentState, config: RunnableConfig
+) -> VideoAgentState:
+    """Ask the LLM to propose three buying situations for the persona."""
+    persona = state.get("persona")
+    if persona is None:
+        raise KeyError("persona missing; ensure set_persona ran before this node")
+    llm = _get_llm(config)
+    system = SystemMessage(
+        content=(
+            "Role play as {name}, a {age} {gender} from {location}, works as a {occupation} "
+            "earning {income}. {background}. You have been invited to review a new product "
+            "concept and reveal some deep, personal, and meaningful insights into when you would buy this offer. "
+            "Your responses should be great examples of initial reactions to the concept, but also reveal what moments "
+            "triggered you to search for this product, how you considered competing alternatives, and why ultimately you "
+            "chose to buy this specific offer.\n\n"
+            "Respond only with a valid JSON object. No markdown, code blocks, explanation, or escape characters — just raw JSON.\n\n"
+            "Rules:\n"
+            "- Always choose exactly 3 buying_situations.\n"
+            "- Return only a single root-level JSON object (no arrays).\n"
+            "- Do not wrap the JSON in quotes.\n"
+            '- Do not insert escape characters like \\n or \\".\n'
+            '- Ensure all property names and string values use standard double quotes (").\n'
+            "- Ensure each buying_situation includes: situation, location, trigger, evaluation, conclusion.\n"
+            "- Do not stop mid-way; close all braces and brackets.\n"
+        ).format(**persona)
     )
-    example = (
-        '{"persona":"Rhys UK Entrepreneur","buying_situations":{"celebrating_milestone":{"situation":"Celebrating a business milestone","location":"Private members\' club in London","trigger":"Closed a major deal with a new international client","evaluation":"Considered champagne and high-end cocktails, but wanted something more personal and rooted in tradition","conclusion":"Chose a premium single malt whisky to mark the achievement and share with colleagues, as it symbolised craftsmanship and success"},"hosting_partners":{"situation":"Hosting international partners","location":"Home office in Manchester","trigger":"Inviting overseas investors to discuss the next round of funding","evaluation":"Compared various spirits that would reflect UK culture; whisky stood out as a distinctly British offering","conclusion":"Bought a respected Scottish whisky to showcase local heritage and create a more authentic, memorable experience for guests"},"relaxing_weekend":{"situation":"Relaxing after a long week","location":"Apartment balcony overlooking the city","trigger":"Needed a way to unwind after late nights preparing pitches and handling staff issues","evaluation":"Looked at beer, gin, and wine; whisky appealed because it felt slower, more intentional, and suited to reflection","conclusion":"Chose whisky as a ritual drink — poured neat into a favourite glass, symbolising a pause and moment of clarity"}}}'
+
+    example = '{"persona":"Rhys UK Entrepreneur","buying_situations":{"celebrating_milestone":{"situation":"Celebrating a business milestone","location":"Private members\' club in London","trigger":"Closed a major deal with a new international client","evaluation":"Considered champagne and high-end cocktails, but wanted something more personal and rooted in tradition","conclusion":"Chose a premium single malt whisky to mark the achievement and share with colleagues, as it symbolised craftsmanship and success"},"hosting_partners":{"situation":"Hosting international partners","location":"Home office in Manchester","trigger":"Inviting overseas investors to discuss the next round of funding","evaluation":"Compared various spirits that would reflect UK culture; whisky stood out as a distinctly British offering","conclusion":"Bought a respected Scottish whisky to showcase local heritage and create a more authentic, memorable experience for guests"},"relaxing_weekend":{"situation":"Relaxing after a long week","location":"Apartment balcony overlooking the city","trigger":"Needed a way to unwind after late nights preparing pitches and handling staff issues","evaluation":"Looked at beer, gin, and wine; whisky appealed because it felt slower, more intentional, and suited to reflection","conclusion":"Chose whisky as a ritual drink — poured neat into a favourite glass, symbolising a pause and moment of clarity"}}}'
+    prompt = SystemMessage(
+        content=(
+            "Return JSON with fields persona (string) and buying_situations (object with exactly 3 keys).\n"
+            f"Example format: {example}"
+        )
     )
-    prompt = SystemMessage(content=(
-        "Return JSON with fields persona (string) and buying_situations (object with exactly 3 keys).\n"
-        f"Example format: {example}"
-    ))
-    text = llm.invoke([system, prompt]).content  # type: ignore[arg-type]
+    raw_content = llm.invoke([system, prompt]).content  # type: ignore[arg-type]
+    text = raw_content if isinstance(raw_content, str) else json.dumps(raw_content)
     # Parse and validate
     data = None
     for _ in range(2):
@@ -220,10 +236,15 @@ def generate_buying_situations(state: VideoAgentState, runtime: Runtime[Context]
             break
         except Exception:
             # Ask model to repair
-            text = llm.invoke([
-                SystemMessage(content="Repair and return valid JSON only, same schema."),
-                SystemMessage(content=text),
-            ]).content  # type: ignore[arg-type]
+            repair_raw = llm.invoke(
+                [
+                    SystemMessage(
+                        content="Repair and return valid JSON only, same schema."
+                    ),
+                    SystemMessage(content=text),
+                ]
+            ).content  # type: ignore[arg-type]
+            text = repair_raw if isinstance(repair_raw, str) else json.dumps(repair_raw)
     if data is None:
         raise ValueError("Failed to parse buying situations JSON")
     validated = BuyingSituationsOutput.model_validate(data)
@@ -237,11 +258,21 @@ def generate_buying_situations(state: VideoAgentState, runtime: Runtime[Context]
     }
 
 
-def generate_prompt_for_current(state: VideoAgentState, runtime: Runtime[Context]) -> VideoAgentState:
-    persona = state["persona"]
-    idx = state["situation_index"]
-    situation = state["situations_list"][idx]
-    llm = _get_llm(runtime)
+def generate_prompt_for_current(
+    state: VideoAgentState, config: RunnableConfig
+) -> VideoAgentState:
+    """Generate a Veo3 prompt for the current buying situation."""
+    persona = state.get("persona")
+    if persona is None:
+        raise KeyError("persona missing; ensure set_persona ran before this node")
+    idx = state.get("situation_index", 0)
+    situations_list = state.get("situations_list")
+    if situations_list is None:
+        raise KeyError("situations_list missing; ensure generate_buying_situations ran")
+    if not (0 <= idx < len(situations_list)):
+        raise IndexError("situation_index out of range")
+    situation = situations_list[idx]
+    llm = _get_llm(config)
 
     template = (
         "You are a director of a qualitative research agency that specialises in creating realistic simulated testimonials that capture buying situations for new product concepts.\n\n"
@@ -254,11 +285,11 @@ def generate_prompt_for_current(state: VideoAgentState, runtime: Runtime[Context
         "3. Assemble a final prompt string that combines these elements into a realistic video reaction setup.\n\n"
         "Respond only with a valid JSON object (no Markdown, no commentary).\n\n"
         "The JSON must have:\n"
-        "- \"scene_description.persona\" (character-based background)\n"
-        "- \"scene_description.appearance\" (physical/behavioral detail in the scene)\n"
-        "- \"quote\" (the 6–8 second soundbite)\n"
-        "- \"prompt_string\" (a single ready-to-use string in this format: \n"
-        "  The subject is [persona]. [appearance]. The subject looks directly into the phone camera, engaging with the viewer as if filming a personal story or reaction video. The lighting is natural and imperfect. They say: \"[quote]\")\n\n"
+        '- "scene_description.persona" (character-based background)\n'
+        '- "scene_description.appearance" (physical/behavioral detail in the scene)\n'
+        '- "quote" (the 6–8 second soundbite)\n'
+        '- "prompt_string" (a single ready-to-use string in this format: \n'
+        '  The subject is [persona]. [appearance]. The subject looks directly into the phone camera, engaging with the viewer as if filming a personal story or reaction video. The lighting is natural and imperfect. They say: "[quote]")\n\n'
         "Persona\n"
         f"Name: {persona['name']}\n"
         f"Age: {persona['age']}\n"
@@ -275,20 +306,30 @@ def generate_prompt_for_current(state: VideoAgentState, runtime: Runtime[Context
         f"Conclusion: {situation.conclusion}"
     )
 
-    text = llm.invoke([SystemMessage(content=template)]).content  # type: ignore[arg-type]
+    raw_content = llm.invoke([SystemMessage(content=template)]).content  # type: ignore[arg-type]
+    text = raw_content if isinstance(raw_content, str) else json.dumps(raw_content)
     data = None
     for _ in range(2):
         try:
             data = json.loads(text)
             break
         except Exception:
-            text = llm.invoke([
-                SystemMessage(content="Repair and return valid JSON only, schema: {prompt:{scene_description:{persona,appearance},quote,prompt_string}}"),
-                SystemMessage(content=text),
-            ]).content  # type: ignore[arg-type]
+            repair_raw = llm.invoke(
+                [
+                    SystemMessage(
+                        content="Repair and return valid JSON only, schema: {prompt:{scene_description:{persona,appearance},quote,prompt_string}}"
+                    ),
+                    SystemMessage(content=text),
+                ]
+            ).content  # type: ignore[arg-type]
+            text = repair_raw if isinstance(repair_raw, str) else json.dumps(repair_raw)
     if data is None:
         raise ValueError("Failed to parse prompt JSON")
-    validated = PromptOutput.model_validate({"prompt": data}) if "prompt" not in data else PromptOutput.model_validate(data)
+    validated = (
+        PromptOutput.model_validate({"prompt": data})
+        if "prompt" not in data
+        else PromptOutput.model_validate(data)
+    )
     prompts_json = state.get("prompts_json", []) + [validated]
     prompt_strings = state.get("prompt_strings", []) + [validated.prompt.prompt_string]
     return {
@@ -297,7 +338,10 @@ def generate_prompt_for_current(state: VideoAgentState, runtime: Runtime[Context
     }
 
 
-def next_prompt_or_submit(state: VideoAgentState) -> Literal["continue_prompt_loop", "submit_fal_requests"]:
+def next_prompt_or_submit(
+    state: VideoAgentState,
+) -> Literal["continue_prompt_loop", "submit_fal_requests"]:
+    """Route to continue generating prompts or submit the FAL requests."""
     idx = state.get("situation_index", 0)
     total = len(state.get("situations_list", []))
     if idx + 1 < total:
@@ -305,7 +349,8 @@ def next_prompt_or_submit(state: VideoAgentState) -> Literal["continue_prompt_lo
     return "submit_fal_requests"
 
 
-def increment_prompt_index(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
+def increment_prompt_index(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+    """Increment the situation index for the next prompt generation."""
     return {"situation_index": state.get("situation_index", 0) + 1}
 
 
@@ -321,7 +366,8 @@ def _fal_headers() -> Dict[str, str]:
     return {name: value} if value else {}
 
 
-def submit_fal_requests(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
+def submit_fal_requests(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+    """Submit prompt strings to the FAL queue API and collect request IDs."""
     base_url = os.getenv("FAL_QUEUE_URL", "https://queue.fal.run/fal-ai/veo3")
     headers = _fal_headers()
     prompt_strings = state.get("prompt_strings", [])
@@ -340,12 +386,14 @@ def submit_fal_requests(state: VideoAgentState, _: Runtime[Context]) -> VideoAge
     return {"fal_requests": fal_requests}
 
 
-def wait_30_seconds(_: VideoAgentState, __: Runtime[Context]) -> VideoAgentState:
+def wait_30_seconds(_: VideoAgentState, __: RunnableConfig) -> VideoAgentState:
+    """Sleep for 30 seconds between polling attempts."""
     time.sleep(30)
     return {}
 
 
-def poll_statuses(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
+def poll_statuses(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+    """Poll FAL status endpoints and mark completion when all are done."""
     headers = _fal_headers()
     statuses: List[str] = []
     with httpx.Client(timeout=30) as client:
@@ -359,12 +407,18 @@ def poll_statuses(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentStat
     return {"statuses": statuses, "all_complete": all_complete}
 
 
-def all_completed_router(state: VideoAgentState) -> Literal["fetch_video_urls", "wait_again"]:
+def all_completed_router(
+    state: VideoAgentState,
+) -> Literal["fetch_video_urls", "wait_again"]:
+    """Route to fetch URLs if completed, otherwise wait again."""
     return "fetch_video_urls" if state.get("all_complete") else "wait_again"
 
 
-def fetch_video_urls(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
-    base_url = os.getenv("FAL_REQUEST_URL_BASE", "https://queue.fal.run/fal-ai/veo3/requests")
+def fetch_video_urls(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+    """Fetch finalized video URLs from FAL request endpoints."""
+    base_url = os.getenv(
+        "FAL_REQUEST_URL_BASE", "https://queue.fal.run/fal-ai/veo3/requests"
+    )
     headers = _fal_headers()
     video_urls: List[str] = []
     with httpx.Client(timeout=60) as client:
@@ -386,8 +440,12 @@ def fetch_video_urls(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentS
     return {"video_urls": video_urls}
 
 
-def download_videos(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
-    work_dir = Path(state["work_dir"])  # guaranteed from init
+def download_videos(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+    """Download video files to the working directory."""
+    work_dir_str = state.get("work_dir")
+    if not work_dir_str:
+        raise KeyError("work_dir missing; ensure init_and_create_directory ran")
+    work_dir = Path(work_dir_str)
     _ensure_dir(work_dir)
     files: List[str] = []
     with httpx.Client(timeout=None, follow_redirects=True) as client:
@@ -404,11 +462,15 @@ def download_videos(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentSt
     return {"downloaded_files": files}
 
 
-def prepare_concat_file(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
-    work_dir = Path(state["work_dir"])  # guaranteed
+def prepare_concat_file(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+    """Prepare ffmpeg concat file listing downloaded videos."""
+    work_dir_str = state.get("work_dir")
+    if not work_dir_str:
+        raise KeyError("work_dir missing; ensure init_and_create_directory ran")
+    work_dir = Path(work_dir_str)
     list_path = work_dir / "videos.txt"
     lines = []
-    for p in sorted(Path(state["work_dir"]).glob("*.mp4")):
+    for p in sorted(work_dir.glob("*.mp4")):
         lines.append(f"file '{p.name}'\n")
     list_path.write_text("".join(lines), encoding="utf-8")
     return {}
@@ -418,8 +480,12 @@ def _which(cmd: str) -> Optional[str]:
     return shutil.which(cmd)
 
 
-def merge_videos_ffmpeg(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
-    work_dir = Path(state["work_dir"])  # guaranteed
+def merge_videos_ffmpeg(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+    """Merge downloaded videos using ffmpeg concat demuxer."""
+    work_dir_str = state.get("work_dir")
+    if not work_dir_str:
+        raise KeyError("work_dir missing; ensure init_and_create_directory ran")
+    work_dir = Path(work_dir_str)
     if not _which("ffmpeg"):
         raise RuntimeError("ffmpeg not found in PATH. Please install ffmpeg.")
     videos_txt = work_dir / "videos.txt"
@@ -443,8 +509,11 @@ def merge_videos_ffmpeg(state: VideoAgentState, _: Runtime[Context]) -> VideoAge
     return {"final_output_path": str(final_path)}
 
 
-def complete(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
-    execution_id = state["execution_id"]
+def complete(state: VideoAgentState, _: RunnableConfig) -> VideoAgentState:
+    """Produce the final result payload with a local URL reference."""
+    execution_id = state.get("execution_id")
+    if not execution_id:
+        raise KeyError("execution_id missing; expected from init")
     video_url = f"http://localhost:3001/video/{execution_id}/final_output.mp4"
     return {
         "result": {
@@ -455,8 +524,10 @@ def complete(state: VideoAgentState, _: Runtime[Context]) -> VideoAgentState:
     }
 
 
-def prompt_loop_router(_: VideoAgentState) -> Literal["generate_prompt_for_current", "increment_index_and_loop"]:
-    # We always generate then decide whether to continue
+def prompt_loop_router(
+    _: VideoAgentState,
+) -> Literal["generate_prompt_for_current", "increment_index_and_loop"]:
+    """Always generate first, then decide whether to continue the loop."""
     return "generate_prompt_for_current"
 
 
@@ -481,13 +552,11 @@ graph = (
     .add_node("prepare_concat_file", prepare_concat_file)
     .add_node("merge_videos_ffmpeg", merge_videos_ffmpeg)
     .add_node("complete", complete)
-
     # Flow
     .add_edge(START, "init_and_create_directory")
     .add_edge("init_and_create_directory", "define_personas")
     .add_edge("define_personas", "set_persona")
     .add_edge("set_persona", "generate_buying_situations")
-
     # Prompt generation loop: generate -> decide -> either continue or move on
     .add_edge("generate_buying_situations", "generate_prompt_for_current")
     .add_conditional_edges(
@@ -499,7 +568,6 @@ graph = (
         },
     )
     .add_edge("increment_prompt_index", "generate_prompt_for_current")
-
     # Submit requests -> wait -> poll -> branch until all complete
     .add_edge("submit_fal_requests", "wait_30_seconds")
     .add_edge("wait_30_seconds", "poll_statuses")
@@ -511,7 +579,6 @@ graph = (
             "wait_again": "wait_30_seconds",
         },
     )
-
     # After completion: fetch URLs -> download -> prepare -> merge -> complete
     .add_edge("fetch_video_urls", "download_videos")
     .add_edge("download_videos", "prepare_concat_file")
@@ -520,4 +587,3 @@ graph = (
     .add_edge("complete", END)
     .compile(name="Testimonial Video Generator DAG Agent")
 )
-
