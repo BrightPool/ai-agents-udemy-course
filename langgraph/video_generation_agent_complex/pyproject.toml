@@ -12,7 +12,6 @@ dependencies = [
     "langgraph>=0.2.6",
     "python-dotenv>=1.0.1",
     "langchain-google-genai>=2.0.0",
-    "google-genai>=0.6.0",
     "elevenlabs>=1.0.0",
     "openai>=1.40.0",
     "requests>=2.31.0",
@@ -20,7 +19,8 @@ dependencies = [
     "ffmpeg-python>=0.2.0",
     "aiofiles>=23.0.0",
     "httpx>=0.25.0",
-    "fal-client>=0.4.0",
+    "replicate>=1.0.0",
+    "fal-client>=0.5.0",
 ]
 
 
@@ -86,6 +86,8 @@ module = [
     "ffmpeg.*",
     "elevenlabs.*",
     "openai.*",
+    "replicate.*",
+    "fal_client.*",
     "aiofiles.*",
     "httpx.*",
     "langchain_core.*",

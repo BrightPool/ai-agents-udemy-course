@@ -8,12 +8,9 @@ from langchain.chat_models import init_chat_model
 from langchain_core.messages import (
     AIMessage,
     HumanMessage,
-    MessageLikeRepresentation,
-    filter_messages,
 )
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import (
-    BaseTool,
     InjectedToolArg,
 )
 from langchain_core.tools import (
@@ -42,7 +39,6 @@ except AttributeError:
 
 
 from agent.configuration import Configuration
-from agent.state import ResearchComplete
 
 ##########################
 # OpenAI Search Tool Utils
@@ -87,13 +83,11 @@ async def openai_search(
         tags=["langsmith:nostream"],
     )
 
-    # Process each query
-    all_results = []
-    for query in queries:
+    # Helper to run a single query
+    async def run_single_query(q: str):
         try:
-            # Create research prompt based on topic
             if topic == "news":
-                prompt = f"""Please provide a comprehensive research summary for the following current events query: "{query}"
+                prompt = f"""Please provide a comprehensive research summary for the following current events query: "{q}"
 
 Focus on recent developments and provide:
 1. Key facts and developments
@@ -103,7 +97,7 @@ Focus on recent developments and provide:
 
 Be thorough and objective. Include dates where relevant."""
             else:
-                prompt = f"""Please provide comprehensive information for the following research query: "{query}"
+                prompt = f"""Please provide comprehensive information for the following research query: "{q}"
 
 Structure your response to include:
 1. Key facts and background information
@@ -113,33 +107,32 @@ Structure your response to include:
 
 Be thorough and provide detailed, accurate information based on your knowledge."""
 
-            # Get research response from OpenAI
             response = await research_model.ainvoke([HumanMessage(content=prompt)])
-
-            result = {
-                "query": query,
-                "title": f"Research Results for: {query}",
+            return {
+                "query": q,
+                "title": f"Research Results for: {q}",
                 "content": response.content,
-                "url": f"openai-research://{query.replace(' ', '-').lower()}",
+                "url": f"openai-research://{q.replace(' ', '-').lower()}",
             }
-            all_results.append(result)
-
         except Exception as e:
-            # Handle errors gracefully
-            error_result = {
-                "query": query,
-                "title": f"Research Error for: {query}",
+            return {
+                "query": q,
+                "title": f"Research Error for: {q}",
                 "content": f"Unable to complete research for this query. Error: {str(e)}",
-                "url": f"openai-research-error://{query.replace(' ', '-').lower()}",
+                "url": f"openai-research-error://{q.replace(' ', '-').lower()}",
             }
-            all_results.append(error_result)
+
+    # Run queries concurrently
+    import asyncio as _asyncio
+
+    results_list = await _asyncio.gather(*[run_single_query(q) for q in queries])
 
     # Format the final output
-    if not all_results:
+    if not results_list:
         return "No research results could be generated. Please try different queries."
 
     formatted_output = f"OpenAI Research Results ({topic} focus):\n\n"
-    for i, result in enumerate(all_results, 1):
+    for i, result in enumerate(results_list, 1):
         formatted_output += f"\n\n--- RESEARCH RESULT {i}: {result['title']} ---\n"
         formatted_output += f"Query: {result['query']}\n"
         formatted_output += "Source: OpenAI Knowledge Base\n\n"
@@ -190,26 +183,6 @@ def think_tool(reflection: str) -> str:
 ##########################
 # Tool Utils
 ##########################
-
-
-##########################
-# Tool Utils
-##########################
-
-
-async def get_all_tools(config: RunnableConfig):
-    """Assemble toolkit for research: OpenAI-only + OpenAI search + think_tool."""
-    tools: list[BaseTool] = [tool_decorator(ResearchComplete), think_tool]
-    # Always include OpenAI search tool
-    tools.append(openai_search)
-    return tools
-
-
-def get_notes_from_tool_calls(messages: list[MessageLikeRepresentation]):
-    """Extract notes from tool call messages."""
-    return [
-        tool_msg.content for tool_msg in filter_messages(messages, include_types="tool")
-    ]
 
 
 ##########################
@@ -468,8 +441,8 @@ def get_model_token_limit(model_string):
 
 
 def remove_up_to_last_ai_message(
-    messages: list[MessageLikeRepresentation],
-) -> list[MessageLikeRepresentation]:
+    messages: list,
+) -> list:
     """Truncate message history by removing up to the last AI message.
 
     This is useful for handling token limit exceeded errors by removing recent context.

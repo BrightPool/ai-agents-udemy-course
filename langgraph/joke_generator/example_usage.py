@@ -6,13 +6,13 @@ This script demonstrates the functionality that mirrors the DSPy example provide
 """
 
 import os
+from typing import Any, Dict, Literal, cast
 
 from dotenv import load_dotenv
+from langchain_core.runnables import RunnableConfig
 
 from src.agent.graph import graph
 from src.agent.models import AudienceEvaluationResult, JokeGeneratorState
-from typing import Any, Dict, cast
-from langchain_core.runnables import RunnableConfig
 
 # Load environment variables
 load_dotenv()
@@ -51,7 +51,7 @@ def create_audience_evaluator():
             initial_state: JokeGeneratorState = {
                 "topic": "evaluation",
                 "joke": joke,
-                "lm_type": "cheap"
+                "lm_type": "cheap",
             }
 
             # Run the graph
@@ -73,10 +73,10 @@ def create_audience_evaluator():
     return AudienceEvaluator()
 
 
-def generate_joke_with_evaluation(topic: str, lm_type: str = "cheap"):
+def generate_joke_with_evaluation(topic: str, lm_type: Literal["cheap", "smart"] = "cheap"):
     """Generate a joke and evaluate it using the LangGraph system."""
     # Initial state for joke generation
-    initial_state: JokeGeneratorState = {"topic": topic, "lm_type": lm_type}  # type: ignore[assignment]
+    initial_state: JokeGeneratorState = {"topic": topic, "lm_type": lm_type}
 
     # Run the complete graph
     config_dict: Dict[str, Any] = {

@@ -103,35 +103,56 @@ class VideoGenerationContext(BaseModel):
         8.0, description="Target quality score", ge=0, le=10
     )
     google_api_key: str = Field(..., description="Google Gemini API key")
-    fal_key: Optional[str] = Field(
-        None, description="fal.ai API key for Kling endpoints"
-    )
-    # Legacy/unused keys kept optional for compatibility
-    elevenlabs_api_key: Optional[str] = Field(None, description="ElevenLabs API key")
-    unsplash_access_key: Optional[str] = Field(None, description="Unsplash API key")
+    elevenlabs_api_key: str = Field(..., description="ElevenLabs API key")
+    unsplash_access_key: str = Field(..., description="Unsplash API key")
 
 
 class VideoGenerationState(BaseModel):
-    """Minimal state for the video generation agent."""
+    """State for the video generation agent."""
 
-    # Conversation and required input
+    # Core state
     messages: List[BaseMessage] = Field(default_factory=list)
+
+    # Required inputs
     user_request: str = Field(..., description="User's video generation request")
+
+    # Video generation state
+    video_quality: Optional[float] = Field(None, ge=0, le=10)
+    ffmpeg_command: Optional[str] = Field(None, description="FFmpeg command used")
+    assets_used: Optional[List[str]] = Field(None, description="Assets used in render")
+    number_of_renders: Optional[int] = Field(
+        None, description="Number of renders completed"
+    )
+    renders: Optional[List[RenderRecord]] = Field(None, description="Render records")
 
     # Iteration control
     current_iteration: Optional[int] = Field(
         None, description="Current iteration count"
     )
+    quality_satisfied: Optional[bool] = Field(
+        None, description="Whether quality target met"
+    )
     max_iterations_reached: Optional[bool] = Field(
         None, description="Whether max iterations reached"
     )
 
-    # Final artifact
+    # Generated content paths
+    generated_audio_path: Optional[str] = Field(
+        None, description="Path to generated audio"
+    )
+    generated_subtitle_path: Optional[str] = Field(
+        None, description="Path to generated subtitles"
+    )
+    downloaded_images: Optional[List[str]] = Field(
+        None, description="Downloaded image paths"
+    )
     final_video_path: Optional[str] = Field(None, description="Final video file path")
 
-    # User-provided visuals (first chat)
-    user_image_paths: Optional[List[str]] = Field(None, description="Local image paths")
-    user_image_urls: Optional[List[str]] = Field(None, description="Image URLs")
+    # Quality assessment
+    quality_feedback: Optional[str] = Field(None, description="Quality feedback text")
+    improvement_suggestions: Optional[List[str]] = Field(
+        None, description="Improvement suggestions"
+    )
 
 
 class VideoGenerationRequest(BaseModel):
@@ -179,22 +200,16 @@ class OpenAITranscriptionWord(BaseModel):
 class OpenAITranscriptionUsage(BaseModel):
     """Lightweight usage metadata returned by OpenAI for transcriptions."""
 
-    type: Optional[str] = Field(
-        None, description="Usage granularity type (e.g., duration)"
-    )
+    type: Optional[str] = Field(None, description="Usage granularity type (e.g., duration)")
     seconds: Optional[int] = Field(None, ge=0, description="Billed seconds if provided")
 
 
 class OpenAITranscriptionVerboseJson(BaseModel):
     """Subset of OpenAI verbose_json transcription response for convenience and typing."""
 
-    task: Optional[str] = Field(
-        None, description="Task performed (transcribe/translate)"
-    )
+    task: Optional[str] = Field(None, description="Task performed (transcribe/translate)")
     language: Optional[str] = Field(None, description="Detected language")
-    duration: Optional[float] = Field(
-        None, ge=0, description="Audio duration in seconds"
-    )
+    duration: Optional[float] = Field(None, ge=0, description="Audio duration in seconds")
     text: str = Field("", description="Full transcript text")
     words: Optional[List[OpenAITranscriptionWord]] = Field(
         None, description="Per-word timing information"
@@ -239,9 +254,7 @@ class ASSStyle(BaseModel):
         "yellow", description="Secondary (karaoke) colour (name or hex)"
     )
     outline_color: str = Field("black", description="Outline colour (name or hex)")
-    back_color: str = Field(
-        "&H80000000", description="Background/box colour in ASS or hex"
-    )
+    back_color: str = Field("&H80000000", description="Background/box colour in ASS or hex")
     bold: bool = Field(False, description="Bold text")
     italic: bool = Field(False, description="Italic text")
     underline: bool = Field(False, description="Underline text")
@@ -295,7 +308,9 @@ class SubtitleRequest(BaseModel):
     )
 
     # Advanced styles: either provide a style name and styles list, or rely on legacy
-    style_name: str = Field("Default", description="Style name to reference in Events")
+    style_name: str = Field(
+        "Default", description="Style name to reference in Events"
+    )
     styles: Optional[List[ASSStyle]] = Field(
         None, description="Optional list of styles to include in the ASS file"
     )
@@ -342,6 +357,27 @@ class FFmpegExecuteRequest(BaseModel):
         ),
     )
 
+
+class KlingVideoRequest(BaseModel):
+    """Schema for Kling text-to-video generation.
+
+    Supports either pure text prompting or starting from a first frame image.
+    The underlying provider can be configured via environment variable
+    `KLING_PROVIDER` ("replicate" or "fal").
+    """
+
+    prompt: str = Field(..., description="Text prompt for video generation")
+    negative_prompt: Optional[str] = Field(
+        "", description="Things to avoid in the output"
+    )
+    duration: int = Field(5, ge=1, description="Duration in seconds (commonly 5 or 10)")
+    aspect_ratio: Literal["16:9", "9:16", "1:1", "4:3"] = Field(
+        "16:9", description="Aspect ratio of the output video"
+    )
+    start_image_path: Optional[str] = Field(
+        None,
+        description="Optional local image path to use as first frame",
+    )
 
 class QualityAssessmentResult(BaseModel):
     """Schema for video quality assessment results."""
@@ -423,94 +459,3 @@ class VideoGenerationSummary(BaseModel):
     renders: Optional[List[RenderRecord]] = Field(
         None, description="Raw render records collected during the process"
     )
-
-
-"""
-Additional models for storyboard and image/video generation tools.
-"""
-
-
-class StoryboardScene(BaseModel):
-    """Single storyboard scene with prompt useful for image/video generation."""
-
-    id: str = Field(..., description="Scene identifier (e.g., beginning, middle, end)")
-    title: str = Field(..., description="Short scene title")
-    description: str = Field(..., description="Narrative description of the scene")
-    prompt: str = Field(
-        ..., description="Concise visual prompt for image/video generation"
-    )
-    duration_seconds: float = Field(6.0, gt=0, description="Scene duration in seconds")
-
-
-class Storyboard(BaseModel):
-    """Storyboard describing a product advertisement concept."""
-
-    product_name: str
-    brand: str
-    target_audience: str
-    key_message: str
-    tone: str
-    scenes: List[StoryboardScene] = Field(default_factory=list)
-
-
-class StoryboardCreateRequest(BaseModel):
-    """Request to create a storyboard for a product advertisement."""
-
-    product_name: str
-    brand: str
-    target_audience: str
-    key_message: str
-    tone: str
-    scenes_count: int = Field(3, ge=1, le=10)
-    default_scene_duration_seconds: float = Field(6.0, gt=0)
-
-
-class StoryboardUpdateRequest(BaseModel):
-    """Request to update an existing storyboard given natural language instructions."""
-
-    storyboard: Storyboard
-    instructions: str = Field(
-        ..., description="Editing instructions for the storyboard"
-    )
-
-
-class GenerateImageRequest(BaseModel):
-    """Request to generate image(s) from text using Gemini Image API."""
-
-    prompt: str = Field(..., min_length=1)
-    num_images: int = Field(1, ge=1, le=4)
-    output_basename: str = Field(
-        "product_ad_image", description="Base filename for saved images (no ext)"
-    )
-    input_image_paths: Optional[List[str]] = Field(
-        None, description="Optional local image paths for edit/composition"
-    )
-    input_image_urls: Optional[List[str]] = Field(
-        None, description="Optional image URLs for edit/composition"
-    )
-
-
-class KlingVideoRequest(BaseModel):
-    """Request to generate a video from a still image using fal.ai Kling endpoint."""
-
-    prompt: str = Field(..., description="Video prompt / scene description")
-    image_path: Optional[str] = Field(
-        None, description="Local path to input image; uploaded if provided"
-    )
-    image_url: Optional[str] = Field(
-        None, description="Public URL to input image; used if provided"
-    )
-    duration_seconds: float = Field(6.0, gt=1.0, le=60.0)
-    endpoint: str = Field(
-        "fal-ai/kling/v1", description="fal endpoint id for Kling variant"
-    )
-    seed: Optional[int] = Field(None, description="Optional seed for reproducibility")
-
-
-class KlingVideoResult(BaseModel):
-    """Result metadata for Kling video generation."""
-
-    request_id: Optional[str] = None
-    video_url: Optional[str] = None
-    video_path: Optional[str] = None
-    logs: Optional[List[str]] = None

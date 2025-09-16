@@ -8,12 +8,18 @@ These are the messages that have been exchanged so far from the user asking for 
 
 Today's date is {date}.
 
-Assess whether you need to ask a clarifying question, or if the user has already provided enough information for you to start research.
-IMPORTANT: If you can see in the messages history that you have already asked a clarifying question, you almost always do not need to ask another one. Only ask another question if ABSOLUTELY NECESSARY.
+Always ask the user to provide the following briefing details before research begins. Do NOT ask about deliverables/format—we only produce a text report.
 
-If there are acronyms, abbreviations, or unknown terms, ask the user to clarify.
-If you need to ask a question, follow these guidelines:
+Please request concise bullet-point answers for:
+- Objective — What do you want? (e.g., full digital marketing strategy, channel-specific plan, audit, campaign ideas, training, KPIs/report)
+- Target audience & geography — Who are your customers and where are they located?
+- Channels — Any channels to prioritize? (SEO, PPC/Google Ads, social media, email, content, affiliates, marketplaces, etc.) Or “any”
+- Goals & timeframe — Main goals (brand awareness, leads, sales, retention) and timeline (90 days, 6 months, 12 months)
+- Competitors or benchmarks — Any competitors or examples to match/beat
+
+Guidelines for the question:
 - Be concise while gathering all necessary information
+- If the user immediately asks for a report, then please generate it.
 - Make sure to gather all the information needed to carry out the research task in a concise, well-structured manner.
 - Use bullet points or numbered lists if appropriate for clarity. Make sure that this uses markdown formatting and will be rendered correctly if the string output is passed to a markdown renderer.
 - Don't ask for unnecessary information, or information that the user has already provided. If you can see that the user has already provided the information, do not ask for it again.
@@ -23,21 +29,10 @@ Respond in valid JSON format with these exact keys:
 "question": "<question to ask the user to clarify the report scope>",
 "verification": "<verification message that we will start research>"
 
-If you need to ask a clarifying question, return:
+You must ask a clarifying question. Return:
 "need_clarification": true,
 "question": "<your clarifying question>",
 "verification": ""
-
-If you do not need to ask a clarifying question, return:
-"need_clarification": false,
-"question": "",
-"verification": "<acknowledgement message that you will now start research based on the provided information>"
-
-For the verification message when no clarification is needed:
-- Acknowledge that you have sufficient information to proceed
-- Briefly summarize the key aspects of what you understand from their request
-- Confirm that you will now begin the research process
-- Keep the message concise and professional
 """
 
 
@@ -74,6 +69,29 @@ Guidelines:
 - For academic or scientific queries, prefer linking directly to the original paper or official journal publication rather than survey papers or secondary summaries.
 - For people, try linking directly to their LinkedIn profile, or their personal website if they have one.
 - If the query is in a specific language, prioritize sources published in that language.
+"""
+
+
+generate_research_queries_prompt = """You will be given the user's messages and a research brief. Generate a diverse, comprehensive list of specific search queries to fully answer the brief.
+
+<Messages>
+{messages}
+</Messages>
+
+<Research Brief>
+{research_brief}
+</Research Brief>
+
+Today's date is {date}.
+
+Guidelines:
+1. Return exactly {num_queries} distinct queries
+2. Cover the breadth of the topic without duplication
+3. Prefer concrete, answerable queries that can return authoritative information
+4. Include variations that target different facets and examples
+5. Avoid overly broad or vague phrasing
+
+Respond with a simple list. Do not include numbering or extra commentary, one query per line.
 """
 
 lead_researcher_prompt = """You are a research supervisor. Your job is to conduct research by calling the "ConductResearch" tool. For context, today's date is {date}.
@@ -225,7 +243,7 @@ compress_research_simple_human_message = """All above messages are about researc
 
 DO NOT summarize the information. I want the raw information returned, just in a cleaner format. Make sure all relevant information is preserved - you can rewrite findings verbatim."""
 
-final_report_generation_prompt = """Based on all the research conducted, create a comprehensive, well-structured answer to the overall research brief:
+final_report_generation_prompt = """Based on all the research conducted, create a concise, well-structured answer to the overall research brief:
 <Research Brief>
 {research_brief}
 </Research Brief>
@@ -245,11 +263,11 @@ Here are the findings from the research that you conducted:
 {findings}
 </Findings>
 
-Please create a detailed answer to the overall research brief that:
+Please create a concise, focused answer to the overall research brief that:
 1. Is well-organized with proper headings (# for title, ## for sections, ### for subsections)
-2. Includes specific facts and insights from the research
+2. Includes key facts and insights from the research
 3. References relevant sources using [Title](URL) format
-4. Provides a balanced, thorough analysis. Be as comprehensive as possible, and include all information that is relevant to the overall research question. People are using you for deep research and will expect detailed, comprehensive answers.
+4. Provides a balanced analysis focusing on the most important findings. Aim for approximately 2 pages of content when formatted.
 5. Includes a "Sources" section at the end with all referenced links
 
 You can structure your report in a number of different ways. Here are some examples:
@@ -286,7 +304,7 @@ For each section of the report, do the following:
 - Use ## for section title (Markdown format) for each section of the report
 - Do NOT ever refer to yourself as the writer of the report. This should be a professional report without any self-referential language.
 - Do not say what you are doing in the report. Just write the report without any commentary from yourself.
-- Each section should be as long as necessary to deeply answer the question with the information you have gathered. It is expected that sections will be fairly long and verbose. You are writing a deep research report, and users will expect a thorough answer.
+- Each section should be concise while covering the key points. Focus on the most important information and avoid unnecessary details. Aim for clarity and brevity while ensuring all essential points are covered.
 - Use bullet points to list out information when appropriate, but by default, write in paragraph form.
 
 REMEMBER:

@@ -24,26 +24,38 @@ from .models import (
     VideoGenerationState,
 )
 from .tools import (
+    analyze_video_quality as analyze_video_quality_tool,
+)
+from .tools import (
     cleanup_tmp_directories,
     initialize_tmp_directories,
 )
 from .tools import (
-    create_story_board as create_story_board_tool,
+    create_video as create_video_tool,
 )
 from .tools import (
-    generate_image as generate_image_tool,
+    elevenlabs_text_to_speech as elevenlabs_tts_tool,
 )
 from .tools import (
-    kling_generate_video_from_image as kling_tool,
+    execute_ffmpeg as execute_ffmpeg_tool,
 )
 from .tools import (
-    run_ffmpeg_binary as run_ffmpeg_tool,
+    generate_ass_file_tool as generate_ass_file_tool_tool,
 )
 from .tools import (
-    score_video as score_video_tool,
+    kling_generate_video as kling_generate_video_tool,
 )
 from .tools import (
-    update_story_board as update_story_board_tool,
+    list_recent_renders as list_recent_renders_tool,
+)
+from .tools import (
+    search_media_library as search_media_library_tool,
+)
+from .tools import (
+    search_unsplash_media as search_unsplash_media_tool,
+)
+from .tools import (
+    transcribe_audio_openai as transcribe_audio_openai_tool,
 )
 
 
@@ -73,18 +85,25 @@ async def initialize_agent(
 
     # Create system message
     system_message = SystemMessage(
-        content="""
-You are a product advertisement creative agent.
-Tools available:
-1. create_story_board: Draft a 3-scene storyboard (beginning, middle, end)
-2. update_story_board: Apply edits to the storyboard
-3. generate_image: Generate a hero image (product + person) using Gemini
-4. kling_generate_video_from_image: Generate a short video from the image (fal.ai Kling)
-5. run_ffmpeg_binary: Execute ffmpeg to post-process if needed
-6. score_video: Evaluate video quality (0-10) and feedback
-
-Format goal: Create a Product Advertisement creative concept → write storyboard → edit storyboard → generate_image → generate_video_from_image → score_video. Produce a 3-scene video: beginning, middle, end.
-"""
+        content=(
+            "You are a professional video generation agent with access to multiple tools:\n\n"
+            "1. elevenlabs_text_to_speech: Generate high-quality speech from text\n"
+            "2. unsplash_search_and_download: Search and download images from Unsplash\n"
+            "3. generate_ass_file_tool: Create subtitle files for videos\n"
+            "4. search_media_library: Search a hardcoded library of assets\n"
+            "5. create_video: Plan a single ffmpeg command string\n"
+            "6. execute_ffmpeg: Execute a provided ffmpeg command\n"
+            "7. transcribe_audio_openai: Transcribe audio with word timestamps (OpenAI)\n"
+            "8. kling_generate_video: Generate short videos via Kling (Replicate or fal.ai)\n\n"
+            "Your goal is to create high-quality videos based on user requests. You should:\n"
+            "- Analyze the user's request carefully\n"
+            "- Plan the video creation process\n"
+            "- Use appropriate tools to gather assets\n"
+            "- Generate audio and subtitles as needed\n"
+            "- Create the video with proper quality settings\n"
+            "- Iteratively improve based on quality feedback\n\n"
+            "Always provide detailed feedback about the video quality and suggest improvements."
+        )
     )
 
     return {
@@ -138,9 +157,9 @@ Be comprehensive and professional.""",
     if not inferred_final_path:
         try:
             for m in reversed(list(state.messages or [])):
-                if isinstance(m, ToolMessage) and getattr(m, "name", "") in (
-                    "execute_ffmpeg",
-                    "run_ffmpeg_binary",
+                if (
+                    isinstance(m, ToolMessage)
+                    and getattr(m, "name", "") == "execute_ffmpeg"
                 ):
                     raw = getattr(m, "content", "")
                     if isinstance(raw, str) and raw:
@@ -192,12 +211,16 @@ async def agentic_step(
     initialize_tmp_directories()
 
     tools = [
-        create_story_board_tool,
-        update_story_board_tool,
-        generate_image_tool,
-        kling_tool,
-        run_ffmpeg_tool,
-        score_video_tool,
+        search_media_library_tool,
+        search_unsplash_media_tool,
+        elevenlabs_tts_tool,
+        generate_ass_file_tool_tool,
+        transcribe_audio_openai_tool,
+        kling_generate_video_tool,
+        create_video_tool,
+        execute_ffmpeg_tool,
+        analyze_video_quality_tool,
+        list_recent_renders_tool,
     ]
 
     llm = ChatGoogleGenerativeAI(
@@ -233,12 +256,16 @@ def route_after_agent(state: VideoGenerationState) -> str:
 
 tool_node = ToolNode(
     [
-        create_story_board_tool,
-        update_story_board_tool,
-        generate_image_tool,
-        kling_tool,
-        run_ffmpeg_tool,
-        score_video_tool,
+        search_media_library_tool,
+        search_unsplash_media_tool,
+        elevenlabs_tts_tool,
+        generate_ass_file_tool_tool,
+        transcribe_audio_openai_tool,
+        kling_generate_video_tool,
+        create_video_tool,
+        execute_ffmpeg_tool,
+        analyze_video_quality_tool,
+        list_recent_renders_tool,
     ]
 )
 

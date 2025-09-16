@@ -11,13 +11,13 @@ import random
 from typing import Any, Dict, List, Literal, cast
 
 from dotenv import load_dotenv
+from langchain_core.runnables import RunnableConfig
 
 from professional_jokes_dataset import (
     PROFESSIONAL_JOKES,
 )
 from src.agent.graph import graph
 from src.agent.models import AudienceEvaluationResult, JokeGeneratorState
-from langchain_core.runnables import RunnableConfig
 
 # Load environment variables
 load_dotenv()
@@ -125,7 +125,10 @@ def evaluate_dataset(
         print(f"Evaluating joke {i + 1}/{len(jokes)}: {topic}")
 
         # Generate new joke for comparison
-        initial_state: JokeGeneratorState = {"topic": topic, "lm_type": cast(Literal["cheap", "smart"], lm_type)}
+        initial_state: JokeGeneratorState = {
+            "topic": topic,
+            "lm_type": cast(Literal["cheap", "smart"], lm_type),
+        }
 
         config_dict: Dict[str, Any] = {
             "context": {"openai_api_key": os.getenv("OPENAI_API_KEY")}

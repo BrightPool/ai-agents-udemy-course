@@ -10,6 +10,14 @@ from pydantic import BaseModel, Field
 class Configuration(BaseModel):
     """OpenAI-only configuration for the Deep Research agent."""
 
+    # Clarification Configuration
+    maximum_clarification_attempts: int = Field(
+        default=3,
+    )
+    clarification_attempts: int = Field(
+        default=0,
+    )
+
     # General Configuration
     max_structured_output_retries: int = Field(
         default=3,
@@ -26,6 +34,8 @@ class Configuration(BaseModel):
     max_react_tool_calls: int = Field(
         default=10,
     )
+    # DAG Query Configuration
+    num_queries: int = Field(default=6)
     # Model Configuration
     summarization_model: str = Field(default="openai:gpt-5-mini")
     summarization_model_max_tokens: int = Field(
