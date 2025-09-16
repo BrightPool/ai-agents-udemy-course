@@ -1,0 +1,2827 @@
+Input,Final_Output
+"Cream and White Simple Minimalist Catering Services Invoice
+
+INVOICE
+Borcelle | Catering Services
+
+DESCRIPTION QTY TOTAL
+
+TOTAL $1000
+
+ISSUED TO:
+
+Amount  due $550
+
+INVOICE NO:
+
+#612345
+
+UNIT PRICE
+
+BANK DETAILS
+
+ Grilled Chicken 2 $200
+
+Bruschetta 2 $200
+
+Roasted Vegetables 2 $200
+
+Tiramisu 2 $200
+
+Helena Paquet
+Borcelle #029 Client
+hello@reallygreatsite.com
+
+Total
+
+Tax
+
+$500
+10%
+
+Fresh Fruit Punch 2 $200
+
+MARCH.06.2024
+
+100
+
+100
+
+100
+
+100
+
+100
+
+Borcelle Bank
+Account Name: Avery Davis
+Account No.: 123-456-7890
+Pay by: 5 July 2025","{""TOTAL_AMOUNT"": ""$1000"", ""DUE_AMOUNT"": ""$550"", ""INVOICE_NUMBER"": ""#612345"", ""ITEM_DESCRIPTION"": ""Grilled Chicken"", ""QTY"": ""2"", ""UNIT_PRICE"": ""$200"", ""BANK_NAME"": ""Borcelle Bank"", ""ACCOUNT_NAME"": ""Avery Davis"", ""ACCOUNT_NUMBER"": ""123-456-7890"", ""PAYMENT_DATE"": ""5 July 2025""}"
+"Beige Elegant Professional Business Invoice
+
+With gratitude
+INVOICE/TAX RECEIPT
+
+#01234
+
+To:
+Estelle Darcy
+123 Anywhere Street
+Any City ST 12345
+
+Description: Quantity: Rate: Total:
+
+60-minute full body massage 1 $150.00 $150.00
+
+1 2 3  4 5 6  7 8 9 0  /  hello@reallygreatsite.com
+
+www.reallygreatsite.com
+
+TOTAL: $195.00
+
+Essential oil face treatment 1 $25.00 $25.00
+
+SUB-TOTAL: $175.00
+
+TAX: $20.00
+
+5 December 2030
+
+BANK DETAILS:
+
+Borcelle Bank
+Account name: Olivia Wilson
+Account number: 0123 4567 8901","{""INVOICE_NUMBER"": ""#01234"", ""BILLED_TO"": ""Estelle Darcy"", ""ADDRESS"": ""123 Anywhere Street, Any City ST 12345"", ""ITEM_DESCRIPTION"": ""60-minute full body massage"", ""QUANTITY"": ""1"", ""RATE"": ""$150.00"", ""TOTAL_AMOUNT"": ""$195.00"", ""SUBTOTAL"": ""$175.00"", ""TAX"": ""$20.00"", ""DATE"": ""5 December 2030"", ""BANK_NAME"": ""Borcelle Bank"", ""ACCOUNT_NAME"": ""Olivia Wilson"", ""ACCOUNT_NUMBER"": ""0123 4567 8901""}"
+"Black and White Clean Modern Invoice
+
+Consulting Services
+
+Website Development
+
+Graphic Design Services
+
+INVOICE
+
+DESCRIPTION
+
+Kimberly Nguyen
+
+123 Anywhere St.,
+
+Any City, ST 12345
+
+ITEM AMOUNT PRICE
+
+BILL TO:
+
+SALFORD & CO.
+
+Bank: Borcelle Bank
+Name: Margarita Perez
+Account: 0123 4567 8901
+
+PAYMENT INFORMATION:
+
++123-456-7890
+123 Anywhere St., Any City
+
+Invoice Number: INV-01234
+Date: April 11, 2023
+
+1. $500 $100
+
+TOTAL: $6,875
+
+2. $5,000 $5,000
+
+3. $250 $50
+
+Sub Total: $6,250
+
+Sales Tax: $625
+
+TERM AND CONDITIONS:
+Payment is due 30 days from the invoice date.","{""BILL_TO"": ""SALFORD & CO."", ""BANK_NAME"": ""Borcelle Bank"", ""ACCOUNT_NAME"": ""Margarita Perez"", ""ACCOUNT_NUMBER"": ""0123 4567 8901"", ""PHONE"": ""+123-456-7890"", ""ADDRESS"": ""123 Anywhere St., Any City"", ""INVOICE_NUMBER"": ""INV-01234"", ""DATE"": ""April 11, 2023"", ""TOTAL_AMOUNT"": ""$6,875"", ""SUBTOTAL"": ""$6,250"", ""TAX"": ""$625"", ""PAYMENT_TERMS"": ""Payment is due 30 days from the invoice date""}"
+"Black and White Minimalist Business Invoice
+
+Invoice16 June 2025
+
+Invoice No. 12345
+
+BILL TO:
+
+Marceline Anderson
+
++123-456-7890
+
+DESCRIPTION PRICE
+
+TAX (20%)SUBTOTAL
+
+SUBTOTAL
+
+TOTALS
+
+Social Media Pack Design
+
+Furniture
+
+Interior Design
+
+Architecture
+
+$20.00
+
+$560.00
+
+$100.00
+
+$700.00
+
+$1000.00
+
+$600.00
+
+$3360.00
+
+$500.00
+
+$700.00
+
+$1000.00
+
+30x
+
+$2800.00
+
+5x
+
+1x
+
+1x
+
+Payment Information Samira Hadid
+
+123 Anywhere St, Any City, ST 12345
++123-456-7890
+hello@reallygreatsite.com
+
+Studio Shodwe
+
+Bank: Really Great Bank
+Account No: 0123 4567 8901","{""INVOICE_NUMBER"": ""12345"", ""BILLED_TO"": ""Marceline Anderson"", ""PHONE"": ""+123-456-7890"", ""ITEM_DESCRIPTION"": ""Architecture"", ""PRICE"": ""$700.00"", ""TOTALS"": ""$3360.00"", ""PAYMENT_INFORMATION"": ""Payment Information"", ""ACCOUNT_NAME"": ""Samira Hadid"", ""ADDRESS"": ""123 Anywhere St, Any City, ST 12345"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""Really Great Bank"", ""ACCOUNT_NUMBER"": ""0123 4567 8901""}"
+"White Minimalist Business Invoice
+
+SUBTOTALNO
+
+INVOICE
+
+DESCRIPTION
+
+Invoice No:
+
+#123456
+
+Date Issued:
+
+01 April 2022
+
+Issued to:
+
+Alfredo Torres
+123 Anywhere St.,
+
+Any City, ST 12345
+
+Payment Information
+
+Bank Name: Fauget
+Account No: 123-456-7890
+
+Finance Manager
+
+Claudia
+
+PRICEQTY
+
+GRAND TOTAL
+
+Social Media Post1 20 $ 100 $ 2000
+
+Copywriting2 5 $  50 $  250
+
+$ 2250","{""INVOICE_NUMBER"": ""#123456"", ""DATE_ISSUED"": ""01 April 2022"", ""ISSUED_TO"": ""Alfredo Torres"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""BANK_NAME"": ""Fauget"", ""ACCOUNT_NUMBER"": ""123-456-7890"", ""MANAGER"": ""Claudia"", ""ITEM_DESCRIPTION"": ""Copywriting"", ""QTY"": ""5"", ""PRICE"": ""$ 50"", ""TOTAL"": ""$ 250"", ""GRAND_TOTAL"": ""$ 2250""}"
+"Beige Gray Simple Minimalist Consultation Invoice
+
+INVOICE
+
+HOURS PRICE TOTALDESCRIPTION
+
+Graphic design consultiation 2
+
+1
+
+1
+
+2
+
+$100.00
+
+$700.00
+
+$600.00
+
+$300.00
+
+$200.00
+
+$700.00
+
+$600.00
+
+$600.00
+
+$2,100.00
+
+Logo design
+
+Social media templates
+
+Revision
+
+Total amount
+
+PAYMENT METHOD NOTES
+Bank name: Fauget
+
+Date Signature
+
+Account No: 123-456-7890
+
+BILL TO:
+
+FROM:
+
+Date: 15/08/2028
+
+Invoice NO. 2000-15
+
+Wardiere Inc.
+
+WARDIERE INC.
+
+Olivia Wilson
+
+123 Anywhere St., Any City, ST 12345
+
+123 Anywhere St., Any City, ST 12345
+
+hello@reallygreatsite.com
+
+hello@reallygreatsite.com
+
+www.reallygreatsite.com
+
+Thank you!","{""ITEM_DESCRIPTION"": ""Revision"", ""HOURS"": ""2"", ""PRICE"": ""$700.00"", ""TOTAL"": ""$600.00"", ""TOTAL_AMOUNT"": ""$2,100.00"", ""PAYMENT_METHOD"": ""Bank name: Fauget"", ""NOTES"": ""Date Signature"", ""BANK_NAME"": ""Fauget"", ""ACCOUNT_NUMBER"": ""123-456-7890"", ""BILL_TO"": ""Wardiere Inc."", ""DATE"": ""15/08/2028"", ""INVOICE_NO"": ""2000-15"", ""COMPANY_NAME"": ""WARDIERE INC."", ""ACCOUNT_NAME"": ""Olivia Wilson"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""EMAIL"": ""hello@reallygreatsite.com"", ""WEBSITE"": ""www.reallygreatsite.com"", ""THANK_YOU"": ""Thank you!""}"
+"Black White Minimalist Simple Creative Freelancer Invoice
+
+INVOICE
+
+PAY TO:
+123  Anywhere St . ,  Any City
+123-456-7890
+
+Avery Davis
+
+DESCRIPTION RATE HOURS AMOUNT
+
+Content  P lan $50/hr 4 $200.00
+
+Copy Writ ing $50/hr 2 $100.00
+
+Website  Design $50/hr 5 $250.00
+
+Website  Development $100/hr 5 $500.00
+
+SEO $50/hr 4 $200.00
+
+TOTAL $875.00
+
+Sub-Total
+Package Discount  (30%)
+
+$1 ,250.00
+$375.00
+
+#1024
+
+Payment is  required within 14  business days of  invoice date.  P lease send remittance to hel lo@real lygreats i te .com.
+
+Thank you for  your business.
+
+Real ly  Great  BankBank
+John SmithAccount Name
+000-000BSB
+0000 0000Account Number
+
+BILLED TO: Real ly  Great  Company","{""INVOICE_NO"": ""#1024"", ""ADDRESS"": ""123 Anywhere St., Any City"", ""PHONE"": ""123-456-7890"", ""PAY_TO"": ""Avery Davis"", ""ITEM_DESCRIPTION"": ""SEO"", ""RATE"": ""$50/hr"", ""HOURS"": ""4"", ""AMOUNT"": ""$200.00"", ""TOTAL_AMOUNT"": ""$875.00"", ""SUBTOTAL"": ""$1,250.00"", ""DISCOUNT"": ""$375.00"", ""PAYMENT_TERMS"": ""Payment is required within 14 business days of invoice date"", ""EMAIL"": ""hello@reallygreatsite.com"", ""THANK_YOU"": ""Thank you for your business"", ""BANK_NAME"": ""Really Great Bank"", ""ACCOUNT_NAME"": ""John Smith"", ""BSB"": ""000-000"", ""ACCOUNT_NUMBER"": ""0000 0000"", ""BILLED_TO"": ""Really Great Company""}"
+"Gray Black White Minimalist Elegant Freelancer Invoice
+
+INVOICE
+
+PAY TO:
+123  Anywhere St . ,  Any City
+123-456-7890
+
+Avery Davis
+
+DESCRIPTION RATE HOURS AMOUNT
+
+Content  P lan $50/hr 4 $200.00
+
+Copy Writ ing $50/hr 2 $100.00
+
+Website  Design $50/hr 5 $250.00
+
+Website  Development $100/hr 5 $500.00
+
+SEO $50/hr 4 $200.00
+
+TOTAL $875.00
+
+Sub-Total
+Package Discount  (30%)
+
+$1 ,250.00
+$375.00
+
+#1024
+
+Payment is  required within 14  business days of  invoice date.  P lease send remittance to hel lo@real lygreats i te .com.
+
+Thank you for  your business.
+
+Real ly  Great  BankBank
+John SmithAccount Name
+000-000BSB
+0000 0000Account Number
+
+BILLED TO: Real ly  Great  Company","{""INVOICE_NO"": ""#1024"", ""ADDRESS"": ""123 Anywhere St., Any City"", ""PHONE"": ""123-456-7890"", ""PAY_TO"": ""Avery Davis"", ""ITEM_DESCRIPTION"": ""SEO"", ""RATE"": ""$50/hr"", ""HOURS"": ""4"", ""AMOUNT"": ""$200.00"", ""TOTAL_AMOUNT"": ""$875.00"", ""SUBTOTAL"": ""$1,250.00"", ""DISCOUNT"": ""$375.00"", ""PAYMENT_TERMS"": ""Payment is required within 14 business days of invoice date"", ""EMAIL"": ""hello@reallygreatsite.com"", ""THANK_YOU"": ""Thank you for your business"", ""BANK_NAME"": ""Really Great Bank"", ""ACCOUNT_NAME"": ""John Smith"", ""BSB"": ""000-000"", ""ACCOUNT_NUMBER"": ""0000 0000"", ""BILLED_TO"": ""Really Great Company""}"
+"Beige Gray Simple Minimalist Consultation Invoice
+
+INVOICE
+
+HOURS PRICE TOTALDESCRIPTION
+
+Graphic design consultiation 2
+
+1
+
+1
+
+2
+
+$100.00
+
+$700.00
+
+$600.00
+
+$300.00
+
+$200.00
+
+$700.00
+
+$600.00
+
+$600.00
+
+$2,100.00
+
+Logo design
+
+Social media templates
+
+Revision
+
+Total amount
+
+PAYMENT METHOD NOTES
+Bank name: Fauget
+
+Date Signature
+
+Account No: 123-456-7890
+
+BILL TO:
+
+FROM:
+
+Date: 15/08/2028
+
+Invoice NO. 2000-15
+
+Wardiere Inc.
+
+WARDIERE INC.
+
+Olivia Wilson
+
+123 Anywhere St., Any City, ST 12345
+
+123 Anywhere St., Any City, ST 12345
+
+hello@reallygreatsite.com
+
+hello@reallygreatsite.com
+
+www.reallygreatsite.com
+
+Thank you!","{""ITEM_DESCRIPTION"": ""Revision"", ""HOURS"": ""2"", ""PRICE"": ""$700.00"", ""TOTAL"": ""$600.00"", ""TOTAL_AMOUNT"": ""$2,100.00"", ""PAYMENT_METHOD"": ""Bank name: Fauget"", ""NOTES"": ""Date Signature"", ""BANK_NAME"": ""Fauget"", ""ACCOUNT_NUMBER"": ""123-456-7890"", ""BILL_TO"": ""Wardiere Inc."", ""DATE"": ""15/08/2028"", ""INVOICE_NUMBER"": ""2000-15"", ""COMPANY_NAME"": ""WARDIERE INC."", ""ACCOUNT_NAME"": ""Olivia Wilson"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""EMAIL"": ""hello@reallygreatsite.com"", ""WEBSITE"": ""www.reallygreatsite.com"", ""THANK_YOU"": ""Thank you!""}"
+"White Modern Sales Invoice
+
+INVOICE NO.
+
+DATE OF ISSUE
+
+ACCOUNT ID
+
+INVOICE
+
+#12345
+
+15/01/2028
+
+001-5678
+
+Quantity
+
+Service/Product Description
+
+1x
+
+20x
+
+TOTAL AMOUNT
+
+Unit Price
+
+Amount
+
+Sale Amount
+
+Furniture
+
+Web Development
+
+Social Media Pack
+
+Digital Art
+
+Stationery
+
+$20.00
+
+$400.00
+
+$150.00
+
+$1000.00
+
+$4000.00
+
+$200.00
+
+$500.00
+
+$2000.00
+
+$3000.00
+
+$750.00
+
+$6000.00
+
+$500.00
+
+$5000.00
+
+$2000.00
+
+$2,000.00
+
+TERMS & CONDITIONS:
+
+Payment is due within 14 business days. Thank you!
+
+TAX RATE
+
+Discount
+
+10%
+
+10%
+
+$500.00
+
+$400.00
+
+BANK NAME: Fauget
+
+ACCOUNT NAME: Andrew Carter
+
+ACCOUNT NUMBER: 0012-3456-7890
+
+PAY TO:
+
+Olivia Wilson
+
+Wardi LLC
+
+123 Anywhere St., Any City, ST 12345
+
+hello@reallygreatsite.com","{""INVOICE_NUMBER"": ""#12345"", ""DATE_OF_ISSUE"": ""15/01/2028"", ""ACCOUNT_ID"": ""001-5678"", ""ITEM_DESCRIPTION"": ""Stationery"", ""QTY"": ""20x"", ""UNIT_PRICE"": ""$4000.00"", ""AMOUNT"": ""$750.00"", ""TOTAL_AMOUNT"": ""$6000.00"", ""DISCOUNT"": ""$500.00"", ""TAX_RATE"": ""10%"", ""PAYMENT_TERMS"": ""Payment is due within 14 business days"", ""BANK_NAME"": ""Fauget"", ""ACCOUNT_NAME"": ""Andrew Carter"", ""ACCOUNT_NUMBER"": ""0012-3456-7890"", ""PAY_TO"": ""Olivia Wilson"", ""COMPANY_NAME"": ""Wardi LLC"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""EMAIL"": ""hello@reallygreatsite.com""}"
+"Pink Modern Service Invoice
+
+INVOICE NO.  2000-100
+DATE OF ISSUE
+15/08/2028
+SERVICE PROVIDER
+
+Olivia Wilson
+
+123 Anywhere St., Any City
+ST 12345
+
+Service/Product Description
+
+Quantity
+
+1x
+
+Unit Price
+
+$100.00
+
+Amount
+
+$300.00
+
+Graphic Design Consultation
+
+1
+
+20
+
+Social Media Pack Design
+
+Digital Art
+
+1
+
+Website Development
+
+Stationery
+
+10
+
+Total Amount
+
+$2500.00
+
+$200.00
+
+$150.00
+
+$400.00
+
+$20.00
+
+Subtotal
+
+Bank Name: Fauget
+
+Account Name: Andrew Carter
+
+Account Number: 0012-3456-7890
+
+10%
+
+$5000.00
+
+TERMS & CONDITIONS:
+Payment is due within 14 business days.
+
+$2000.00
+
+PAY TO:
+
+Olivia Wilson
+
+Wardi LLC
+
+$2500.00
+
+Tax Rate
+
+Total
+
+Tax
+
+Discount
+
+hello@reallygreatsite.com","{""INVOICE_NUMBER"": ""2000-100"", ""DATE_OF_ISSUE"": ""15/08/2028"", ""SERVICE_PROVIDER"": ""Olivia Wilson"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""ITEM_DESCRIPTION"": ""Stationery"", ""QTY"": ""10"", ""UNIT_PRICE"": ""$20.00"", ""AMOUNT"": ""$20.00"", ""TOTAL_AMOUNT"": ""$2500.00"", ""BANK_NAME"": ""Fauget"", ""ACCOUNT_NAME"": ""Andrew Carter"", ""ACCOUNT_NUMBER"": ""0012-3456-7890"", ""PAY_TO"": ""Olivia Wilson"", ""COMPANY_NAME"": ""Wardi LLC"", ""EMAIL"": ""hello@reallygreatsite.com"", ""TAX_RATE"": ""10%"", ""PAYMENT_TERMS"": ""Payment is due within 14 business days""}"
+"Cute Pink Patterned Invoice
+
+INVOICE NO. 2000-200
+DATE OF ISSUE
+15/08/2028
+SERVICE PROVIDER
+
+Olivia Wilson
+
+123 Anywhere St., Any City
+ST 12345
+
+Service/Product Description
+
+Quantity
+
+1x
+
+Unit Price
+
+$100.00
+
+Amount
+
+$300.00
+
+Graphic Design Consultation
+
+1
+
+20
+
+Social Media Pack Design
+
+Digital Art
+
+1
+
+Website Development
+
+Stationery
+
+10
+
+Total Amount
+
+$2500.00
+
+$200.00
+
+$150.00
+
+$400.00
+
+$20.00
+
+Subtotal
+
+Bank Name: Fauget
+
+Account Name: Andrew Carter
+
+Account Number: 0012-3456-7890
+
+10%
+
+$5000.00
+
+TERMS & CONDITIONS:
+Payment is due within 14 business days.
+
+$2000.00
+
+PAY TO:
+
+Olivia Wilson
+
+Wardi LLC
+
+$2500.00
+
+Tax Rate
+
+Total
+
+Tax
+
+Discount
+
+hello@reallygreatsite.com","{""INVOICE_NUMBER"": ""2000-200"", ""DATE_OF_ISSUE"": ""15/08/2028"", ""SERVICE_PROVIDER"": ""Olivia Wilson"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""ITEM_DESCRIPTION"": ""Stationery"", ""QTY"": ""10"", ""UNIT_PRICE"": ""$20.00"", ""AMOUNT"": ""$20.00"", ""TOTAL_AMOUNT"": ""$2500.00"", ""BANK_NAME"": ""Fauget"", ""ACCOUNT_NAME"": ""Andrew Carter"", ""ACCOUNT_NUMBER"": ""0012-3456-7890"", ""PAY_TO"": ""Olivia Wilson"", ""COMPANY_NAME"": ""Wardi LLC"", ""EMAIL"": ""hello@reallygreatsite.com"", ""TAX_RATE"": ""10%"", ""PAYMENT_TERMS"": ""Payment is due within 14 business days""}"
+"White Gold Simple Business Invoice
+
+INVOICE NO.  2000-300
+DATE OF ISSUE
+15/08/2028
+SERVICE PROVIDER
+
+Olivia Wilson
+
+123 Anywhere St., Any City
+ST 12345
+
+Service/Product Description
+
+Quantity
+
+1x
+
+Unit Price
+
+$100.00
+
+Amount
+
+$300.00
+
+Graphic Design Consultation
+
+1
+
+20
+
+Social Media Pack Design
+
+Digital Art
+
+1
+
+Website Development
+
+Stationery
+
+10
+
+Total Amount
+
+$2500.00
+
+$200.00
+
+$150.00
+
+$400.00
+
+$20.00
+
+Subtotal
+
+Bank Name: Fauget
+
+Account Name: Andrew Carter
+
+Account Number: 0012-3456-7890
+
+10%
+
+$5000.00
+
+TERMS & CONDITIONS:
+Payment is due within 14 business days.
+
+$2000.00
+
+PAY TO:
+
+Olivia Wilson
+
+Wardi LLC
+
+$2500.00
+
+Tax Rate
+
+Total
+
+Tax
+
+Discount
+
+hello@reallygreatsite.com","{""INVOICE_NUMBER"": ""2000-300"", ""DATE_OF_ISSUE"": ""15/08/2028"", ""SERVICE_PROVIDER"": ""Olivia Wilson"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""ITEM_DESCRIPTION"": ""Stationery"", ""QTY"": ""10"", ""UNIT_PRICE"": ""$20.00"", ""AMOUNT"": ""$20.00"", ""TOTAL_AMOUNT"": ""$2500.00"", ""BANK_NAME"": ""Fauget"", ""ACCOUNT_NAME"": ""Andrew Carter"", ""ACCOUNT_NUMBER"": ""0012-3456-7890"", ""PAY_TO"": ""Olivia Wilson"", ""COMPANY_NAME"": ""Wardi LLC"", ""EMAIL"": ""hello@reallygreatsite.com"", ""TAX_RATE"": ""10%"", ""PAYMENT_TERMS"": ""Payment is due within 14 business days""}"
+"Fashion Invoice
+
+INVOICE NO.  2000-400
+DATE OF ISSUE
+15/08/2028
+SERVICE PROVIDER
+
+Olivia Wilson
+
+123 Anywhere St., Any City
+ST 12345
+
+Service/Product Description
+
+Quantity
+
+1x
+
+Unit Price
+
+$100.00
+
+Amount
+
+$300.00
+
+Graphic Design Consultation
+
+1
+
+20
+
+Social Media Pack Design
+
+Digital Art
+
+1
+
+Website Development
+
+Stationery
+
+10
+
+Total Amount
+
+$2500.00
+
+$200.00
+
+$150.00
+
+$400.00
+
+$20.00
+
+Subtotal
+
+Bank Name: Fauget
+
+Account Name: Andrew Carter
+
+Account Number: 0012-3456-7890
+
+10%
+
+$5000.00
+
+TERMS & CONDITIONS:
+Payment is due within 14 business days.
+
+$2000.00
+
+PAY TO:
+
+Olivia Wilson
+
+Wardi LLC
+
+$2500.00
+
+Tax Rate
+
+Total
+
+Tax
+
+Discount
+
+hello@reallygreatsite.com","{""INVOICE_NUMBER"": ""2000-400"", ""DATE_OF_ISSUE"": ""15/08/2028"", ""SERVICE_PROVIDER"": ""Olivia Wilson"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""ITEM_DESCRIPTION"": ""Stationery"", ""QTY"": ""10"", ""UNIT_PRICE"": ""$20.00"", ""AMOUNT"": ""$20.00"", ""TOTAL_AMOUNT"": ""$2500.00"", ""BANK_NAME"": ""Fauget"", ""ACCOUNT_NAME"": ""Andrew Carter"", ""ACCOUNT_NUMBER"": ""0012-3456-7890"", ""PAY_TO"": ""Olivia Wilson"", ""COMPANY_NAME"": ""Wardi LLC"", ""EMAIL"": ""hello@reallygreatsite.com"", ""TAX_RATE"": ""10%"", ""PAYMENT_TERMS"": ""Payment is due within 14 business days""}"
+"HVAC Invoice Template
+
+HVAC INVOICE
+
+Customer: ABC Corporation
+
+123 Main Street
+
+Anytown, USA 12345
+
+Phone: (555) 555-5555
+
+Email: contact@abccorp.com
+
+Invoice Number: INV-00001
+
+Invoice Date: 01/01/2023
+
+Service Date: 01/02/2023
+
+Technician: John Smith
+
+DESCRIPTION
+
+UNIT PRICE
+
+QUANTITY
+
+AMOUNT
+
+HVAC System Inspection
+
+$100.00
+
+1
+
+$100.00
+
+Thermostat Replacement
+
+$150.00
+
+2
+
+$300.00
+
+Air Duct Cleaning
+
+$75.00
+
+3
+
+$225.00
+
+TOTAL AMOUNT DUE
+
+$625.00
+
+Terms & Conditions: Payment is due within 30 days. Thank you for your business!
+
+Bank Name: National Bank
+
+Account Name: ABC Corporation
+
+Account Number: 9876543210","{""INVOICE_NUMBER"": ""INV-00001"", ""DATE_OF_ISSUE"": ""01/01/2023"", ""SERVICE_DATE"": ""01/02/2023"", ""TECHNICIAN"": ""John Smith"", ""ITEM_DESCRIPTION"": ""Air Duct Cleaning"", ""UNIT_PRICE"": ""$75.00"", ""QTY"": ""3"", ""AMOUNT"": ""$225.00"", ""TOTAL_AMOUNT_DUE"": ""$625.00"", ""BANK_NAME"": ""National Bank"", ""ACCOUNT_NAME"": ""ABC Corporation"", ""ACCOUNT_NUMBER"": ""9876543210"", ""PAYMENT_TERMS"": ""Payment is due within 30 days. Thank you for your business!""}"
+"Consulting Invoice Template
+
+Consulting INVOICE
+
+Customer: XYZ Enterprises
+
+456 Elm Street
+
+Othertown, USA 67890
+
+Phone: (555) 555-5555
+
+Email: info@xyzenterprises.com
+
+Invoice Number: INV-00002
+
+Invoice Date: 02/01/2023
+
+Service Date: 02/02/2023
+
+Consultant: Jane Doe
+
+DESCRIPTION
+
+UNIT PRICE
+
+QUANTITY
+
+AMOUNT
+
+Business Consultation
+
+$200.00
+
+1
+
+$200.00
+
+Market Research
+
+$250.00
+
+2
+
+$500.00
+
+Project Management
+
+$300.00
+
+3
+
+$900.00
+
+TOTAL AMOUNT DUE
+
+$1,600.00
+
+Terms & Conditions: Payment is due within 45 days. Thank you for your business!
+
+Bank Name: First Bank
+
+Account Name: XYZ Enterprises
+
+Account Number: 1234567890","{""INVOICE_NUMBER"": ""INV-00002"", ""DATE_OF_ISSUE"": ""02/01/2023"", ""SERVICE_DATE"": ""02/02/2023"", ""CONSULTANT"": ""Jane Doe"", ""ITEM_DESCRIPTION"": ""Project Management"", ""UNIT_PRICE"": ""$300.00"", ""QTY"": ""3"", ""AMOUNT"": ""$900.00"", ""TOTAL_AMOUNT_DUE"": ""$1,600.00"", ""BANK_NAME"": ""First Bank"", ""ACCOUNT_NAME"": ""XYZ Enterprises"", ""ACCOUNT_NUMBER"": ""1234567890"", ""PAYMENT_TERMS"": ""Payment is due within 45 days. Thank you for your business!""}"
+"Trucking Invoice Template
+
+Trucking INVOICE
+
+Customer: ABC Transport
+
+789 Pine Street
+
+Another town, USA 34567
+
+Phone: (555) 555-5555
+
+Email: dispatch@abctransport.com
+
+Invoice Number: INV-00003
+
+Invoice Date: 03/01/2023
+
+Service Date: 03/02/2023
+
+Driver: Mike Johnson
+
+DESCRIPTION
+
+UNIT PRICE
+
+QUANTITY
+
+AMOUNT
+
+Freight Hauling
+
+$500.00
+
+1
+
+$500.00
+
+Vehicle Maintenance
+
+$200.00
+
+2
+
+$400.00
+
+Fuel Surcharge
+
+$100.00
+
+3
+
+$300.00
+
+TOTAL AMOUNT DUE
+
+$1,200.00
+
+Terms & Conditions: Payment is due within 60 days. Thank you for your business!
+
+Bank Name: Central Bank
+
+Account Name: ABC Transport
+
+Account Number: 5678912345","{""INVOICE_NUMBER"": ""INV-00003"", ""DATE_OF_ISSUE"": ""03/01/2023"", ""SERVICE_DATE"": ""03/02/2023"", ""DRIVER"": ""Mike Johnson"", ""ITEM_DESCRIPTION"": ""Fuel Surcharge"", ""UNIT_PRICE"": ""$100.00"", ""QTY"": ""3"", ""AMOUNT"": ""$300.00"", ""TOTAL_AMOUNT_DUE"": ""$1,200.00"", ""BANK_NAME"": ""Central Bank"", ""ACCOUNT_NAME"": ""ABC Transport"", ""ACCOUNT_NUMBER"": ""5678912345"", ""PAYMENT_TERMS"": ""Payment is due within 60 days. Thank you for your business!""}"
+"Landscaper Invoice Template
+
+Landscaping INVOICE
+
+Customer: Green Gardens
+
+123 Forest Drive
+
+Green Town, USA 45678
+
+Phone: (555) 555-5555
+
+Email: support@greengardens.com
+
+Invoice Number: INV-00004
+
+Invoice Date: 04/01/2023
+
+Service Date: 04/02/2023
+
+Gardener: Sarah Green
+
+DESCRIPTION
+
+UNIT PRICE
+
+QUANTITY
+
+AMOUNT
+
+Lawn Mowing
+
+$50.00
+
+1
+
+$50.00
+
+Hedge Trimming
+
+$75.00
+
+2
+
+$150.00
+
+Garden Weeding
+
+$30.00
+
+3
+
+$90.00
+
+TOTAL AMOUNT DUE
+
+$290.00
+
+Terms & Conditions: Payment is due within 30 days. Thank you for your business!
+
+Bank Name: Green Bank
+
+Account Name: Green Gardens
+
+Account Number: 6789012345","{""INVOICE_NUMBER"": ""INV-00004"", ""DATE_OF_ISSUE"": ""04/01/2023"", ""SERVICE_DATE"": ""04/02/2023"", ""GARDENER"": ""Sarah Green"", ""ITEM_DESCRIPTION"": ""Garden Weeding"", ""UNIT_PRICE"": ""$30.00"", ""QTY"": ""3"", ""AMOUNT"": ""$90.00"", ""TOTAL_AMOUNT_DUE"": ""$290.00"", ""BANK_NAME"": ""Green Bank"", ""ACCOUNT_NAME"": ""Green Gardens"", ""ACCOUNT_NUMBER"": ""6789012345"", ""PAYMENT_TERMS"": ""Payment is due within 30 days. Thank you for your business!""}"
+"Cleaning Invoice Template
+
+Cleaning INVOICE
+
+Customer: Sparkle Clean
+
+456 Clean Avenue
+
+Cleantown, USA 67890
+
+Phone: (555) 555-5555
+
+Email: service@sparkleclean.com
+
+Invoice Number: INV-00005
+
+Invoice Date: 05/01/2023
+
+Service Date: 05/02/2023
+
+Cleaner: Emma White
+
+DESCRIPTION
+
+UNIT PRICE
+
+QUANTITY
+
+AMOUNT
+
+Office Cleaning
+
+$80.00
+
+1
+
+$80.00
+
+Carpet Cleaning
+
+$100.00
+
+2
+
+$200.00
+
+Window Washing
+
+$60.00
+
+3
+
+$180.00
+
+TOTAL AMOUNT DUE
+
+$460.00
+
+Terms & Conditions: Payment is due within 30 days. Thank you for your business!
+
+Bank Name: Spark Bank
+
+Account Name: Sparkle Clean
+
+Account Number: 7890123456","{""INVOICE_NUMBER"": ""INV-00005"", ""DATE_OF_ISSUE"": ""05/01/2023"", ""SERVICE_DATE"": ""05/02/2023"", ""CLEANER"": ""Emma White"", ""ITEM_DESCRIPTION"": ""Window Washing"", ""UNIT_PRICE"": ""$60.00"", ""QTY"": ""3"", ""AMOUNT"": ""$180.00"", ""TOTAL_AMOUNT_DUE"": ""$460.00"", ""BANK_NAME"": ""Spark Bank"", ""ACCOUNT_NAME"": ""Sparkle Clean"", ""ACCOUNT_NUMBER"": ""7890123456"", ""PAYMENT_TERMS"": ""Payment is due within 30 days. Thank you for your business!""}"
+"Proforma Invoice Template
+
+PROFORMA INVOICE
+
+Customer: Future Tech
+
+789 Innovation Street
+
+Tech City, USA 12345
+
+Phone: (555) 555-5555
+
+Email: sales@futuretech.com
+
+Invoice Number: INV-00006
+
+Invoice Date: 06/01/2023
+
+Service Date: 06/02/2023
+
+Sales Representative: Tom Baker
+
+DESCRIPTION
+
+UNIT PRICE
+
+QUANTITY
+
+AMOUNT
+
+Software Development
+
+$1,000.00
+
+1
+
+$1,000.00
+
+Tech Support
+
+$150.00
+
+2
+
+$300.00
+
+Training Session
+
+$200.00
+
+3
+
+$600.00
+
+TOTAL AMOUNT DUE
+
+$1,900.00
+
+Terms & Conditions: Payment is due within 30 days. Thank you for your business!
+
+Bank Name: Tech Bank
+
+Account Name: Future Tech
+
+Account Number: 8901234567","{""INVOICE_NUMBER"": ""INV-00006"", ""DATE_OF_ISSUE"": ""06/01/2023"", ""SERVICE_DATE"": ""06/02/2023"", ""SALES_REPRESENTATIVE"": ""Tom Baker"", ""ITEM_DESCRIPTION"": ""Training Session"", ""UNIT_PRICE"": ""$200.00"", ""QTY"": ""3"", ""AMOUNT"": ""$600.00"", ""TOTAL_AMOUNT_DUE"": ""$1,900.00"", ""BANK_NAME"": ""Tech Bank"", ""ACCOUNT_NAME"": ""Future Tech"", ""ACCOUNT_NUMBER"": ""8901234567"", ""PAYMENT_TERMS"": ""Payment is due within 30 days. Thank you for your business!""}"
+"Construction Invoice Template
+
+CONSTRUCTION INVOICE
+
+Customer: Build It Right
+
+456 Construction Blvd
+
+Builder Town, USA 23456
+
+Phone: (555) 555-5555
+
+Email: info@builditright.com
+
+Invoice Number: INV-00007
+
+Invoice Date: 07/01/2023
+
+Service Date: 07/02/2023
+
+Project Manager: Laura Brown
+
+DESCRIPTION
+
+UNIT PRICE
+
+QUANTITY
+
+AMOUNT
+
+Foundation Laying
+
+$5,000.00
+
+1
+
+$5,000.00
+
+Framing
+
+$2,500.00
+
+2
+
+$5,000.00
+
+Roof Installation
+
+$3,000.00
+
+3
+
+$9,000.00
+
+TOTAL AMOUNT DUE
+
+$19,000.00
+
+Terms & Conditions: Payment is due within 60 days. Thank you for your business!
+
+Bank Name: Construction Bank
+
+Account Name: Build It Right
+
+Account Number: 9012345678","{""INVOICE_NUMBER"": ""INV-00007"", ""DATE_OF_ISSUE"": ""07/01/2023"", ""SERVICE_DATE"": ""07/02/2023"", ""PROJECT_MANAGER"": ""Laura Brown"", ""ITEM_DESCRIPTION"": ""Roof Installation"", ""UNIT_PRICE"": ""$3,000.00"", ""QTY"": ""3"", ""AMOUNT"": ""$9,000.00"", ""TOTAL_AMOUNT_DUE"": ""$19,000.00"", ""BANK_NAME"": ""Construction Bank"", ""ACCOUNT_NAME"": ""Build It Right"", ""ACCOUNT_NUMBER"": ""9012345678"", ""PAYMENT_TERMS"": ""Payment is due within 60 days. Thank you for your business!""}"
+"Freelance Invoice Template
+
+FREELANCE INVOICE
+
+Customer: Creative Minds
+
+123 Freelance Lane
+
+Freelance Town, USA 56789
+
+Phone: (555) 555-5555
+
+Email: contact@creativeminds.com
+
+Invoice Number: INV-00008
+
+Invoice Date: 08/01/2023
+
+Service Date: 08/02/2023
+
+Freelancer: Robert Lee
+
+DESCRIPTION
+
+UNIT PRICE
+
+QUANTITY
+
+AMOUNT
+
+Graphic Design
+
+$300.00
+
+1
+
+$300.00
+
+Copywriting
+
+$150.00
+
+2
+
+$300.00
+
+SEO Optimization
+
+$100.00
+
+3
+
+$300.00
+
+TOTAL AMOUNT DUE
+
+$900.00
+
+Terms & Conditions: Payment is due within 15 days. Thank you for your business!
+
+Bank Name: Freelance Bank
+
+Account Name: Creative Minds
+
+Account Number: 2345678901","{""INVOICE_NUMBER"": ""INV-00008"", ""DATE_OF_ISSUE"": ""08/01/2023"", ""SERVICE_DATE"": ""08/02/2023"", ""FREELANCER"": ""Robert Lee"", ""ITEM_DESCRIPTION"": ""SEO Optimization"", ""UNIT_PRICE"": ""$100.00"", ""QTY"": ""3"", ""AMOUNT"": ""$300.00"", ""TOTAL_AMOUNT_DUE"": ""$900.00"", ""BANK_NAME"": ""Freelance Bank"", ""ACCOUNT_NAME"": ""Creative Minds"", ""ACCOUNT_NUMBER"": ""2345678901"", ""PAYMENT_TERMS"": ""Payment is due within 15 days. Thank you for your business!""}"
+"Red and White Simple Commercial Invoice
+
+Michelle Cunningham
+Photographer and Designer
+Ignite Creative Studio
+3556 Dale Avenue, Seattle
+michelle@ignitestudio.com
+www.ignitestudio.com
+Ignite
+Hans Casper
+Billed to
+Chief Executive Officer
+Digital Island
+1943 Cardiff, Wales
+hans@digitalisland.com
+www.digitalisland.com
+Description AmountHoursRate
+Brand Consultation $900.003$300.00
+Service Catalog Shoot $1,500.003$500.00
+Business Cards
+Rate Sheet
+Flyers
+Collateral Materials $1,500.006$250.00
+$3,900.00Total
+Payment Method
+Paypal payments@ignitestudio.com
+Card Visa, Mastercard, Payoneer
+www.ignitestudio.com","{""INVOICE_NUMBER"": ""N/A"", ""DATE"": ""N/A"", ""BILL_TO"": ""Hans Casper"", ""COMPANY"": ""Digital Island"", ""ADDRESS"": ""1943 Cardiff, Wales"", ""EMAIL"": ""hans@digitalisland.com"", ""WEBSITE"": ""www.digitalisland.com"", ""ITEM_DESCRIPTION"": ""Collateral Materials"", ""RATE"": ""$250.00"", ""HOURS"": ""6"", ""AMOUNT"": ""$1,500.00"", ""TOTAL_AMOUNT"": ""$3,900.00"", ""PAYMENT_METHOD"": ""Paypal, Card"", ""PAYPAL"": ""payments@ignitestudio.com""}"
+"Blue and Green Casual Corporate App Development Invoice
+
+123 Anywhere St., Any City
+ST 123456 | +91-123-456-7890
+W I S E  T E C H
+www.reallygreatsite.com
+Invoice # 002
+15 December, 2026
+Design consultation
+Initial wireframes, UI/UX review
+50 hours â‚¹250 â‚¹12,500
+â‚¹44,000
+App development
+Beta version for testing
+90 hours â‚¹350 â‚¹31,500
+Heena Arora
+123 Anywhere St., Any City,
+ST 123456
++91-123-456-7890
+Bank Transfer Details:
+Apex Bank Ltd.
+Account name: Wise Tech Co.
+Account number: 1-23-456-7
+Please pay invoice within 15 days.
+DESCRIPTION AMOUNTQTY. PRICE
+TOTAL AMOUNT","{""INVOICE_NUMBER"": ""002"", ""DATE"": ""15 December, 2026"", ""BILL_TO"": ""Heena Arora"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 123456"", ""PHONE"": ""+91-123-456-7890"", ""BANK_NAME"": ""Apex Bank Ltd."", ""ACCOUNT_NAME"": ""Wise Tech Co."", ""ACCOUNT_NUMBER"": ""1-23-456-7"", ""ITEM_DESCRIPTION"": ""App development"", ""QTY"": ""90 hours"", ""RATE"": ""\u00e2\u201a\u00b9350"", ""AMOUNT"": ""\u00e2\u201a\u00b931,500"", ""TOTAL_AMOUNT"": ""\u00e2\u201a\u00b944,000"", ""PAYMENT_TERMS"": ""Please pay invoice within 15 days""}"
+"Green IT Company Professional Service Invoice
+
+Item Quantity Unit Price Total
+A4 Paper (75gr/m2) 10 $20 $200
+Pencil  (12ea/box) 5 $15 $75
+Ruler 2 $5 $10
+Subtotal $285
+Tax (0%) $0
+Total $285
+INVOICEBorcelle
+Meet All Your Needs
+Invoice#
+Date
+52131
+01 / 02 / 2023
+Invoice to:
+Daniel Gallego
+Authorized Signed
+Thank you for your business!
+123 Anywhere St.,
+Any City, ST 12345
+Rimberio Bank
+Account Name: Alfredo Torres
+Account No.: 0123 4567 8901
+Pay by: 23 June 2023
+PAYMENT METHOD
+123-456-7890 123 Anywhere St., Any City","{""INVOICE_NUMBER"": ""52131"", ""DATE"": ""01 / 02 / 2023"", ""BILL_TO"": ""Daniel Gallego"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""PHONE"": ""123-456-7890"", ""BANK_NAME"": ""Rimberio Bank"", ""ACCOUNT_NAME"": ""Alfredo Torres"", ""ACCOUNT_NUMBER"": ""0123 4567 8901"", ""PAY_BY"": ""23 June 2023"", ""ITEM_DESCRIPTION"": ""Ruler"", ""QTY"": ""2"", ""UNIT_PRICE"": ""$5"", ""AMOUNT"": ""$10"", ""SUBTOTAL"": ""$285"", ""TAX"": ""$0"", ""TOTAL_AMOUNT"": ""$285""}"
+"Green IT Company Professional Service Invoice
+
+INVOICE
+EMAIL
+123 Anywhere St., Any City
++123-456-7890
+hello@reallygreatsite.com
+ADDRESS
+PHONE
+Date : 02/05/2021
+Invoice No : 001
+Estelle Darcy
+Invoice to :
+QTYPRICE TOTAL
+SUB-TOTAL
+TAX (10%)
+$ 315.00
+$ 31.50
+TOTAL $ 346.50
+1
+PRODUCT
+Logo Design $ 100.00 $ 100.00
+1Business Magazine Design $ 60.00 $ 60.00
+1Business Card $ 125.00 $ 125.00
+1Website Page $ 30.00 $ 30.00
+Payment Method :
+STUDIO SHODWE
+Account No : 1234567890
+Bank Code : 1234567890
+Administrator
+Aaron Loeb
+Thank you for purchase!","{""INVOICE_NUMBER"": ""001"", ""DATE"": ""02/05/2021"", ""BILL_TO"": ""Estelle Darcy"", ""ADDRESS"": ""123 Anywhere St., Any City"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""STUDIO SHODWE"", ""ACCOUNT_NUMBER"": ""1234567890"", ""BANK_CODE"": ""1234567890"", ""ADMINISTRATOR"": ""Aaron Loeb"", ""ITEM_DESCRIPTION"": ""Website Page"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$30.00"", ""AMOUNT"": ""$30.00"", ""SUBTOTAL"": ""$315.00"", ""TAX"": ""$31.50"", ""TOTAL_AMOUNT"": ""$346.50""}"
+"Green IT Company Professional Service Invoice
+
+QTY PRICE TOTALPRODUCTS
+Sub-total :
+Tax :
+$1,735
+$55
+Total : $1,680
+Storybook
+Magazine
+Comics
+Novel
+2
+4
+3
+2
+$120
+$100
+$130
+$120
+$240
+$400
+$390
+$240
+Notebooks 2 $120 $240
+Payment Method :
+Bank Name :Francisco Andrade
+Bank Account : 1234567890
+Administrator
+Drew FeigThank you for purchase!
+Really Great Company
+Your Business PartnerINVOICE
+INVOICE TO :
+Aron Loeb
+P : +123-456-7890
+E : hello@reallygreatsite.com
+A : 123 Anywhere St., Any City, ST 12345 Date : 12/07/2023
+TOTAL DUE
+$12345
+No: 1234567890","{""INVOICE_NUMBER"": ""1234567890"", ""DATE"": ""12/07/2023"", ""BILL_TO"": ""Aron Loeb"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""Francisco Andrade"", ""BANK_ACCOUNT"": ""1234567890"", ""ADMINISTRATOR"": ""Drew Feig"", ""ITEM_DESCRIPTION"": ""Notebooks"", ""QTY"": ""2"", ""UNIT_PRICE"": ""$120"", ""AMOUNT"": ""$240"", ""SUBTOTAL"": ""$1,735"", ""TAX"": ""$55"", ""TOTAL_AMOUNT"": ""$1,680""}"
+"Green IT Company Professional Service Invoice
+
+No Items QTY Price Total
+1 Logo 1 $500 $500
+2 Business card 2 $50 $100
+3 Packaging 1 $300 $300
+4 Banner 2 $75 $150
+5 Poster 1 $50 $50
+Total : $1.100
+@reallygreatsite
+Fauget
+Agency
+Invoice no : 000000587654
+Date :  23 March 2025INVOICE
+Payment information :
+Bank
+Name
+Account
+: Fauget Bank
+: Pedro fernandez
+: 0123 4567 8901
+Bill to :
+Dani Martinez
++123 456 7890
+123 Anywhere St., Any City
+Payable to :
+Pedro Fernandez
++123 456 7890
+123 Anywhere St., Any City
+Terms & conditions
+Please send payment within 30 days of
+receiving this invoice. There will be a 10%
+interest charge per month on late invoices.
++123-456-7890 www.reallygreatsite.com
+123 Anywhere St, Any City","{""INVOICE_NUMBER"": ""000000587654"", ""DATE"": ""23 March 2025"", ""BILL_TO"": ""Dani Martinez"", ""ADDRESS"": ""123 Anywhere St., Any City"", ""PHONE"": ""+123 456 7890"", ""BANK_NAME"": ""Fauget Bank"", ""ACCOUNT_NAME"": ""Pedro Fernandez"", ""ACCOUNT_NUMBER"": ""0123 4567 8901"", ""ITEM_DESCRIPTION"": ""Poster"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$50"", ""AMOUNT"": ""$50"", ""TOTAL_AMOUNT"": ""$1.100"", ""PAYMENT_TERMS"": ""Please send payment within 30 days of receiving this invoice. There will be a 10% interest charge per month on late invoices.""}"
+"Green IT Company Professional Service Invoice
+
+No.
+INVOICE
+Total $ 0.00
++123-456-7890
+123 Anywhere St., Any City
+Bill To:
+NO: INV-12345-1
+Date: 10 September 2024
+Description Qty Price Total
+Your Description 1 $ 0.00
+Payment Information:
+Bank:
+No Bank:
+Email:
+Name Bank
+123-456-7890
+reallygreatsite.com
+$ 0.00
+ARON LOEB
+1.
+Your Description 1 $ 0.00 $ 0.002.
+Your Description 1 $ 0.00 $ 0.003.
+Your Description 1 $ 0.00 $ 0.004.
+Your Description 1 $ 0.00 $ 0.005.
+Your Description 1 $ 0.00 $ 0.006.
+Discount
+Sub Total
+$ 0.00
+$ 0.00
+Manager Company
+SAMIRA HADID
++123-456-7890 hello@reallygreatsite.com 123 Anywhere St., Any City
+YOUR LOGOL","{""INVOICE_NUMBER"": ""INV-12345-1"", ""DATE"": ""10 September 2024"", ""BILL_TO"": ""ARON LOEB"", ""ADDRESS"": ""123 Anywhere St., Any City"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""Name Bank"", ""BANK_ACCOUNT"": ""123-456-7890"", ""ITEM_DESCRIPTION"": ""Your Description"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$ 0.00"", ""AMOUNT"": ""$ 0.00"", ""DISCOUNT"": ""$ 0.00"", ""SUBTOTAL"": ""$ 0.00"", ""TOTAL_AMOUNT"": ""$ 0.00"", ""MANAGER"": ""SAMIRA HADID""}"
+"Green IT Company Professional Service Invoice
+
+Bank Name: Thynk Unl imited Bank
+Bank Account:  123-456-7890
+PAYMENT METHOD
+Payment Terms Are Usually Stated on the Invoice. These May Specify That the Buyer Has a Maximum Number of Days in Which To Pay and Is Sometimes Offered a Discount if Paid Before the Due Date. The Buyer Could Have Already Paid for the Products or Services Listed on the Invoice.
+Description Price
+Digital  Consult ing Services
+Appl ication Management Services
+Cloud Business Services
+Business Analyst
+$ 1000
+$ 2470
+$ 3000
+$ 1700
+Subtotal
+Tax (10%)
+$ 8170
+$ 817
+$ 8987TOTAL
+INVOICE
+EMAIL :  HELLO@REALLYGREATSITE.COMWEBSITE: REALLYGREATSITE.COM 123-456-7890
+NO. 1009-01
+DUE 1 APRIL 2022
+123 Anywhere St . ,
+Any City ,  ST 12345
+123 Anywhere St . ,
+Any City ,  ST 12345
+Bailey DupontWardiere Inc.
+INVOICE TOCOMPANY:","{""INVOICE_NUMBER"": ""1009-01"", ""DATE"": ""DUE 1 APRIL 2022"", ""BILL_TO"": ""Bailey Dupont"", ""COMPANY"": ""Wardiere Inc."", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""EMAIL"": ""HELLO@REALLYGREATSITE.COM"", ""PHONE"": ""123-456-7890"", ""BANK_NAME"": ""Thynk Unlimited Bank"", ""BANK_ACCOUNT"": ""123-456-7890"", ""ITEM_DESCRIPTION"": ""Business Analyst"", ""PRICE"": ""$ 1700"", ""SUBTOTAL"": ""$ 8170"", ""TAX"": ""$ 817"", ""TOTAL_AMOUNT"": ""$ 8987""}"
+"Green Blue Pink Vintage Retro Freelance Invoice
+
+NO. DESCRIPTION RATE QTY TOTAL
+01 Graphic design for website 45 20 900.00
+02 Graphic design for social content 45 8 360.00
+03 Account management fee 280 1 280.00
+04 Two days onsite 640 2 1280.00
+SUB TOTAL $ 2820.00
+TAX $ 225.60
+S&H nil
+TOTAL $ 3045.60
+Reese Miller
+Timmerman Industries
+hello@reallygreatsite.com
+123 Anywhere St., Any City, ST 12345
+CODE: 123-456
+Notes
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus cursus augue enim, eget rhoncus ante vehicula eu. Fusce lobortis quis odio.
+DATE
+Rosa Maria Aguado
+Aldenaire & Partners
+hello@reallygreatsite.com
+123 Anywhere St., Any City, ST 12345
+CODE: 123-456
+FROM: TO:
+NO. 001 02.05.2024
+Invoice
+Account Name: Reese Miller
+Bank: Warner & Spencer
+Acc: 123-456-7890
+OR
+Cheques payable to ""Reese Miller""
+Please pay within 60 days
+Thank you","{""INVOICE_NUMBER"": ""001"", ""DATE"": ""02.05.2024"", ""BILL_TO"": ""Rosa Maria Aguado"", ""COMPANY"": ""Aldenaire & Partners"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""Warner & Spencer"", ""BANK_ACCOUNT"": ""123-456-7890"", ""ITEM_DESCRIPTION"": ""Two days onsite"", ""QTY"": ""2"", ""RATE"": ""640"", ""AMOUNT"": ""1280.00"", ""SUBTOTAL"": ""$ 2820.00"", ""TAX"": ""$ 225.60"", ""TOTAL_AMOUNT"": ""$ 3045.60"", ""PAYMENT_TERMS"": ""Please pay within 60 days""}"
+"Cream & Pink Cute Simple Designer Freelance Invoice
+
+Salford & Co
+INVOICE NO: F-2022-031
+DATE: 09/09/2022
+DUE: 09/10/2022
+RECIPIENT:
+123 Anywhere St.,
+Any City, ST 12345
+Olivia Wilson
+SENDER:
+123 Anywhere St.,
+Any City, ST 12345
+Salford & Co.
+SCOPE OF WORK
+Logo Design Package
+Brand Colour Palette
+Social Media Graphics
+Thank You Card
+Business Card
+1 550
+100
+300
+80
+200
+SUBTOTAL
+TAX 20%
+DISCOUNT 5%
+TOTAL
+Salford & Co will provide a 1 hour consultation before beginning the brand design process. The branding package consists of the items listed below and includes 3 rounds of revision in total . Further revisions can be purchased on request. Print costs are not included in the price.
+1
+6
+1
+2
+1230
+246
+74
+1402
+DESCRIPTION QTY PRICE
+Payment due within 30 days
+Salford & Co accepts payment by bank transfer or card. If you'd like to pay by card please let us know and we'll send you the link.
+Thank you for your custom. We can't wait to get started on your project!","{""INVOICE_NUMBER"": ""F-2022-031"", ""DATE"": ""09/09/2022"", ""DUE_DATE"": ""09/10/2022"", ""BILL_TO"": ""Olivia Wilson"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""COMPANY"": ""Salford & Co"", ""ITEM_DESCRIPTION"": ""Business Card"", ""QTY"": ""1"", ""UNIT_PRICE"": ""200"", ""AMOUNT"": ""200"", ""SUBTOTAL"": ""1230"", ""TAX"": ""246"", ""DISCOUNT"": ""74"", ""TOTAL_AMOUNT"": ""1402"", ""PAYMENT_TERMS"": ""Payment due within 30 days""}"
+"Yellow and Black Professional Company Invoice
+
+Warner & Spencer
+INVOICE
+L a w  A s s o c i a t e s
+Doria Akensen
+123 Anywhere St., Any City, ST
+hello@reallygreatsite.com
+#91028829
+10/10/2030
+Description QTY Price Amount Due
+Branding Strategy 1 $10 $10
+Design Consultant 2 $15 $30
+Full Branding 1 $20 $20
+Revision 3 $20 $60
+Total Amount $340
+Acct. Name: G.E. Services
+Acct. No.: 002918267577
+Bank: Hartford East City Bank
+PLEASE MAKE PAYMENTS TO:","{""INVOICE_NUMBER"": ""#91028829"", ""DATE"": ""10/10/2030"", ""BILL_TO"": ""Doria Akensen"", ""COMPANY"": ""Warner & Spencer"", ""ADDRESS"": ""123 Anywhere St., Any City, ST"", ""EMAIL"": ""hello@reallygreatsite.com"", ""ITEM_DESCRIPTION"": ""Revision"", ""QTY"": ""3"", ""UNIT_PRICE"": ""$20"", ""AMOUNT"": ""$60"", ""TOTAL_AMOUNT"": ""$340"", ""BANK_NAME"": ""Hartford East City Bank"", ""ACCOUNT_NAME"": ""G.E. Services"", ""ACCOUNT_NUMBER"": ""002918267577""}"
+"Green IT Company Professional Service Invoice
+
+DESCRIPTION QTY TOTAL
+SUBTOTAL $500
+Tax
+TOTAL
+10%
+$550
+UNIT PRICE
+Item 2 1 $100
+Item 1 1 $100
+Item 3 1 $100
+Item 4 1 $100
+Item 5 1 $100
+1
+1
+1
+1
+1
+Invoice
+PAY TO:
+123 Anywhere St. ,  Any City
++123-456-7890
+Liceria & Co.
+Borcelle Bank
+Bank
+Avery Davis
+Account Name
+0123 4567 8901
+Account No
+BILLED TO: Jonathan Patterson
+date: 12.06.2024
+INVOICE NO: 01234
+due date: 26.06.2024
+Avery Davis
+Thank you","{""INVOICE_NUMBER"": ""01234"", ""DATE"": ""12.06.2024"", ""DUE_DATE"": ""26.06.2024"", ""BILL_TO"": ""Jonathan Patterson"", ""ADDRESS"": ""123 Anywhere St. ,  Any City"", ""PHONE"": ""+123-456-7890"", ""BANK_NAME"": ""Borcelle Bank"", ""ACCOUNT_NAME"": ""Avery Davis"", ""ACCOUNT_NUMBER"": ""0123 4567 8901"", ""ITEM_DESCRIPTION"": ""Item 5"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100"", ""AMOUNT"": ""$100"", ""SUBTOTAL"": ""$500"", ""TAX"": ""$50"", ""TOTAL_AMOUNT"": ""$550""}"
+"Green IT Company Professional Service Invoice
+
+DESCRIPTION QTY TOTAL
+SUBTOTAL $500
+Tax
+TOTAL
+10%
+$550
+UNIT PRICE
+brand manual 1 $100
+logo design 1 $100
+website design 1 $100
+social media template 1 $100
+consultation 1 $100
+100
+100
+100
+100
+100
+PAY TO:
+123 Anywhere St. ,  Any City
+Liceria & Co.
+Borcele Bank
+Bank:
+0123 4567 8901
+Account No:
+BILLED TO: Jonathan Patterson
+DATE: 11.02.2030
+INVOICE NO: 01234
+DUE DATE: 11.03.2030
+AveryDavis
+THANK YOU
+T H I S  I S  Y O U R  I N V O I C E","{""INVOICE_NUMBER"": ""01234"", ""DATE"": ""11.02.2030"", ""DUE_DATE"": ""11.03.2030"", ""BILL_TO"": ""Jonathan Patterson"", ""ADDRESS"": ""123 Anywhere St. ,  Any City"", ""BANK_NAME"": ""Borcele Bank"", ""ACCOUNT_NAME"": ""AveryDavis"", ""ACCOUNT_NUMBER"": ""0123 4567 8901"", ""ITEM_DESCRIPTION"": ""consultation"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100"", ""AMOUNT"": ""$100"", ""SUBTOTAL"": ""$500"", ""TAX"": ""$50"", ""TOTAL_AMOUNT"": ""$550""}"
+"Green IT Company Professional Service Invoice
+
+QTY PRICE TOTALPRODUCTS
+Sub-total :
+Tax :
+$1,735
+$55
+Total : $1,680
+Storybook
+Magazine
+Comics
+Novel
+2
+4
+3
+2
+$120
+$100
+$130
+$120
+$240
+$400
+$390
+$240
+Notebooks 2 $120 $240
+Payment Method :
+Bank Name :Francisco Andrade
+Bank Account : 1234567890
+Administrator
+Drew FeigThank you for purchase!
+Really Great Company
+Your Business PartnerINVOICE
+INVOICE TO :
+Aron Loeb
+P : +123-456-7890
+E : hello@reallygreatsite.com
+A : 123 Anywhere St., Any City, ST 12345 Date : 12/07/2023
+TOTAL DUE
+$12345
+No: 1234567890","{""INVOICE_NUMBER"": ""1234567890"", ""DATE"": ""12/07/2023"", ""BILL_TO"": ""Aron Loeb"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""Francisco Andrade"", ""BANK_ACCOUNT"": ""1234567890"", ""ADMINISTRATOR"": ""Drew Feig"", ""ITEM_DESCRIPTION"": ""Notebooks"", ""QTY"": ""2"", ""UNIT_PRICE"": ""$120"", ""AMOUNT"": ""$240"", ""SUBTOTAL"": ""$1,735"", ""TAX"": ""$55"", ""TOTAL_AMOUNT"": ""$1,680""}"
+"Green IT Company Professional Service Invoice
+
+DESCRIPTION QTY TOTAL
+SUBTOTAL $500
+Tax
+TOTAL
+10%
+$550
+UNIT PRICE
+logo design 1 $100
+brand consultation 1 $100
+website design 1 $100
+social media templates 1 $100
+brand manual 1 $100
+100
+100
+100
+100
+100
+ISSUED TO:
+Jonathan Patterson
+Liceria & Co.
+123 Anywhere St. ,  Any City
+BANK DETAILS
+AveryDavis
+THANK YOU
+DATE: 11.02.2030
+INVOICE NO: 01234
+DUE DATE: 11.03.2030
+Borcele Bank
+Account Name: Avery Davis
+Account No.:  0123 4567 8901","{""INVOICE_NUMBER"": ""01234"", ""DATE"": ""11.02.2030"", ""DUE_DATE"": ""11.03.2030"", ""BILL_TO"": ""Jonathan Patterson"", ""ADDRESS"": ""123 Anywhere St. ,  Any City"", ""BANK_NAME"": ""Borcele Bank"", ""ACCOUNT_NAME"": ""Avery Davis"", ""ACCOUNT_NUMBER"": ""0123 4567 8901"", ""ITEM_DESCRIPTION"": ""brand manual"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100"", ""AMOUNT"": ""$100"", ""SUBTOTAL"": ""$500"", ""TAX"": ""$50"", ""TOTAL_AMOUNT"": ""$550""}"
+"Yellow and Black Professional Company Invoice
+
+No Items Qty Price Total
+1 Cement 50 $20.00 $1000.00
+2 Pvc Pipe 10 $10.00 $100.00
+3 Brick 10 $10.00 $100.00
+4 Wood Board 10 $10.00 $100.00
+Taylor Alonso
+Ginyard International Bank
+Bank Code (123-456-7890)
+Total $1200.00
+INVOICE
+Ingoude
+Company
+Jonathan Patterson
++123-456-7890
+Invoice to
+#123456789
+3rd January 2024
+Payment Terms
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+THANK YOU","{""INVOICE_NUMBER"": ""#123456789"", ""DATE"": ""3rd January 2024"", ""BILL_TO"": ""Jonathan Patterson"", ""COMPANY"": ""Ingoude"", ""ADDRESS"": ""N/A"", ""PHONE"": ""+123-456-7890"", ""BANK_NAME"": ""Ginyard International Bank"", ""BANK_ACCOUNT"": ""123-456-7890"", ""ITEM_DESCRIPTION"": ""Wood Board"", ""QTY"": ""10"", ""UNIT_PRICE"": ""$10.00"", ""AMOUNT"": ""$100.00"", ""TOTAL_AMOUNT"": ""$1200.00""}"
+"Red and White Simple Commercial Invoice
+
+Item
+Logo
+Date: 02 June, 2030
+INVOICE
+NO. 000001YOUR
+LOGO
+Olivia Wilson
+123 Anywhere St., Any City
+hello@reallygreatsite.com
+Billed to: From:
+Studio Shodwe
+123 Anywhere St., Any City
+hello@reallygreatsite.com
+Quantity Price Amount
+1 $500 $500
+Banner (2x6m) 2 $45 $90
+Poster (1x2m) 3 $55 $165
+Total
+Payment method:
+Note:
+Cash
+Thank you for choosing us!
+$755","{""INVOICE_NUMBER"": ""000001"", ""DATE"": ""02 June, 2030"", ""BILL_TO"": ""Olivia Wilson"", ""COMPANY"": ""Studio Shodwe"", ""ADDRESS"": ""123 Anywhere St., Any City"", ""EMAIL"": ""hello@reallygreatsite.com"", ""ITEM_DESCRIPTION"": ""Poster (1x2m)"", ""QTY"": ""3"", ""UNIT_PRICE"": ""$55"", ""AMOUNT"": ""$165"", ""TOTAL_AMOUNT"": ""$755"", ""PAYMENT_METHOD"": ""Cash""}"
+"Cream & Pink Cute Simple Designer Freelance Invoice
+
+BILLED TO:
+123 Anywhere St.,  Any City
+123-456-7890
+Matt Zhang
+TASK RATE HOURS TOTAL
+Content Plan $40/hr 1 $40.00
+Copy Writing $50/hr 2 $100.00
+SEO $60/hr 3 $180.00
+TOTAL DUE $288.00
+Total
+Package Discount (10%)
+$320.00
+$32.00
+Payment is required within 14 business days of invoice date. 
+Please send remittance to hello@reallygreatsite.com.
+A V E R Y  D A V I S  S T U D I O
+Thank you
+PAYMENT INFORMATION:
+Bank:
+Account Name:
+BSB:
+Account Number:
+Fradel and Spies
+Avery Davis
+0123
+0123 4567 8901
+INVOICE: #01234
+2nd May, 2026
+AVERY DAVIS 123-456-7890
+hello@reallygreatsite.com
+123 Anywhere St.,  Any City, ST 12345","{""INVOICE_NUMBER"": ""#01234"", ""DATE"": ""2nd May, 2026"", ""BILL_TO"": ""Matt Zhang"", ""ADDRESS"": ""123 Anywhere St.,  Any City"", ""PHONE"": ""123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""Fradel and Spies"", ""ACCOUNT_NAME"": ""Avery Davis"", ""BSB"": ""0123"", ""ACCOUNT_NUMBER"": ""0123 4567 8901"", ""ITEM_DESCRIPTION"": ""SEO"", ""RATE"": ""$60/hr"", ""HOURS"": ""3"", ""AMOUNT"": ""$180.00"", ""TOTAL_AMOUNT"": ""$288.00"", ""DISCOUNT"": ""$32.00""}"
+"Modern Business Invoice
+
+BUSINESS NAME
+TYPE OF BUSINESS
+DESCRIPTION QTY PRICE TOTAL
+ITEM 2 1 $120
+TOTAL AMOUNT
+TAX
+AMOUNT DUE
+$570
+6%
+$604
+ITEM 1 1 $120
+ITEM 3 1 $120
+ITEM 4 1 $120
+TOTAL PRICE $480
+BUSINESS NAME I +123-456-7890  I HELLO@REALLYGREATSITE.COM
+ISSUED TO
+JANE SMITH
+DATE ISSUED
+01/01/2022
+INVOICE NO.
+001-2201","{""INVOICE_NUMBER"": ""001-2201"", ""DATE"": ""01/01/2022"", ""BILL_TO"": ""JANE SMITH"", ""COMPANY"": ""BUSINESS NAME"", ""ADDRESS"": ""N/A"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""HELLO@REALLYGREATSITE.COM"", ""ITEM_DESCRIPTION"": ""ITEM 4"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$120"", ""AMOUNT"": ""$120"", ""SUBTOTAL"": ""$480"", ""TAX"": ""$24"", ""TOTAL_AMOUNT"": ""$504""}"
+"Purple Modern Trendy Calm Clean Customer Invoice
+
+Customer
+Invoice
+BILL TO:
+MARCELINE ANDERSON
+123 ANYWHERE ST.,
+ANY CITY, ST 12345
+PAYABLE TO:
+LARANA, INC.
+123 ANYWHERE ST.,
+ANY CITY, ST 12345
+SERVICES FEES
+Consultation $2,000
+Drafting $6,000
+Implementation $12,000
+Reviewing $4,000
+SUBTOTAL $24,000
+TAXES 8%
+TOTAL $25,920
++123-456-7890 REALLYGREATSITE.COM
+L a r a n a I n c .","{""INVOICE_NUMBER"": ""N/A"", ""DATE"": ""N/A"", ""BILL_TO"": ""MARCELINE ANDERSON"", ""COMPANY"": ""LARANA, INC."", ""ADDRESS"": ""123 ANYWHERE ST., ANY CITY, ST 12345"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""REALLYGREATSITE.COM"", ""ITEM_DESCRIPTION"": ""Reviewing"", ""PRICE"": ""$4,000"", ""SUBTOTAL"": ""$24,000"", ""TAX"": ""$1,920"", ""TOTAL_AMOUNT"": ""$25,920""}"
+"Teal and Light Gray Minimalist Freelancer Contractor Invoice A4 Size
+
+TOTAL:
+TOTAL
+INVOICE
+BILL TO:
+Rosa Maria Aguado
+123 Anywhere St.,
+Any City, ST 12345
+Margarita Perez
+123 Anywhere St.,
+Any City, ST 12345
++123-456-7890
+hello@reallygreatsite.com
+reallygreatsite.com
+INVOICE NUMBER:
+0027
+ISSUED:
+October 17, 2025
+DUE:
+October 18, 2025
+INVOICE TOTAL:
+$5,600.00
+DESCRIPTION: UNIT PRICE
+Social Media Account
+One-time Set up
+Social Media
+Monthly Management
+Social Media
+Graphics
+Social Media
+Monthly Engagement
+Social Media
+Monthly Report
+QUANTITY
+2
+2
+30
+2
+2
+500
+700
+20
+700
+500
+1,000
+1,400
+600
+1,400
+1,000
+SUBTOTAL: $5,400.00
+TAX: $200.00
+$5,600.00
+NOTE TO CUSTOMER:
+thank you, Margarita!","{""INVOICE_NUMBER"": ""0027"", ""DATE"": ""October 17, 2025"", ""DUE_DATE"": ""October 18, 2025"", ""BILL_TO"": ""Rosa Maria Aguado"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""ITEM_DESCRIPTION"": ""Social Media Monthly Report"", ""UNIT_PRICE"": ""$500"", ""QTY"": ""2"", ""AMOUNT"": ""$1,000"", ""SUBTOTAL"": ""$5,400.00"", ""TAX"": ""$200.00"", ""TOTAL_AMOUNT"": ""$5,600.00""}"
+"Black Elegant Restaurant Invoice
+
+To:
+ISABEL MERCADO
+BORCELLE
+Date:
+AUGUST 9 2029
+30.000
+20.000
+Food D Number D,
+Model D
+Number E, Model E
+Number F, Model F
+Product(s) Details Price Total Qty
+Food E
+Drinks F 10.000
+2
+3
+1
+60.000
+60.000
+10.000
+Subtotal
+Tax
+Total Rp133.000
+Rp130.000
+Rp13.000
+Invoice","{""INVOICE_NUMBER"": ""N/A"", ""DATE"": ""AUGUST 9 2029"", ""BILL_TO"": ""ISABEL MERCADO"", ""COMPANY"": ""BORCELLE"", ""ADDRESS"": ""N/A"", ""PHONE"": ""N/A"", ""EMAIL"": ""N/A"", ""ITEM_DESCRIPTION"": ""Number F"", ""QTY"": ""1"", ""PRICE"": ""10.000"", ""AMOUNT"": ""10.000"", ""SUBTOTAL"": ""Rp130.000"", ""TAX"": ""Rp3.000"", ""TOTAL_AMOUNT"": ""Rp133.000""}"
+"White Clean Aesthetic Invoice
+
+ITEMS QTY TOTALPRICE
+Flyer Design
+Business Card Design
+Invoice Design
+Logo Design
+Web Design
+02
+02
+02
+01
+01
+$300
+$200
+$250
+$500
+$500
+$300
+$500
+$750
+$1250
+$1750
+$1750
+$262.5
+Subtotal
+Tax (15%)
+GRAND TOTAL $2012.5
+Billed to
+T H A N K  Y O U  F O R  Y O U R  B U S I N E S S
+S A M A N T H A  H A M E S
+123 Anywhere St., Any City
+Invoice
+7 7  -  2 9  2 9 8 1
+Contact
+123-456-7890
+hello@reallygreatsite.com
+&","{""INVOICE_NUMBER"": ""7 7  -  2 9  2 9 8 1"", ""DATE"": ""N/A"", ""BILL_TO"": ""SAMANTHA HAMES"", ""ADDRESS"": ""123 Anywhere St., Any City"", ""PHONE"": ""123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""ITEM_DESCRIPTION"": ""Web Design"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$500"", ""AMOUNT"": ""$500"", ""SUBTOTAL"": ""$1750"", ""TAX"": ""$262.5"", ""TOTAL_AMOUNT"": ""$2012.5""}"
+"White Minimalist Contractor Invoice Template
+
+STUDIO SHODWE
+REAL ESTATE DEVELOPER
+
+INVOICE
+To
+KETUT SUSILO
+123 Anywhere St., Any City, ST 12345
+
+25 June 2022
+Date :
+Invoice no : 12345
+
+DESCRIPTION NO TOTAL QTY PRICE
+Consultation 1 $300 $300 1
+Project Draft 1 $2,000 $2,000 1
+Implementation 1 $2,500 $2,500 4
+Additional Supplies 1 $750 $750 3
+Monthly meeting 1 $2,400 $2,400 2
+
+Sub Total
+Tax 10%
+Discount
+GRAND TOTAL
+$7,950
+$795
+$500
+$8,245
+
+Term and Conditions :
+Please send payment within 30 days of receiving this invoice. There will be 10% interest charge per month on late invoice.
+
+Payment Method
+Bank Name : Wardiere Inc.
+Account Number : 123-456-7890
+
+Adeline Palmerston
+Administrator
+123-456-7890
+hello@reallygreatsite.com
+123 Anywhere St., Any City","{""INVOICE_NUMBER"": ""12345"", ""DATE"": ""25 June 2022"", ""BILL_TO"": ""KETUT SUSILO"", ""COMPANY"": ""STUDIO SHODWE"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""PHONE"": ""123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""Wardiere Inc."", ""BANK_ACCOUNT"": ""123-456-7890"", ""ITEM_DESCRIPTION"": ""Monthly meeting"", ""QTY"": ""2"", ""UNIT_PRICE"": ""$2,400"", ""AMOUNT"": ""$2,400"", ""SUBTOTAL"": ""$7,950"", ""TAX"": ""$795"", ""DISCOUNT"": ""$500"", ""TOTAL_AMOUNT"": ""$8,245""}"
+"Blue and White Business Modern Invoice
+
+Product Amount TAX Total
+Design creation for banner 1 25,50 $ 6,80 $ 32,30 $
+Content review 1 30,50 $ 14,30 $ 45,20 $
+Various meetings 1 25,60 $ 6,80 $ 32,20 $
+Amount 33,50 $
+Tax 21% 33,50 $
+Tax 15% -12,50 $
+Total 63,50 $
+
+Client data
+BORCELLE INVOICE NÂº: 123456
+123 Anywhere St., Any City, ST 12345
+hello@reallygreatsite.com
+123-456-7890
+
+January 3, 2023
+
+Payment will be made within three months from the issuance of this invoice, it will be made by bank transfer.","{""INVOICE_NUMBER"": ""123456"", ""DATE"": ""January 3, 2023"", ""BILL_TO"": ""BORCELLE"", ""COMPANY"": ""BORCELLE"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""PHONE"": ""123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""ITEM_DESCRIPTION"": ""Various meetings"", ""QTY"": ""1"", ""UNIT_PRICE"": ""25,60 $"", ""TAX"": ""15% -12,50 $"", ""AMOUNT"": ""32,20 $"", ""SUBTOTAL"": ""33,50 $"", ""TOTAL_AMOUNT"": ""63,50 $""}"
+"Beige Simple & Modern Shape Invoice
+
+INVOICE
+Invoice To : WARDIERE STUDIO
++123-456-7890
+hello@reallygreatsite.com
+
+Invoice No. 0000-1
+December 12, 2023
+
+ITEM PRICE TOTAL
+1 Logo Design $250 $250
+1 Web design $300 $300
+1 Illustration design $350 $350
+
+SUB TOTAL
+SHIPPING
+TOTAL
+$650
+$20
+$670
+
+Please Make Payment To :
+Account Name : Olivia Wilson
+Account No : 0000-1","{""INVOICE_NUMBER"": ""0000-1"", ""DATE"": ""December 12, 2023"", ""BILL_TO"": ""WARDIERE STUDIO"", ""COMPANY"": ""WARDIERE STUDIO"", ""ADDRESS"": ""N/A"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""ACCOUNT_NAME"": ""Olivia Wilson"", ""ACCOUNT_NUMBER"": ""0000-1"", ""ITEM_DESCRIPTION"": ""Illustration design"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$350"", ""AMOUNT"": ""$350"", ""SUBTOTAL"": ""$650"", ""SHIPPING"": ""$20"", ""TOTAL_AMOUNT"": ""$670""}"
+"Beige Minimal With Leave Illustration Invoice
+
+INVOICE
+Invoice To : Cahaya Dewi
++123-456-789
+hello@reallygreatsite.com
+
+Invoice No : 00000-0090
+Date : 15/02/2022
+
+ITEM PRICE TOTAL
+Web design $200 $200
+Logo $300 $300
+Illustration $100 $100
+Infographic $100 $100
+Poster $100 $100
+Brochure $100 $100
+
+SERVICE: $920
+Sub-total: $900
+Tax: 20
+TOTAL: $920
+
+Payment to :
+Bank name : hello@reallygreatsite.com
+Bank code : 12345678999
+
+SERVICE","{""INVOICE_NUMBER"": ""00000-0090"", ""DATE"": ""15/02/2022"", ""BILL_TO"": ""Cahaya Dewi"", ""COMPANY"": ""N/A"", ""ADDRESS"": ""N/A"", ""PHONE"": ""+123-456-789"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""ACCOUNT_NAME"": ""N/A"", ""ACCOUNT_NUMBER"": ""12345678999"", ""ITEM_DESCRIPTION"": ""Brochure"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100"", ""AMOUNT"": ""$100"", ""SERVICE"": ""$920"", ""SUBTOTAL"": ""$900"", ""TAX"": ""20"", ""TOTAL_AMOUNT"": ""$920""}"
+"Beige Minimal With Leave Illustration Invoice
+
+INVOICE
+Invoice To : Cahaya Dewi
++123-456-789
+hello@reallygreatsite.com
+
+Invoice No : 00000-0090
+Date : 15/02/2022
+
+ITEM PRICE TOTAL
+Web design $200 $200
+Logo $300 $300
+Illustration $100 $100
+Infographic $100 $100
+Poster $100 $100
+Brochure $100 $100
+
+SERVICE: $920
+Sub-total: $900
+Tax: 20
+TOTAL: $920
+
+Payment to :
+Bank name : hello@reallygreatsite.com
+Bank code : 12345678999
+
+SERVICE","{""INVOICE_NUMBER"": ""00000-0090"", ""DATE"": ""15/02/2022"", ""BILL_TO"": ""Cahaya Dewi"", ""COMPANY"": ""N/A"", ""ADDRESS"": ""N/A"", ""PHONE"": ""+123-456-789"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""ACCOUNT_NAME"": ""N/A"", ""ACCOUNT_NUMBER"": ""12345678999"", ""ITEM_DESCRIPTION"": ""Brochure"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100"", ""AMOUNT"": ""$100"", ""SERVICE"": ""$920"", ""SUBTOTAL"": ""$900"", ""TAX"": ""20"", ""TOTAL_AMOUNT"": ""$920""}"
+"Dark Aesthetic Minimal Invoice Template
+
+Invoice
+
+Total: $440.00
+Sub-total: $400.00
+tax (10%): $40.00
+
+Description
+Logo Design
+Brand Guidelines
+Website Design
+Icon Design
+
+Subtotal $400.00
+
+Invoice from MATT ZHANG
+Invoice to : NEIL TRAN
+INVOICE NO. 123/346
+Due Date : SEPT 21, 2026
+MONDAY SEPT 13 2026
+
+MOBILE WEBSITE
++123-456-7890 REALLYGREATSITE.COM
+
+PAYMENT DETAILS
+0123 456 789
+PAUCEK AND LAGE
+
+BORCELLE","{""INVOICE_NUMBER"": ""123/346"", ""DATE"": ""SEPT 21, 2026"", ""BILL_TO"": ""NEIL TRAN"", ""COMPANY"": ""PAUCEK AND LAGE"", ""ADDRESS"": ""N/A"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""REALLYGREATSITE.COM"", ""BANK_NAME"": ""N/A"", ""BANK_ACCOUNT"": ""0123 456 789"", ""ITEM_DESCRIPTION"": ""Icon Design"", ""UNIT_PRICE"": ""$100.00"", ""QTY"": ""1"", ""AMOUNT"": ""$100.00"", ""SUBTOTAL"": ""$400.00"", ""TAX"": ""$40.00"", ""TOTAL_AMOUNT"": ""$440.00""}"
+"Black and White Simple Modern Minimal Invoice
+
+Design 2 $100.00 $115.00
+Social Media 1 $50 $57.50
+Artwork 1 $100 $115.00
+Copywriting 1 $50 $57.50
+Admin 1 $100 $115.00
+Tools 1 $50 $57.50
+
+Tax: $67.50
+Total: $517.50
+
+Item Qty/Hrs Price Subtotal
+THYNK UNLIMITED
+123 Anywhere St., Any City, ST 12345
+To: Lorna Alvarado
+
+Job Name
+Invoice 01234 
+3/05/22
+
+Pay to: Thynk Unlimited
+Account Name: Lars Peeters
+Account Number: 0123 4567 8901","{""INVOICE_NUMBER"": ""01234"", ""DATE"": ""3/05/22"", ""BILL_TO"": ""Lorna Alvarado"", ""COMPANY"": ""Thynk Unlimited"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""PHONE"": ""N/A"", ""EMAIL"": ""N/A"", ""BANK_NAME"": ""Thynk Unlimited"", ""BANK_ACCOUNT"": ""0123 4567 8901"", ""ITEM_DESCRIPTION"": ""Tools"", ""UNIT_PRICE"": ""$50"", ""QTY"": ""1"", ""AMOUNT"": ""$57.50"", ""SUBTOTAL"": ""$450.00"", ""TAX"": ""$67.50"", ""TOTAL_AMOUNT"": ""$517.50""}"
+"Neutral Modern Freelance Invoice
+
+INVOICE YOUR LOGO HERE
+
+JULIANA SILVA
+
+INVOICE TO:
+INVOICE NUMBER: #007
+
+INVOICE DATE: 20 NOVEMBER 2022
+DUE DATE: 25 NOVEMBER 2022
+
+ITEM DESCRIPTION QTY PRICE SUBTOTAL
+Your Item description goes here 1 $100 $100
+Your Item description goes here 1 $100 $100
+Your Item description goes here 1 $100 $100
+Your Item description goes here 3 $100 $300
+Your Item description goes here 1 $100 $100
+Your Item description goes here 6 $100 $600
+Your Item description goes here 2 $100 $200
+
+Subtotal $1500.00
+Tax $150.00
+TOTAL $1650.00
+
+Payment to : Benjamin Shah
+BSB: 000-000
+Account Number: 0000 0000
+
+THANK YOU!
+hello@reallygreatsite.com","{""INVOICE_NUMBER"": ""#007"", ""DATE"": ""20 NOVEMBER 2022"", ""DUE_DATE"": ""25 NOVEMBER 2022"", ""BILL_TO"": ""JULIANA SILVA"", ""ADDRESS"": ""N/A"", ""PHONE"": ""N/A"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""ACCOUNT_NAME"": ""Benjamin Shah"", ""ACCOUNT_NUMBER"": ""0000 0000"", ""ITEM_DESCRIPTION"": ""Your Item description goes here"", ""QTY"": ""2"", ""UNIT_PRICE"": ""$100"", ""AMOUNT"": ""$200"", ""SUBTOTAL"": ""$1500.00"", ""TAX"": ""$150.00"", ""TOTAL_AMOUNT"": ""$1650.00""}"
+"Minimalist Creative Studio Business Invoice
+
+INVOICE
+Estelle Darcy
+Invoice No. 123
+January 16, 2023
+Larana, Inc.
+123 Anywhere St., Any City
++123-456-7890
+
+ITEM DESCRIPTION QTY TOTAL
+Business card Design 02 $150
+certificate design 05 $200
+Logo Design 01 $300
+T-shirt Design 03 $120
+TOTAL AMOUNT : $770
+Lorna Alvarado
+Bank Name : Fauget
+Account no. : 1234-5678-90
+Please make payments to :
+Larana, Inc.
+123 Anywhere St., Any City, ST 12345","{""INVOICE_NUMBER"": ""123"", ""DATE"": ""January 16, 2023"", ""BILL_TO"": ""Estelle Darcy"", ""COMPANY"": ""Larana, Inc."", ""ADDRESS"": ""123 Anywhere St., Any City"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""N/A"", ""BANK_NAME"": ""Fauget"", ""ACCOUNT_NUMBER"": ""1234-5678-90"", ""ITEM_DESCRIPTION"": ""T-shirt Design"", ""QTY"": ""3"", ""UNIT_PRICE"": ""$120"", ""AMOUNT"": ""$120"", ""TOTAL_AMOUNT"": ""$770""}"
+"Beige Torn Studio Invoice
+
+Total: $600.00
+DescriptionQty Subtotal
+1 Logo Design $100.00
+1 Brand Guidelines $100.00
+1 Website Design $100.00
+1 Logo Design $100.00
+1 Brand Guidelines $100.00
+1 Website Design $100.00
+Invoice from
+HOWARD ONG
+M A N A G E R
+Invoice to
+NOAH SCHUMACHER
+F I N A N C E
+INVOICE
+PAYMENT DETAILS
+0123 456 789
+PAUCEK AND LAGE
+hello@reallygreatsite.com","{""INVOICE_NUMBER"": ""N/A"", ""DATE"": ""N/A"", ""BILL_TO"": ""NOAH SCHUMACHER"", ""COMPANY"": ""PAUCEK AND LAGE"", ""ADDRESS"": ""N/A"", ""PHONE"": ""N/A"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""BANK_ACCOUNT"": ""0123 456 789"", ""ITEM_DESCRIPTION"": ""Website Design"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100.00"", ""AMOUNT"": ""$100.00"", ""TOTAL_AMOUNT"": ""$600.00""}"
+"White And Beige Minimal Invoice
+
+QTY
+I N V O I C E
+Invoice #12345
+June 30, 2025
++123-456-7890
+hello@reallygreatsite.com
+
+ITEM PRICE TOTAL
+1 Illustrator Design $110 $110
+1 Web design $100 $100
+1 Book Cover Design $100 $100
+SUB TOTAL
+SHIPPING
+TOTAL
+$310
+$20
+$330
+SEND PAYMENT TO:
+Account Name (LineStore)
+Account No. 1234567890
+Invoice To
+Dora Dori","{""INVOICE_NUMBER"": ""12345"", ""DATE"": ""June 30, 2025"", ""BILL_TO"": ""Dora Dori"", ""COMPANY"": ""LineStore"", ""ADDRESS"": ""N/A"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""BANK_ACCOUNT"": ""1234567890"", ""ITEM_DESCRIPTION"": ""Book Cover Design"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100"", ""AMOUNT"": ""$100"", ""SUBTOTAL"": ""$310"", ""SHIPPING"": ""$20"", ""TOTAL_AMOUNT"": ""$330""}"
+"White Modern Photo Collage Invoice
+
+Total:
+Sub-total: tax (10%):
+Description
+Logo Design
+Brand Guidelines
+Website Design
+Icon Design
+Social Media ads
+Website Design
+$660.00
+$600.00
+$60.00
+$600.00
+Qty Subtotal
+1 $100.00
+1 $100.00
+1 $100.00
+1 $100.00
+1 $100.00
+1 $100.00
+Invoice from :
+JAMIE CHASTAIN
+M A N A G E R
+INVOICE
+PAYMENT DETAILS
+0123 456 789
+PAUCEK AND LAGE
+MONDAY SEPT 16, 2021","{""INVOICE_NUMBER"": ""N/A"", ""DATE"": ""SEPT 16, 2021"", ""BILL_TO"": ""JAMIE CHASTAIN"", ""COMPANY"": ""PAUCEK AND LAGE"", ""ADDRESS"": ""N/A"", ""PHONE"": ""0123 456 789"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""BANK_ACCOUNT"": ""0123 456 789"", ""ITEM_DESCRIPTION"": ""Social Media ads"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100.00"", ""AMOUNT"": ""$100.00"", ""SUBTOTAL"": ""$600.00"", ""TAX"": ""$60.00"", ""TOTAL_AMOUNT"": ""$660.00""}"
+"Pink Beige Gradient Invoice
+
+INVOICE
+Invoice To :
+Bank name
+Bank code
+Cahaya Dewi
+123-456-7890
++123-456-7890
+hello@reallygreatsite.com
+Web design
+Logo
+Illustration
+Infographic
+Poster
+Brochure
+1
+1
+1
+1
+1
+1
+$200
+$300
+$100
+$100
+$100
+$100
+$200
+$300
+$100
+$100
+$100
+$100
+Invoice No : 00000-0090
+Date : 15/02/2022
+Putri Zidni
+Payment to :
+SERVICE
+SERVICE: $920
+Sub-total:
+Tax:
+$900
+20
+QTY PRICE TOTAL","{""INVOICE_NUMBER"": ""00000-0090"", ""DATE"": ""15/02/2022"", ""BILL_TO"": ""Cahaya Dewi"", ""COMPANY"": ""N/A"", ""ADDRESS"": ""N/A"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""BANK_ACCOUNT"": ""123-456-7890"", ""ITEM_DESCRIPTION"": ""Brochure"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100"", ""AMOUNT"": ""$100"", ""SUBTOTAL"": ""$900"", ""TAX"": ""20"", ""TOTAL_AMOUNT"": ""$920""}"
+"Beige Aesthetic with Boho Pattern Invoice
+
+INVOICE
+Fauget
+Invoice no. 123/346
+Invoice from :
+JAMIE CHASTAIN
+M A N A G E R
+Invoice to :
+DANI MARTINEZ
+F I N A N C E
+MONDAY SEPT 16, 2023
+Total:
+Sub-total :
+tax (10%):
+$440.00
+$400.00
+$40.00
+Subtotal
+$100.00
+$100.00
+$100.00
+$100.00
+Description
+Logo Design
+Brand Guidelines
+Website Design
+Icon Design
+Due Date : Payment Details :
+SEPT 21, 2023
+reallygreatsite.com
+0123 456 789/Borcelle","{""INVOICE_NUMBER"": ""123/346"", ""DATE"": ""SEPT 16, 2023"", ""BILL_TO"": ""DANI MARTINEZ"", ""COMPANY"": ""PAUCEK AND LAGE"", ""ADDRESS"": ""N/A"", ""PHONE"": ""0123 456 789"", ""EMAIL"": ""reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""BANK_ACCOUNT"": ""0123 456 789"", ""ITEM_DESCRIPTION"": ""Icon Design"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100.00"", ""AMOUNT"": ""$100.00"", ""SUBTOTAL"": ""$400.00"", ""TAX"": ""$40.00"", ""TOTAL_AMOUNT"": ""$440.00""}"
+"Dark Aesthetic Minimal Invoice Template
+
+Invoice
+Total:
+Sub-total:
+tax (10%):
+$440.00
+$400.00
+$40.00
+Subtotal
+$100.00
+$100.00
+$100.00
+$100.00
+Description
+Logo Design
+Brand Guidelines
+Website Design
+Icon Design
+Invoice from MATT ZHANG
+M A N A G E R
+Invoice to :
+NEIL TRAN
+F I N A N C E
+INVOICE NO. 123/346
+Due Date :
+SEPT 21, 2026
+MONDAY SEPT 13 2026
+MOBILE WEBSITE
++123-456-7890 REALLYGREATSITE.COM
+PAYMENT DETAILS
+0123 456 789
+PAUCEK AND LAGE
+BORCELLE","{""INVOICE_NUMBER"": ""123/346"", ""DATE"": ""SEPT 21, 2026"", ""BILL_TO"": ""NEIL TRAN"", ""COMPANY"": ""PAUCEK AND LAGE"", ""ADDRESS"": ""N/A"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""REALLYGREATSITE.COM"", ""BANK_NAME"": ""N/A"", ""BANK_ACCOUNT"": ""0123 456 789"", ""ITEM_DESCRIPTION"": ""Icon Design"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100.00"", ""AMOUNT"": ""$100.00"", ""SUBTOTAL"": ""$400.00"", ""TAX"": ""$40.00"", ""TOTAL_AMOUNT"": ""$440.00""}"
+"Beige Minimalist and Clean Creative Studio Business Invoice
+
+Olivia mai
+Invoice to :
+Creative & Design Studio
+Invoice Date : Januray 14, 2026
+Due Date : Januray 30, 2026
+Invoice No : #1234
++123-456-7890
+123 Anywhere St. Any
+City, ST 12345
+DESCRIPTION SUBTOTALPRICE
+$150Logo design
+Web Design
+Brand Guideline
+Cover design
+$150.00
+$150 $150.00
+$150 $150.00
+$150 $150.00
+$600.00
+$60.00
+$660.00
+Sub-total :
+tax (10%) :
+Total :
+Payment details :
+Bang Name : oliviamai hello@reallygreatsite
++123-456-7890Account No : 1234567890
+INVOICE
+Naomi Co.
+Thank you","{""INVOICE_NUMBER"": ""#1234"", ""DATE"": ""Januray 14, 2026"", ""DUE_DATE"": ""Januray 30, 2026"", ""BILL_TO"": ""Olivia mai"", ""COMPANY"": ""Creative & Design Studio"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""hello@reallygreatsite"", ""BANK_NAME"": ""oliviamai"", ""ACCOUNT_NUMBER"": ""1234567890"", ""ITEM_DESCRIPTION"": ""Cover design"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$150"", ""AMOUNT"": ""$150"", ""SUBTOTAL"": ""$600.00"", ""TAX"": ""$60.00"", ""TOTAL_AMOUNT"": ""$660.00""}"
+"White and Grey Simple Commercial Invoice
+
+INVOICE
+Invoice No. 01234
+Date 02.05.2024
+
+No. Description Qty Price Total
+1 Baby Milk 5 $20 $100
+2 Laundry Detergent 3 $20 $60
+3 Bath Soap 1 $20 $20
+4 Toothbrush 2 $20 $40
+5 Toothpaste 1 $20 $20
+
+Subtotal
+Tax (0%)
+Total $240
+
+INVOICE TO:
+Hannah Morales
++123-456-7890
+123 Anywhere St., Any City, ST 12345
+
+PAYMENT INFORMATION
+Howard Ong
+Bank Name: Giggling Platypus Co.
+Bank Code: 0123 4567 8901
+hello@reallygreatsite.com
++123-456-7890","{""INVOICE_NUMBER"": ""01234"", ""DATE"": ""02.05.2024"", ""BILL_TO"": ""Hannah Morales"", ""COMPANY"": ""N/A"", ""ADDRESS"": ""123 Anywhere St., Any City, ST 12345"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""Giggling Platypus Co."", ""BANK_ACCOUNT"": ""0123 4567 8901"", ""ITEM_DESCRIPTION"": ""Toothpaste"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$20"", ""AMOUNT"": ""$20"", ""SUBTOTAL"": ""$240"", ""TAX"": ""$0"", ""TOTAL_AMOUNT"": ""$240""}"
+"Grey Modern Service Invoice
+
+INVOICE
+INVOICE NO. 01234
+20/09/2023
+
+BILLED TO ESTELLE DARCY
+123 ANYWHERE ST., ANY CITY
+
+QTY SERVICE PRICE TOTAL
+2 Service 1 $20 $40
+2 Service 2 $10 $20
+2 Service 3 $20 $40
+2 Service 4 $10 $20
+2 Service 5 $20 $40
+
+Sub Total: $180
+Tax: $0
+Total: $180
+
+Company: Larana, Inc.
+Email: hello@reallygreatsite.com
+Web: www.reallygreatsite.com
+
+Sales Manager
+Avery","{""INVOICE_NUMBER"": ""01234"", ""DATE"": ""20/09/2023"", ""BILL_TO"": ""ESTELLE DARCY"", ""COMPANY"": ""Larana, Inc."", ""ADDRESS"": ""123 ANYWHERE ST., ANY CITY"", ""PHONE"": ""N/A"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""BANK_ACCOUNT"": ""N/A"", ""ITEM_DESCRIPTION"": ""Service 5"", ""QTY"": ""2"", ""UNIT_PRICE"": ""$20"", ""AMOUNT"": ""$40"", ""SUBTOTAL"": ""$180"", ""TAX"": ""$0"", ""TOTAL_AMOUNT"": ""$180""}"
+"Brown Elegant Minimalist Fashion Business Invoice Template
+
+INVOICE
+Invoice No. 1234
+Month/ Date/ Year
+
+INVOICE TO:
+Studio Fashion.Co
+
+QTY PRODUCT DESCRIPTION PRICE TOTAL
+1 Item Name Here $10.00 $10.00
+1 Item Name Here $10.00 $10.00
+1 Item Name Here $10.00 $10.00
+1 Item Name Here $10.00 $10.00
+1 Item Name Here $10.00 $10.00
+
+Subtotal $50.00
+Tax (10%) $10.00
+Total $60.00
+
+PAYMENT INFORMATION
+Account Name: Your Account Name
+Account No: 123 456 7890
+Mrs. Really Great
+123 Anywhere St., Any City
++123-456-7890
+www.reallygreatsite.com","{""INVOICE_NUMBER"": ""1234"", ""DATE"": ""Month/ Date/ Year"", ""BILL_TO"": ""Studio Fashion.Co"", ""COMPANY"": ""N/A"", ""ADDRESS"": ""123 Anywhere St., Any City"", ""PHONE"": ""+123-456-7890"", ""EMAIL"": ""N/A"", ""BANK_NAME"": ""N/A"", ""BANK_ACCOUNT"": ""123 456 7890"", ""ITEM_DESCRIPTION"": ""Item Name Here"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$10.00"", ""AMOUNT"": ""$10.00"", ""SUBTOTAL"": ""$50.00"", ""TAX"": ""$10.00"", ""TOTAL_AMOUNT"": ""$60.00""}"
+"White Grey Elegant Simple Business Invoice
+
+Invoice Number: 01234
+Date: July 01, 2024
+Due Date: July 15, 2024
+
+ISSUED TO:
+Marceline Anderson
+123 Anywhere St. Any City, ST 12345
++123 456 7890
+
+QTY DESCRIPTION PRICE TOTAL
+1 Acne Serum $10.00 $10.00
+2 Moisturizing Cream $8.00 $16.00
+3 Hand & Nail Cream $5.00 $15.00
+4 Face Serum $10.00 $40.00
+
+Sub total $81.00
+Discount $0.00
+Taxes $15.39
+TOTAL AMOUNT $96.39
+
+PAYMENT INFORMATION
+Bank Name: Really Great Bank
+Account No: 123 456 7890
+
+Rebecca Brown
+hello@reallygreatsite.com","{""INVOICE_NUMBER"": ""01234"", ""DATE"": ""July 01, 2024"", ""DUE_DATE"": ""July 15, 2024"", ""BILL_TO"": ""Marceline Anderson"", ""COMPANY"": ""N/A"", ""ADDRESS"": ""123 Anywhere St. Any City, ST 12345"", ""PHONE"": ""+123 456 7890"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""Really Great Bank"", ""BANK_ACCOUNT"": ""123 456 7890"", ""ITEM_DESCRIPTION"": ""Face Serum"", ""QTY"": ""4"", ""UNIT_PRICE"": ""$10.00"", ""AMOUNT"": ""$40.00"", ""SUBTOTAL"": ""$81.00"", ""DISCOUNT"": ""$0.00"", ""TAX"": ""$15.39"", ""TOTAL_AMOUNT"": ""$96.39""}"
+"Black and White Modern Abstract Geometric Catering Service Invoice
+
+INVOICE NO. 8834-B1
+DATE: 01/08/24
+
+BILLED TO:
+Olivia Wilson
+123 Anywhere St., Any City
+
+PRICE QTY DESCRIPTION
+$100 1 Catering Service
+$25 75 Buffet Lunch
+$100 1 Beverage Service
+
+SUBTOTAL $2,075
+TAX (0%) $166
+TOTAL $2,241
+
+Payment Info
+Bank Name: Aaron Loeb
+Bank Account: 1234567890
+
+Terms and Conditions
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.","{""INVOICE_NUMBER"": ""8834-B1"", ""DATE"": ""01/08/24"", ""BILL_TO"": ""Olivia Wilson"", ""COMPANY"": ""BROCELLE CATERING"", ""ADDRESS"": ""123 Anywhere St., Any City"", ""PHONE"": ""N/A"", ""EMAIL"": ""N/A"", ""BANK_NAME"": ""Aaron Loeb"", ""BANK_ACCOUNT"": ""1234567890"", ""ITEM_DESCRIPTION"": ""Beverage Service"", ""QTY"": ""1"", ""UNIT_PRICE"": ""$100"", ""AMOUNT"": ""$100"", ""SUBTOTAL"": ""$2,075"", ""TAX"": ""$166"", ""TOTAL_AMOUNT"": ""$2,241""}"
+"Pink Modern Service Invoice
+
+INVOICE
+INVOICE NO. 01234
+20/09/2023
+
+BILLED TO ESTELLE DARCY
+123 ANYWHERE ST., ANY CITY
+
+QTY SERVICE PRICE TOTAL
+2 Service 1 $20 $40
+2 Service 2 $10 $20
+2 Service 3 $20 $40
+2 Service 4 $10 $20
+2 Service 5 $20 $40
+
+Sub Total: $180
+Tax: $0
+Total: $180
+
+Company: Larana, Inc.
+Email: hello@reallygreatsite.com
+Web: www.reallygreatsite.com
+
+Sales Manager
+Avery","{""INVOICE_NUMBER"": ""01234"", ""DATE"": ""20/09/2023"", ""BILL_TO"": ""ESTELLE DARCY"", ""COMPANY"": ""Larana, Inc."", ""ADDRESS"": ""123 ANYWHERE ST., ANY CITY"", ""PHONE"": ""N/A"", ""EMAIL"": ""hello@reallygreatsite.com"", ""BANK_NAME"": ""N/A"", ""BANK_ACCOUNT"": ""N/A"", ""ITEM_DESCRIPTION"": ""Service 5"", ""QTY"": ""2"", ""UNIT_PRICE"": ""$20"", ""AMOUNT"": ""$40"", ""SUBTOTAL"": ""$180"", ""TAX"": ""$0"", ""TOTAL_AMOUNT"": ""$180""}"
