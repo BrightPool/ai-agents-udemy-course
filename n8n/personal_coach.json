@@ -1,5 +1,5 @@
 {
-  "name": "personal coach",
+  "name": "My workflow 2",
   "nodes": [
     {
       "parameters": {
@@ -22,10 +22,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        208,
-        0
+        288,
+        96
       ],
-      "id": "b6ea8902-e6d5-47bc-a771-9ce089ec8590",
+      "id": "f19170f5-bbc2-4810-b6ca-585b61bbd15e",
       "name": "HTTP Request"
     },
     {
@@ -41,10 +41,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        528,
-        224
+        608,
+        320
       ],
-      "id": "24a4ac34-05a9-4987-95d2-1b7b149a63ee",
+      "id": "db2d3ed4-9744-41d0-a02d-7a93b152a07b",
       "name": "gpt 4.1 mini",
       "credentials": {
         "openAiApi": {
@@ -62,10 +62,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -32,
-        0
+        48,
+        96
       ],
-      "id": "1cfdc955-242e-4000-b714-5abce73f7243",
+      "id": "d3f4ddca-53a9-431a-b794-a754592a3ab1",
       "name": "Telegram Trigger1",
       "webhookId": "f763135e-de5e-41f2-8ddf-a525c2a59be0"
     },
@@ -76,10 +76,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        416,
-        0
+        496,
+        96
       ],
-      "id": "a7fd9996-8927-4eff-8c68-3112cf49594c",
+      "id": "f4cbded9-2b34-4db8-abbe-c8a664577bbd",
       "name": "filter memories"
     },
     {
@@ -91,10 +91,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -48,
-        144
+        32,
+        240
       ],
-      "id": "93d6302f-a7d5-4c15-bf19-31ee35351806",
+      "id": "25d69b9f-d6e6-4a2c-9a72-3042926f8b68",
       "name": "Sticky Note4"
     },
     {
@@ -108,10 +108,10 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1712,
-        0
+        1168,
+        96
       ],
-      "id": "86f770f5-ac14-4bf4-baa2-310c0e7c9b5f",
+      "id": "55eaefe5-3d9d-47d9-b33d-89bb99d87c16",
       "name": "Send a text message",
       "webhookId": "8d969343-7385-44f8-96b6-a8756096a475",
       "credentials": {
@@ -123,17 +123,17 @@
     },
     {
       "parameters": {
-        "content": "Steps\n0. Run n8n\n1. Run docker (Mem0 + Neo4j, Qdrant)\n2. Run ngrok\n3. Change the telegram url\n4. start chatting\n\nhttps://www.youtube.com/watch?v=kNsX2qu8jHY (ideas for video)\n\nApproach:\n→ User input\n→ Get 10 relevant memories\n→ Bot reasoning (LLM)\n→ Memory inference (LLM)\n→ Memory write (Mem0)",
+        "content": "Steps\n0. Run n8n\n1. Run docker (Mem0 + Neo4j, Qdrant)\n2. Run ngrok\n3. Change the telegram url\n4. start chatting\n\nhttps://www.youtube.com/watch?v=kNsX2qu8jHY (ideas for video)\n\nApproach:\n→ User input\n→ Get 10 relevant memories\n→ Bot reasoning (LLM)\n→ Memory inference (LLM / N8N)\n→ Memory inference (LLM / Mem0)\n→ Memory write",
         "height": 368,
         "width": 342
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -496,
-        16
+        -416,
+        144
       ],
-      "id": "2afa7d7e-bc1a-45cf-9f4d-0f6266cc3bb8",
+      "id": "4d0030de-0e8a-45d4-b8d2-7b8a1709d7a2",
       "name": "Sticky Note5"
     },
     {
@@ -158,7 +158,7 @@
             },
             {
               "name": "memory",
-              "value": "={{ $json.textList }}"
+              "value": "={{ $('Telegram Trigger1').item.json.body.message.text }}"
             },
             {
               "name": "enable_graph",
@@ -171,10 +171,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1712,
-        304
+        1072,
+        400
       ],
-      "id": "35858f38-47a3-41ac-9730-b2d28c55b67e",
+      "id": "3328d149-4fe5-4dd9-b408-5fb581220a1d",
       "name": "add memories"
     },
     {
@@ -185,10 +185,10 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        720,
-        224
+        800,
+        320
       ],
-      "id": "f994caba-74c4-4723-af3b-81d0987bd458",
+      "id": "198888a5-d01a-48c6-ae9e-e3c3a0dad4ea",
       "name": "Simple Memory"
     },
     {
@@ -202,128 +202,58 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        624,
-        0
+        704,
+        96
       ],
-      "id": "8eccd3d3-0003-414f-90b9-38c99e1f3546",
+      "id": "e3c018c6-de0e-4b1c-8fe4-6b4652565e9e",
       "name": "AI Agent: Chat"
     },
     {
       "parameters": {
-        "model": {
-          "__rl": true,
-          "value": "gpt-4.1-mini",
-          "mode": "list",
-          "cachedResultName": "gpt-4.1-mini"
-        },
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.2,
-      "position": [
-        1024,
-        512
-      ],
-      "id": "53d202c4-6e52-4663-9362-bb9ac1d51703",
-      "name": "gpt 4.1 mini1",
-      "credentials": {
-        "openAiApi": {
-          "id": "aEwEH5APyXx6cq8g",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Telegram Trigger1').first().json.body.message.chat.id.toString() }}",
-        "contextWindowLength": 10
-      },
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        1168,
-        512
-      ],
-      "id": "058ef927-c96b-4b17-8853-05478a617956",
-      "name": "Simple Memory1"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Grab the first input\nconst input = $input.first().json;\n\n// If output is a string, parse it into JSON\nlet parsed = input.output;\nif (typeof parsed === 'string') {\n  try {\n    parsed = JSON.parse(parsed);\n  } catch (e) {\n    parsed = { memories: [] };\n  }\n}\n\n// Ensure we actually have an array\nconst memories = parsed.memories || [];\n\nlet output = \"Memories:\\n\";\noutput += memories\n  .map(m => `- \"${m.text}\" (${m.inference})`)\n  .join(\"\\n\");\n\nreturn [\n  {\n    json: {\n      textList: output\n    }\n  }\n];\n``\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1440,
-        304
-      ],
-      "id": "2660f5e3-3f9b-478d-9101-effd6bad737c",
-      "name": "convert memories to list"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ $('Telegram Trigger1').item.json.body.message.text }}",
-        "options": {
-          "systemMessage": "For memory: After the user speaks, decide what to remember and at what confidence. Here are your inference types:\n\n- Explicit: said directly  \n- Deductive: necessarily follows from explicit  \n- Inductive: general pattern from multiple past messages  \n- Abductive: plausible hypothesis but needs confirmation  \n\nGive up to 5 facts. For each fact, label the inference type.\n\nJSON output only. e.g.:\n\n{\n  \"memories\": [\n    { \"text\": \"user’s favorite post-workout meal is sushi.\", \"inference\": \"explicit\" },\n    { \"text\": \"user works out at the gym every weekday morning.\", \"inference\": \"explicit\" },\n\n    { \"text\": \"user wakes up early to fit training before work.\", \"inference\": \"deductive\" },\n    { \"text\": \"user is likely disciplined with time management.\", \"inference\": \"deductive\" },\n\n    { \"text\": \"user often chooses outdoor activities like hiking, running, and cycling.\", \"inference\": \"inductive\" },\n    { \"text\": \"user tends to feel most energized in natural environments.\", \"inference\": \"inductive\" },\n\n    { \"text\": \"user might enjoy a high-altitude expedition challenge in the future.\", \"inference\": \"abductive\" },\n    { \"text\": \"user could benefit from recovery practices such as yoga or mindfulness.\", \"inference\": \"abductive\" }\n  ]\n}\n"
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 2.2,
-      "position": [
-        1056,
-        304
-      ],
-      "id": "02fa9428-148e-4c29-8663-d54bcfe142ef",
-      "name": "AI Agent: Long Term Memory"
-    },
-    {
-      "parameters": {
         "content": "# generate chat reply",
-        "height": 512,
+        "height": 560,
         "width": 976,
         "color": 5
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -80,
-        -128
+        0,
+        0
       ],
-      "id": "88771d50-11da-4caa-81ca-5ff9f9374fb6",
+      "id": "b48e25f6-988f-4af7-9c60-c3efb6618fe8",
       "name": "Sticky Note2"
     },
     {
       "parameters": {
-        "content": "# generate long term memories",
-        "height": 416,
-        "width": 976,
+        "content": "# long term memory ",
+        "height": 240,
+        "width": 400,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        912,
-        224
+        992,
+        320
       ],
-      "id": "45dac435-025c-4e53-b399-49e9098df952",
+      "id": "fc8d000b-a0cd-4099-aebd-1a141e706d2a",
       "name": "Sticky Note"
     },
     {
       "parameters": {
         "content": "# send reply",
-        "height": 336,
-        "width": 976,
+        "height": 304,
+        "width": 400,
         "color": 4
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        912,
-        -128
+        992,
+        0
       ],
-      "id": "7e750ef3-6f96-48c7-b22a-4d8d7cf0eb24",
+      "id": "e87c2c14-8429-40c7-b6f3-718f5715c8e8",
       "name": "Sticky Note3"
     }
   ],
@@ -373,11 +303,6 @@
         ]
       ]
     },
-    "add memories": {
-      "main": [
-        []
-      ]
-    },
     "Simple Memory": {
       "ai_memory": [
         [
@@ -398,86 +323,22 @@
             "index": 0
           },
           {
-            "node": "AI Agent: Long Term Memory",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "gpt 4.1 mini1": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent: Long Term Memory",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Simple Memory1": {
-      "ai_memory": [
-        [
-          {
-            "node": "AI Agent: Long Term Memory",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "convert memories to list": {
-      "main": [
-        [
-          {
             "node": "add memories",
             "type": "main",
             "index": 0
           }
         ]
       ]
-    },
-    "AI Agent: Long Term Memory": {
-      "main": [
-        [
-          {
-            "node": "convert memories to list",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "c19f09e7-7b6b-4adf-babc-d3d22171690f",
+  "versionId": "70d32672-0f58-461b-ac84-4a2bbfb657e1",
   "meta": {
-    "templateCredsSetupCompleted": true,
     "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
   },
-  "id": "bVuR1hq8TFEdu15z",
-  "tags": [
-    {
-      "createdAt": "2025-09-15T22:12:26.769Z",
-      "updatedAt": "2025-09-15T22:12:26.769Z",
-      "id": "QGt98YBb9YGX4lep",
-      "name": "ai agent"
-    },
-    {
-      "createdAt": "2025-09-15T22:12:18.502Z",
-      "updatedAt": "2025-09-15T22:12:18.502Z",
-      "id": "WAw1LMPxoDpSffyH",
-      "name": "fitness"
-    },
-    {
-      "createdAt": "2025-09-15T22:12:30.006Z",
-      "updatedAt": "2025-09-15T22:12:30.006Z",
-      "id": "jLKHYMYwIKKkRRux",
-      "name": "deep memory"
-    }
-  ]
+  "id": "X44njt2WstUz3oB0",
+  "tags": []
 }
