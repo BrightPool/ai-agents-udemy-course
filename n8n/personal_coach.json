@@ -123,7 +123,7 @@
     },
     {
       "parameters": {
-        "content": "Steps\n0. Run n8n\n1. Run docker (Mem0 + Neo4j, Qdrant)\n2. Run ngrok\n3. Change the telegram url\n4. start chatting\n\nhttps://www.youtube.com/watch?v=kNsX2qu8jHY (ideas for video)\n\nApproach:\n→ User input\n→ Get 10 relevant memories\n→ Bot reasoning (LLM)\n→ Memory inference (LLM / N8N)\n→ Memory inference (LLM / Mem0)\n→ Memory write",
+        "content": "Steps\n0. Run n8n (npx n8n)\n1. Run docker (Mem0 + Neo4j, Qdrant)\n2. Run ngrok\n3. Change the telegram url\n4. Start chatting\n\nhttps://www.youtube.com/watch?v=kNsX2qu8jHY (ideas for video)\n\nApproach:\n→ User input\n→ Get 10 relevant memories\n→ Bot reasoning (LLM)\n→ Memory inference (LLM / Mem0)\n→ Memory write",
         "height": 368,
         "width": 342
       },
@@ -335,7 +335,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "70d32672-0f58-461b-ac84-4a2bbfb657e1",
+  "versionId": "17693a56-2cd4-4b3f-9dc0-6edf176531ff",
   "meta": {
     "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
   },
