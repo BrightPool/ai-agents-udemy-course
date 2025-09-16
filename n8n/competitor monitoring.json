@@ -1,0 +1,807 @@
+{
+  "name": "competitor monitoring",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        -176
+      ],
+      "id": "3d8f1c5d-b3ae-4fc5-a06a-dc81f9b8eb28",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "content": "## Competitive Intel Agent \n- Task: get list of urls ✅ (http)\n- Task: search for new content ✅ (data diff)\n- Task: summerize new content ✅ (llm)\n- Task: send email ✅ ",
+        "height": 176,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3792,
+        -512
+      ],
+      "id": "e8d8e59e-1c16-4dfb-9d54-fe30821eaf3e",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTvE_qRDWRu5hjZ45yY6juAc4i7iT3DIrJT9q3cz29uIpGpz0IRRzHPdqcKge8obrTjwNS7qC3TGGg-/pub?gid=0&single=true&output=csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        -176
+      ],
+      "id": "25dd59e7-3e63-44b0-82d9-53c538038b3f",
+      "name": "Get Competitors"
+    },
+    {
+      "parameters": {
+        "jsCode": "const csv = items[0].json.data; // grab the CSV string\nconst lines = csv.split(/\\r?\\n/).filter(l => l.trim() !== \"\");\n\n// first line is the header\nconst headers = lines.shift().split(\",\");\n\n// build array of JSON objects\nconst results = lines.map(line => {\n  const values = line.split(\",\");\n  const obj = {};\n  headers.forEach((h, i) => {\n    obj[h.trim()] = values[i] ? values[i].trim() : \"\";\n  });\n  return { json: obj };\n});\n\nreturn results;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        -176
+      ],
+      "id": "ae644d5b-93ba-4adb-a862-b97113bab712",
+      "name": "Transform to JSON"
+    },
+    {
+      "parameters": {
+        "content": "# get recent content (data-diffing)",
+        "height": 480,
+        "width": 2096,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        -304
+      ],
+      "id": "e235b5e6-193e-4590-8d99-70d355921412",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "# extract insights (llm)",
+        "height": 480,
+        "width": 1184,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3328,
+        -304
+      ],
+      "id": "8a1c7bcc-9ffe-44b4-91fb-786dee94a551",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "# send email",
+        "height": 480,
+        "width": 320,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4528,
+        -304
+      ],
+      "id": "b3d3a315-70e6-43f6-8fab-79626c976f58",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json['blog urls'] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "en-US,en;q=0.9"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "gzip, deflate, br"
+            },
+            {
+              "name": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "name": "Upgrade-Insecure-Requests",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 2
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "1f37bc7c-186d-4882-9a0a-131bfc36b110",
+      "name": "HTTP: Get Content1",
+      "position": [
+        1968,
+        -176
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "executeOnce": false,
+      "retryOnFail": false,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "urls",
+              "cssSelector": "a",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        2176,
+        -192
+      ],
+      "id": "f781a9f3-b74f-4056-901b-71bb9b2d37ee",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "urls",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2384,
+        -192
+      ],
+      "id": "c97fea45-1bc7-413b-a7c6-07b619a71aa4",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aeb846d2-1171-41fe-ac3f-b57061994415",
+              "leftValue": "={{ $json.normalizedUrl.startsWith($('Transform to JSON').item.json[\"Url\"]) }}",
+              "rightValue": "={{ $json.normalizedUrl.startsWith($('Transform to JSON').item.json[\"blog urls\"]) }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2800,
+        -192
+      ],
+      "id": "38307587-597f-4444-b661-9ed3d8c2eda4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "040c8f65-e2ed-4f9a-848b-c6d22acfeabd",
+              "name": "normalizedUrl",
+              "value": "={{ \n  $json.urls.startsWith(\"/\") \n    ? $('Transform to JSON').item.json[\"blog urls\"].split(\"/\").slice(0,3).join(\"/\") + $json.urls \n    : $json.urls \n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2592,
+        -192
+      ],
+      "id": "78e4c167-df47-4d57-830c-160b5dc5b300",
+      "name": "normalize urls"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "competitor_urls",
+          "mode": "list",
+          "cachedResultName": "competitor_urls"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "normalized_url": "={{ $json.normalizedUrl }}",
+            "source_site": "={{ $('Transform to JSON').item.json.Url }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "normalized_url",
+              "displayName": "normalized_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_site",
+              "displayName": "source_site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_found",
+              "displayName": "date_found",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "skipOnConflict": true
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3008,
+        -208
+      ],
+      "id": "d882d5c1-6e6b-4a15-a368-d1a9d8755bdd",
+      "name": "Insert urls to db",
+      "credentials": {
+        "postgres": {
+          "id": "xh4iZmqlc0TlD6qZ",
+          "name": "Postgres account | agent 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Open the link, get the content and generate an SPR from it. Your output must be valid JSON.\n\nAlways include metadata about the source:  \n- `source_url` → the page where the content came from {{ $json.normalized_url }} \n- `title` → the article/blog title if available (or `\"unknown\"` if not)  \n- `spr` → the actual distilled SPR list \n\n# OUTPUT FORMAT\n[\n  {\n    \"source_url\": \"<SOURCE_URL>\",\n    \"title\": \"<TITLE_OR_UNKNOWN>\",\n    \"date\": \"<DATE_OR_UNKNOWN>\",\n     \"spr\": [\n      \"First distilled SPR statement.\",\n      \"Second SPR statement.\",\n      \"Third SPR statement.\"\n    ]\n  }\n] "
+            },
+            {
+              "content": "# MISSION\nYou are a Sparse Priming Representation (SPR) writer. An SPR is a particular kind of use of language for advanced NLP, NLU, and NLG tasks, particularly useful for the latest generation of Large Language Models (LLMs). You will be given information by the USER which you are to render as an SPR.\n\n# THEORY\nLLMs are a kind of deep neural network. They have been demonstrated to embed knowledge, abilities, and concepts, ranging from reasoning to planning, and even to theory of mind. These are called latent abilities and latent content, collectively referred to as latent space. The latent space of an LLM can be activated with the correct series of words as inputs, which will create a useful internal state of the neural network. This is not unlike how the right shorthand cues can prime a human mind to think in a certain way. Like human minds, LLMs are associative, meaning you only need to use the correct associations to \"prime\" another model to think in the same way.\n\n# METHODOLOGY\nRender the input as a distilled list of succinct statements, assertions, associations, concepts, analogies, and metaphors. The idea is to capture as much, conceptually, as possible but with as few words as possible. Write it in a way that makes sense to you, as the future audience will be another language model, not a human. Use complete sentences.\n",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        3440,
+        -208
+      ],
+      "id": "092b7170-120a-497c-88e3-4b361db1fa93",
+      "name": "Generate SPR",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Makes an HTTP request and returns the raw content.",
+        "url": "={{ $('Insert urls to db').item.json.normalized_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "en-US,en;q=0.9"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "gzip, deflate, br"
+            },
+            {
+              "name": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "name": "Upgrade-Insecure-Requests",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 2
+            }
+          }
+        },
+        "optimizeResponse": true,
+        "responseType": "html",
+        "onlyContent": true
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        3584,
+        0
+      ],
+      "id": "eb148c1a-9b97-417d-bbfe-2b5dc92241c3",
+      "name": "Get Content2"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "message.content"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4080,
+        -208
+      ],
+      "id": "eb21e908-396a-412c-a411-fb5c1aef7349",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "sendTo": "rhys@unvanity.com",
+        "subject": "daily competitor digest",
+        "message": "=<p>Hi Rhys,</p>\n\n<p>Here’s the daily scoop:</p>\n\n<h3>Executive Summary</h3>\n<p>{{ $json.message.content }}</p>\n\n<h3>Competitor Updates</h3>\n<ul>\n{{ $('Aggregate').item.json.content.map(c => '<li>' + c + '</li>').join(\"\") }}\n</ul>\n\n<p>Have a great day,</p>\n\n<hr>\n<p><em>This email was sent automatically with n8n</em></p>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        4624,
+        -208
+      ],
+      "id": "c8222744-b4a1-4983-bcd6-c323889de479",
+      "name": "Send a message",
+      "webhookId": "68dd7dc5-5168-4eb1-a70f-e1c8d16e15b5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "TBaldf4YTqggVfDo",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.content.join(\"\\n\\n\") }}"
+            },
+            {
+              "content": "=You are an analyst writing a daily executive briefing on competitor news.  \nInput: a JSON array of competitor summaries from multiple sources. Each summary captures key product updates, feature launches, and strategic themes.  \n\nTask:\n- Read across all summaries.  \n- Identify common trends, repeated themes, or emerging patterns.  \n- Highlight any notable differences or outliers.  \n- Write a concise 2–3 sentence executive summary that captures the \"big picture\" of what competitors are focusing on.  \n- Audience: senior executives. Use plain business language (strategy, positioning, direction).  \n- Output only the executive summary as JSON.  \n",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        4240,
+        -208
+      ],
+      "id": "b1fe64e3-1ae0-4a6d-96d2-bacb24d638ca",
+      "name": "Executive summary",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Input: {{ $json.message.content }}"
+            },
+            {
+              "content": "You are an analyst that summarises competitor activity.  \nThe input you will receive is some information on recent key themes, assertions, and associations found in competitor blog posts.  \n\nYour task:\n- Read the content carefully.  \n- Write a short, clear, and helpful summary of what is being talked about.  \n- Focus on the most important trends, announcements, or themes.  \n- Keep the summary concise (2–3 sentences).  \n- Write for a human business owner audience (note any siganals of product, strategy, or marketing teams).  \n- Avoid jargon and technical details unless essential for clarity. \n– Always make sure to reference the source and label the specific competitor. \n",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        3760,
+        -208
+      ],
+      "id": "81f45a78-fd5a-4ccd-9ff9-ba4495ee6276",
+      "name": "Summary",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e5001af4-c4bb-4d78-9202-bf4da5524412",
+              "leftValue": "={{ ($json.success === true && $items().length > 0).toString() }}",
+              "rightValue": "false",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3184,
+        -192
+      ],
+      "id": "18e6de14-d137-4832-b0e0-7476a235cb60",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1280,
+        0
+      ],
+      "id": "7373a030-a61d-4096-8de0-637147e5f068",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "sendTo": "rhys@unvanity.com",
+        "subject": "daily competitor digest ",
+        "message": "=<p>Hi Rhys,</p>\n\n<p>Nothing to report today.</p>\n\nBest\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        4624,
+        16
+      ],
+      "id": "5a7d17cf-04df-4e91-8c90-4ba01fd69d22",
+      "name": "Send a message1",
+      "webhookId": "68dd7dc5-5168-4eb1-a70f-e1c8d16e15b5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "TBaldf4YTqggVfDo",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get Competitors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Competitors": {
+      "main": [
+        [
+          {
+            "node": "Transform to JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform to JSON": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Get Content1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Get Content1": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "normalize urls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normalize urls": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Insert urls to db",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert urls to db": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Content2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Generate SPR",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate SPR": {
+      "main": [
+        [
+          {
+            "node": "Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Executive summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executive summary": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summary": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Generate SPR",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "28b40f4c-d62b-4987-9844-45558ad632ba",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "pfAgYwLq59XFI9CL",
+  "tags": []
+}
