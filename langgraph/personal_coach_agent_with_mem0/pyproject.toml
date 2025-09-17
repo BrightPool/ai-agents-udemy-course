@@ -1,7 +1,7 @@
 [project]
-name = "customer-support-agent"
+name = "personal-coach-agent"
 version = "0.0.1"
-description = "Customer service agent for e-commerce support using LangGraph."
+description = "Mem0-powered personal coaching agent using LangGraph."
 authors = [{ name = "Course Demo", email = "demo@example.com" }]
 readme = "README.md"
 license = { text = "MIT" }
