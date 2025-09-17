@@ -1,0 +1,1 @@
+extend-exclude = [".venv", "**/.venv/**", "langgraph/open_deep_research/**"]
