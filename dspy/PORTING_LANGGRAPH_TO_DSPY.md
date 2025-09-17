@@ -100,23 +100,7 @@ Open `dspy/customer_support_agent/customer-support-agent.ipynb` and track these 
 
 - Start a persistent history for the session:
   - Cell 1 creates: `conversation_history = History(messages=[])`
-- Sanitize for safety (avoid empty Anthropic blocks). See Cell 4 function `sanitize_history(...)`.
-
-Example (simplified):
-```python
-from dspy import History
-
-conversation_history = History(messages=[])
-
-def sanitize_history(history: History) -> History:
-    clean = []
-    for m in getattr(history, "messages", []):
-        if isinstance(m, dict) and m.get("role") in ("user", "assistant"):
-            content = m.get("content")
-            if isinstance(content, str) and content.strip():
-                clean.append({"role": m["role"], "content": content})
-    return History(messages=clean)
-```
+- Pass `conversation_history` directly to components; no extra sanitization needed.
 
 How this maps:
 - LangGraph’s `add_messages` automatically aggregates; in DSPy you explicitly maintain `History` and pass it each call.
@@ -145,7 +129,7 @@ Copy the same heuristic:
 
 #### 4.5 Signature and ReAct agent
 
-Use a Signature with a docstring that replaces LangGraph’s system prompt. See Cell 5:
+Use a Signature with a docstring that replaces LangGraph’s system prompt. For research-style agents, prefer DSPy ReAct to handle tool calling loops instead of manual orchestration. See Cell 5:
 
 ```python
 class SupportReActSignature(dspy.Signature):
@@ -182,9 +166,11 @@ react_agent = dspy.ReAct(
 ```
 
 Notes:
-- `max_iters` ≈ LangGraph’s “loop until no tool call” behavior.
+- `max_iters` handles looping over tool calls.
 - The Signature docstring is your “system prompt” replacement. Put the important policies there (role, guidelines, rejection criteria).
-- Input fields (`customer_email`, `order_id`) mirror LangGraph’s context injected into the system message.
+- Input fields mirror the context you want available.
+
+For deep research agents (e.g., `open_deep_research`), implement a single ReAct Signature (e.g., `ResearchReActSignature`) and provide tools like `openai_search` and `think_tool`. Avoid building multi-phase orchestration; let ReAct plan tool usage.
 
 #### 4.6 Entry wrapper with history
 
@@ -212,13 +198,12 @@ def run_support_agent(user_message: str, customer_email: str = "", order_id: str
         return {"answer": rejection, "action": "reject", "tool_result": ""}
 
     conversation_history.messages.append({"role": "user", "content": user_message})
-    safe_history = sanitize_history(conversation_history)
 
     result = react_agent(
         user_message=user_message,
         customer_email=customer_email,
         order_id=order_id,
-        history=safe_history,
+        history=conversation_history,
     )
 
     answer = getattr(result, "answer", "")
@@ -231,6 +216,10 @@ def run_support_agent(user_message: str, customer_email: str = "", order_id: str
         "tool_result": getattr(result, "tool_result", ""),
     }
 ```
+
+#### 4.7 Commenting conventions
+
+- Do not add comments that state code was "ported from LangGraph". Keep comments focused on intent and behavior in the DSPy implementation.
 
 ---
 
@@ -273,12 +262,13 @@ Expected output includes `action` (e.g., `get_status`), the `tool_result`, and a
 - `.env` remains the source of truth for API keys. Don’t change existing keys.
 - DSPy LM configuration happens once (Cell 1). Keep it simple and targeted to the model you’ll use.
 - If you’re using Anthropic, keep `temperature` low for consistent tool decisions, just like LangGraph did.
+- For OpenAI reasoning models, set `temperature=1.0` and `max_tokens >= 16000` when creating the LM, e.g. `dspy.LM('openai/gpt-5', temperature=1.0, max_tokens=16000)`.
 
 ---
 
 ### 8) Troubleshooting and gotchas
 
-- Empty content blocks (Anthropic): sanitize history (see Cell 4). Avoid pushing empty strings into `History`.
+- Empty content blocks: avoid pushing empty strings into `History`.
 - Tool name mismatches: the ReAct planner uses the names you provide. If you rename a tool, update the Signature docstring and the `tools=[...]` list.
 - Missing docs: if documentation files aren’t copied to `dspy/customer_support_agent/documentation`, `doc_search` will return “not found” and degrade quality.
 - Over-long docs: `doc_search` trims content. This mirrors the LangGraph warning/truncation approach.
@@ -293,7 +283,7 @@ Expected output includes `action` (e.g., `get_status`), the `tool_result`, and a
 - Implement `is_relevant_query` and the `_classify_query_to_category` heuristic.
 - Create a `dspy.Signature` whose docstring mirrors the LangGraph system prompt.
 - Build a `dspy.ReAct` agent with `tools=[...]` and `max_iters`.
-- Maintain `dspy.History`; append user/assistant messages and sanitize before calls.
+- Maintain `dspy.History`; append user/assistant messages and pass it directly to calls.
 - Provide a `run_support_agent` wrapper with a JSON-like return for easy testing.
 - Test the same sample inputs used in `run_graph.py`.
 
