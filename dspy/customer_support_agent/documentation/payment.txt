@@ -1,0 +1,48 @@
+# Payment Information
+
+## Accepted Payment Methods
+We accept the following payment methods:
+- Visa
+- MasterCard
+- American Express
+- PayPal
+- Apple Pay
+- Google Pay
+- Shop Pay
+
+## Payment Security
+All payments are processed securely with SSL encryption. We use industry-standard security measures to protect your payment information and comply with PCI DSS requirements.
+
+## Billing Information
+- Billing address must match the address on file with your payment method
+- International orders may require additional verification
+- Some payment methods may have additional fees
+
+## Payment Processing
+- Orders are not charged until they ship
+- You will receive an email confirmation when payment is processed
+- Payment authorization may be held temporarily for verification
+
+## Gift Cards and Store Credit
+- Gift cards can be used for any purchase
+- Store credit is applied automatically at checkout
+- Gift cards do not expire
+- Gift card balances can be checked on our website
+
+## Failed Payments
+If a payment fails:
+- Check that your payment information is correct
+- Ensure sufficient funds are available
+- Contact your bank if the issue persists
+- Try an alternative payment method
+
+## Refunds and Credits
+- Refunds are credited to the original payment method
+- Processing time varies by payment method (typically 3-10 business days)
+- Store credit is available immediately
+- Refund confirmations are sent via email
+
+## International Payments
+- Additional fees may apply for currency conversion
+- Some payment methods may not be available in all countries
+- Customs duties and taxes are calculated separately
