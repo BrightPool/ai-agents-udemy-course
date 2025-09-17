@@ -289,6 +289,18 @@ Expected output includes `action` (e.g., `get_status`), the `tool_result`, and a
 - If you’re using Anthropic, keep `temperature` low for consistent tool decisions, just like LangGraph did.
 - For OpenAI reasoning models, set `temperature=1.0` and `max_tokens >= 16000` when creating the LM, e.g. `dspy.LM('openai/gpt-5', temperature=1.0, max_tokens=16000)`.
 
+- Required keys for video agents and external tools:
+  - `GOOGLE_API_KEY`: used by `google-genai` for text and image generation (e.g., `gemini-2.5-flash`, `gemini-2.5-flash-image-preview`).
+  - `FAL_KEY` (or `FAL_API_KEY`): used by `fal_client` to access fal.ai applications (e.g., Kling video generation).
+  - `KLING_FAL_ENDPOINT` (optional): fal.ai application ID override for Kling; defaults to `kwaivgi/kling-v2.1-master` in our examples.
+
+Example shell setup:
+```bash
+export GOOGLE_API_KEY="..."
+export FAL_KEY="..."  # or FAL_API_KEY
+export KLING_FAL_ENDPOINT='kwaivgi/kling-v2.1-master'
+```
+
 ---
 
 ### 8) Troubleshooting and gotchas
@@ -300,6 +312,67 @@ Expected output includes `action` (e.g., `get_status`), the `tool_result`, and a
 - Max iterations: if the agent loops unnecessarily, reduce `max_iters` or tighten the prompt within the Signature.
 - History attribute collision: don’t name a module attribute `history`; some internals expect a list-like object there. Use `self.conversation_history = dspy.History(messages=[])` and pass it to Signatures as `history`.
 - dspy.Predict signature format: when using inline predictors, use a valid mapping string, e.g., `dspy.Predict("question -> answer")`, not just `"answer"`.
+
+- Google GenAI warnings about non-text parts (inline_data): If you see messages like “Warning: there are non-text parts in the response: ['inline_data']”, do not rely on `resp.text`. Parse `candidates[*].content.parts[*].text` for text and handle `inline_data` for images. Reference: [googleapis/python-genai#850](https://github.com/googleapis/python-genai/issues/850)
+
+  Minimal text extraction utility:
+  ```python
+  def _extract_text_from_genai(resp):
+      try:
+          for c in getattr(resp, "candidates", []) or []:
+              content = getattr(c, "content", None)
+              for p in getattr(content, "parts", []) or []:
+                  txt = getattr(p, "text", None)
+                  if isinstance(txt, str) and txt.strip():
+                      return txt
+          agg_text = getattr(resp, "text", None)
+          if isinstance(agg_text, str):
+              return agg_text
+      except Exception:
+          pass
+      return ""
+  ```
+
+  Handling image `inline_data` bytes:
+  ```python
+  from io import BytesIO
+  from PIL import Image
+
+  for c in getattr(resp, "candidates", []) or []:
+      content = getattr(c, "content", None)
+      for part in getattr(content, "parts", []) or []:
+          inline_data = getattr(part, "inline_data", None)
+          data = getattr(inline_data, "data", None)
+          if isinstance(data, (bytes, bytearray, memoryview)):
+              img = Image.open(BytesIO(bytes(data)))
+              img.save("/tmp/images/output.png")
+  ```
+
+- fal.ai Kling endpoint errors (e.g., “Application 'kling-v1' not found”, “Path /v1 not found”): Use a valid fal app ID and the synchronous `fal_client.run`. Our default is `kwaivgi/kling-v2.1-master`; override with `KLING_FAL_ENDPOINT` if you host your own app. Ensure `FAL_KEY` is set. Typical argument names include `prompt`, `duration`, and `start_image` when providing an input image URL.
+
+  Example:
+  ```python
+  import os
+  import fal_client
+
+  os.environ.setdefault("FAL_KEY", os.getenv("FAL_KEY") or os.getenv("FAL_API_KEY", ""))
+  endpoint = os.getenv("KLING_FAL_ENDPOINT", "kwaivgi/kling-v2.1-master")
+
+  arguments = {"prompt": "Cinematic product shot", "duration": 6}
+  if start_image_url:
+      arguments["start_image"] = start_image_url
+
+  result = fal_client.run(endpoint, arguments=arguments)
+  video_url = (
+      result.get("video")
+      or result.get("url")
+      or result.get("output")
+      or result.get("video_url")
+      or result.get("output_url")
+  )
+  ```
+
+- macOS `/tmp` paths: `/tmp` is an alias of `/private/tmp`. Generated images and videos saved under `/tmp/...` can be accessed via Finder (Go to Folder → `/private/tmp/...`) or Terminal (`open /tmp/images`). Temp data may be cleared on reboot; copy artifacts to your project if you need persistence.
 
 ---
 
