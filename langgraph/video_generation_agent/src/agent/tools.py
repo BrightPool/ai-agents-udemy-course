@@ -1,31 +1,33 @@
 """Custom tools for video generation agent."""
 
+import base64
 import json
 import os
 import shlex
 import shutil
 import subprocess
-from io import BytesIO
-from typing import Any, Dict, List, Optional, cast
+import tempfile
+import uuid
+from pathlib import Path
+from typing import Annotated, Any, Dict, List, Optional
 
 import fal_client  # type: ignore[import-untyped]
-import ffmpeg  # type: ignore[import-untyped]
-from google import genai
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.tools import tool
+from langchain_core.messages import HumanMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
+from langchain_core.tools import InjectedToolCallId, tool
 from langchain_google_genai import ChatGoogleGenerativeAI
-from PIL import Image
+from langgraph.types import Command
 
 from .models import (
     FFmpegExecuteRequest,
     GenerateImageRequest,
-    KlingVideoRequest,
-    KlingVideoResult,
     Storyboard,
     StoryboardCreateRequest,
-    StoryboardUpdateRequest,
-    VideoQualityAssessment,
+    Veo3VideoRequest,
+    VideoConcatRequest,
+    VideoConcatResult,
 )
+from .utils import upload_media_to_google
 
 
 class ToolExecutionError(Exception):
@@ -58,6 +60,7 @@ def create_story_board(request: StoryboardCreateRequest) -> Storyboard:
 
         scenes = []
         for idx, sid in enumerate(scene_names[: request.scenes_count]):
+            scene_id = str(uuid.uuid4())
             title = f"{sid.capitalize()}"
             desc = (
                 f"{brand} {product} ad for {ta}. {sid} of story, tone: {tone}. "
@@ -69,7 +72,7 @@ def create_story_board(request: StoryboardCreateRequest) -> Storyboard:
             )
             scenes.append(
                 {
-                    "id": sid,
+                    "id": scene_id,
                     "title": title,
                     "description": desc,
                     "prompt": prompt,
@@ -83,149 +86,449 @@ def create_story_board(request: StoryboardCreateRequest) -> Storyboard:
         return Storyboard(scenes=[])
 
 
-@tool
-def update_story_board(request: StoryboardUpdateRequest) -> Storyboard:
-    """Apply simple natural-language edits to a storyboard.
+@tool()
+def update_scene(
+    tool_call_id: Annotated[str, InjectedToolCallId],
+    storyboard: Storyboard,
+    scene_index: int,
+    config: RunnableConfig,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    prompt: Optional[str] = None,
+    duration_seconds: Optional[float] = None,
+    quality_score: Optional[float] = None,
+    feedback: Optional[str] = None,
+) -> Command:
+    """Update a specific scene in the storyboard using Command.
 
-    For safety and determinism, performs lightweight rule-based updates:
-    - If instructions mention duration like `duration=8`, apply to all scenes.
+    Only updates the fields that are provided (not None). Returns a Command
+    that updates the storyboard state.
     """
-    sb = request.storyboard
-    instructions = request.instructions.lower()
+    # Validate scene index
+    if scene_index >= len(storyboard.scenes):
+        raise ToolExecutionError(
+            f"Scene index {scene_index} is out of range. Storyboard has {len(storyboard.scenes)} scenes."
+        )
 
-    try:
-        # Update duration for all scenes if specified
-        import re
+    # Get the scene to update
+    scene = storyboard.scenes[scene_index]
 
-        dur_match = re.search(r"duration\s*=\s*(\d+(?:\.\d+)?)", instructions)
-        if dur_match:
-            new_dur = float(dur_match.group(1))
-            for sc in sb.scenes:
-                sc.duration_seconds = max(1.0, min(60.0, new_dur))
+    # Update only the provided fields
+    updated_fields = []
+    if title is not None:
+        scene.title = title
+        updated_fields.append("title")
+    if description is not None:
+        scene.description = description
+        updated_fields.append("description")
+    if prompt is not None:
+        scene.prompt = prompt
+        updated_fields.append("prompt")
+    if duration_seconds is not None:
+        scene.duration_seconds = duration_seconds
+        updated_fields.append("duration")
+    if quality_score is not None:
+        scene.quality_score = quality_score
+        updated_fields.append("quality_score")
+    if feedback is not None:
+        scene.feedback = feedback
+        updated_fields.append("feedback")
 
-        return sb
-    except Exception:
-        return sb
+    # Create success message describing what was updated
+    fields_str = ", ".join(updated_fields) if updated_fields else "no fields"
+    success_message = f"Successfully updated scene {scene_index} ({fields_str})"
+
+    # Return Command to update the storyboard state and message history
+    return Command(
+        update={
+            # update the state keys
+            "storyboard": storyboard,
+            # update the message history with ToolMessage
+            "messages": [ToolMessage(success_message, tool_call_id=tool_call_id)],
+        }
+    )
 
 
 @tool
-def generate_image(request: GenerateImageRequest) -> List[str]:
-    """Generate one or more images using Gemini Image API and save to /tmp.
+def generate_image(
+    request: GenerateImageRequest,
+    tool_call_id: Annotated[str, InjectedToolCallId],
+    config: RunnableConfig,
+) -> Command:
+    """Generate image(s), upload to Google, and update chat via Command.
 
-    Requires GOOGLE_API_KEY in env. Saves PNG files and returns their paths.
+    Saves PNG files under `/tmp/images`, uploads each to Google (file storage),
+    and posts a ToolMessage containing compact metadata (file_id/file_uri).
     """
     try:
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
-            return ["Error: GOOGLE_API_KEY not set"]
+            raise ToolExecutionError("GOOGLE_API_KEY not set")
 
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
+        llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash-image-preview",
-            contents=[request.prompt],
+            google_api_key=api_key,
+            temperature=0,
+            max_tokens=None,
+            timeout=None,
+            max_retries=2,
+        )
+        messages = []
+
+        # If there are input image paths, add them to the prompt
+        messages.append(HumanMessage(content=request.prompt))
+        response = llm.invoke(
+            [HumanMessage(content=request.prompt)],
+            generation_config={"response_modalities": ["IMAGE"]},
         )
 
         os.makedirs("/tmp/images", exist_ok=True)
-        saved: List[str] = []
-        idx = 0
-        # Extract images from interleaved parts
-        for part in response.candidates[0].content.parts:  # type: ignore[index]
-            inline_data = getattr(part, "inline_data", None)
-            if inline_data is None:
-                continue
-            data = getattr(inline_data, "data", None)
-            if not isinstance(data, (bytes, bytearray, memoryview)):
-                # Skip parts without byte-like data
-                continue
-            try:
-                image = Image.open(BytesIO(bytes(data)))
-                out_path = f"/tmp/images/{request.output_basename}_{idx}.png"
-                image.save(out_path)
-                saved.append(out_path)
-                idx += 1
-            except Exception:
+        images_payload: List[Dict[str, Any]] = []
+        file_uploads = []
+        for idx, block in enumerate(response.content):
+            image_url: Optional[str] = None
+            if isinstance(block, dict):
+                val = block.get("image_url")
+                if isinstance(val, str):
+                    image_url = val
+                elif isinstance(val, dict):
+                    url_val = val.get("url")
+                    if isinstance(url_val, str):
+                        image_url = url_val
+            elif isinstance(block, str) and block.startswith("data:"):
+                image_url = block
+
+            if not image_url or "," not in image_url:
                 continue
 
-        if not saved:
-            return ["Error: No images in model response"]
-        return saved[: request.num_images]
+            try:
+                header, b64_data = image_url.split(",", 1)
+            except ValueError:
+                continue
+            mime_type = "image/png"
+            if ":" in header:
+                mime_type = header.split(";", 1)[0].split(":", 1)[-1] or mime_type
+
+            image_bytes = base64.b64decode(b64_data)
+            out_path = f"/tmp/images/{request.output_basename}_{idx}.png"
+            with open(out_path, "wb") as f:
+                f.write(image_bytes)
+
+            # Upload to Google file storage
+            upload = upload_media_to_google(
+                out_path, google_api_key=os.getenv("GOOGLE_API_KEY")
+            )
+            payload_item: Dict[str, Any] = {
+                "kind": "image",
+                "path": out_path,
+                "mime_type": mime_type,
+                "file_id": upload.get("file_id"),
+                "file_uri": upload.get("file_uri"),
+            }
+            if getattr(request, "inline_base64", False):
+                payload_item["base64"] = b64_data
+            images_payload.append(payload_item)
+            file_uploads.append(upload)
+
+        if not images_payload:
+            payload = {"error": "No images in model response", "images": []}
+            return Command(
+                update={
+                    "messages": [
+                        ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+                    ]
+                }
+            )
+
+        payload = {"images": images_payload, "prompt": request.prompt}
+        happy_path_messages = []
+        happy_path_messages.append(
+            ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+        )
+        for file in file_uploads:
+            happy_path_messages.append(
+                HumanMessage(
+                    content=[
+                        {
+                            "type": "media",
+                            "file_uri": file.get("file_uri"),
+                            "mime_type": file.get("mime_type"),
+                        },
+                    ]
+                )
+            )
+
+        return Command(update={"messages": happy_path_messages})
     except Exception as e:
-        return [f"Error generating image: {e}"]
+        payload = {"error": f"Error generating image: {e}", "images": []}
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+                ]
+            }
+        )
 
 
 @tool
-def kling_generate_video_from_image(request: KlingVideoRequest) -> KlingVideoResult:
-    """Generate a short video from an image using fal.ai Kling endpoint.
+def veo3_generate_video(
+    request: Veo3VideoRequest,
+    tool_call_id: Annotated[str, InjectedToolCallId],
+    config: RunnableConfig,
+) -> Command:
+    """Generate a video using Google's Veo 3 Fast endpoint on fal.ai.
 
-    - If image_path is provided, upload it to obtain a URL.
-    - Submits to the fal queue and waits for result with logs.
-    Returns a KlingVideoResult with video_url if available.
+    Supports optional reference imagery via path, hosted URL, or base64 payload.
+    Returns structured metadata including the resulting video URL.
     """
     try:
-        # Configure fal client via env var FAL_KEY if present
         fal_api_key = os.getenv("FAL_KEY") or os.getenv("FAL_API_KEY")
         if fal_api_key:
             os.environ.setdefault("FAL_KEY", fal_api_key)
 
-        image_url: Optional[str] = request.image_url
+        reference_url: Optional[str] = request.image_url
         if request.image_path and os.path.exists(request.image_path):
             try:
-                image_url = fal_client.upload_file(request.image_path)
+                reference_url = fal_client.upload_file(request.image_path)
             except Exception:
-                pass
+                reference_url = reference_url or None
 
-        logs_collector: List[str] = []
+        if request.image_base64:
+            if request.image_base64.startswith("data:"):
+                reference_url = request.image_base64
+            else:
+                mime = request.image_mime_type or "image/png"
+                reference_url = f"data:{mime};base64,{request.image_base64}"
 
-        def on_queue_update(update):
-            try:
-                if isinstance(update, fal_client.InProgress):
-                    for log in update.logs:
-                        msg = log.get("message")
-                        if isinstance(msg, str):
-                            logs_collector.append(msg)
-            except Exception:
-                pass
+        # using synchronous run keeps things simple; no queue/log streaming
 
-        args: Dict[str, Any] = {
+        arguments: Dict[str, Any] = {
             "prompt": request.prompt,
-            "duration": float(request.duration_seconds),
+            "aspect_ratio": request.aspect_ratio,
+            "duration": request.duration,
+            "enhance_prompt": request.enhance_prompt,
+            "auto_fix": request.auto_fix,
+            "resolution": request.resolution,
+            "generate_audio": request.generate_audio,
         }
-        if image_url:
-            args["image_url"] = image_url
+
+        if reference_url:
+            arguments["image_url"] = reference_url
+        if request.negative_prompt:
+            arguments["negative_prompt"] = request.negative_prompt
         if request.seed is not None:
-            args["seed"] = int(request.seed)
+            arguments["seed"] = int(request.seed)
 
-        result = fal_client.subscribe(
-            request.endpoint,
-            arguments=args,
-            with_logs=True,
-            on_queue_update=on_queue_update,
+        result = fal_client.run(
+            "fal-ai/veo3/fast",
+            arguments=arguments,
         )
 
-        # Best-effort parsing of result
-        video_url = None
+        request_id = getattr(result, "request_id", None)
+        video_url: Optional[str] = None
+
+        if isinstance(result, dict):
+            video = result.get("video")
+            if isinstance(video, dict):
+                url = video.get("url") or video.get("video_url")
+                if isinstance(url, str):
+                    video_url = url
+            if not video_url:
+                # Some responses may surface url at the top level
+                possible_url = result.get("url") or result.get("video_url")
+                if isinstance(possible_url, str):
+                    video_url = possible_url
+
+            request_id = request_id or result.get("request_id") or result.get("id")
+
+        # Generate unique video identifier for easy reference
+        video_identifier = f"veo3_video_{uuid.uuid4().hex[:8]}"
+
+        # Attempt to download the remote video before upload
+        local_path: Optional[str] = None
         try:
-            if isinstance(result, dict):
-                # Common conventions: check for url fields
-                video_url = (
-                    result.get("video_url")
-                    or result.get("url")
-                    or result.get("output_url")
-                )
-        except Exception:
-            video_url = None
+            if isinstance(video_url, str) and video_url.startswith("http"):
+                import urllib.request
 
-        return KlingVideoResult(
-            request_id=getattr(result, "request_id", None) if result else None,
-            video_url=video_url,
-            logs=logs_collector or None,
+                os.makedirs("/tmp/videos", exist_ok=True)
+                local_path = f"/tmp/videos/{video_identifier}.mp4"
+                urllib.request.urlretrieve(video_url, local_path)  # nosec B310
+        except Exception:
+            local_path = None
+
+        upload_info: Dict[str, Optional[str]] = {"file_id": None, "file_uri": None}
+        if local_path and os.path.exists(local_path):
+            upload_info = upload_media_to_google(
+                local_path, google_api_key=os.getenv("GOOGLE_API_KEY")
+            )
+
+        payload: Dict[str, Any] = {
+            "video": {
+                "kind": "video",
+                "path": local_path,
+                "url": video_url,
+                "mime_type": "video/mp4",
+                "file_id": upload_info.get("file_id"),
+                "file_uri": upload_info.get("file_uri"),
+            },
+            "request_id": request_id,
+            "video_identifier": video_identifier,
+        }
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(json.dumps(payload), tool_call_id=tool_call_id),
+                    HumanMessage(
+                        content=[
+                            {
+                                "type": "media",
+                                "file_uri": upload_info.get("file_uri"),
+                                "mime_type": upload_info.get("mime_type"),
+                            },
+                        ]
+                    ),
+                ]
+            }
         )
-    except Exception as e:
-        return KlingVideoResult(video_url=None, logs=[f"error: {e}"])
+    except Exception as exc:
+        payload = {"error": f"error: {exc}"}
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+                ]
+            }
+        )
 
 
 @tool
-def run_ffmpeg_binary(request: FFmpegExecuteRequest) -> Dict[str, str]:
+def concat_videos(
+    request: VideoConcatRequest,
+    tool_call_id: Annotated[str, InjectedToolCallId],
+    config: RunnableConfig,
+) -> Command:
+    """Concatenate multiple video files using ffmpeg concat demuxer."""
+    temp_dir = Path(tempfile.mkdtemp(prefix="video_concat_"))
+    logs: List[str] = []
+
+    try:
+        # Verify all input files exist
+        for video_path in request.video_paths:
+            if not os.path.exists(video_path):
+                payload = VideoConcatResult(
+                    video_path=None,
+                    segments=None,
+                    logs=[f"error: video file not found: {video_path}"],
+                ).model_dump()
+                return Command(
+                    update={
+                        "messages": [
+                            ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+                        ]
+                    }
+                )
+
+        # Create concat list file
+        concat_list_path = temp_dir / "concat_list.txt"
+        with concat_list_path.open("w", encoding="utf-8") as concat_file:
+            for video_path in request.video_paths:
+                concat_file.write(f"file '{video_path}'\n")
+
+        # Setup output path
+        output_dir = (
+            Path(request.output_path).parent
+            if request.output_path
+            else Path("/tmp/videos")
+        )
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = (
+            Path(request.output_path)
+            if request.output_path
+            else output_dir / f"{request.output_basename}_{uuid.uuid4().hex[:8]}.mp4"
+        )
+
+        # Run ffmpeg concat
+        concat_command = [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(concat_list_path),
+            "-c",
+            "copy",
+            str(output_path),
+        ]
+
+        proc = subprocess.run(
+            concat_command,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        if proc.returncode != 0 or not output_path.exists():
+            logs.append(f"ffmpeg concat failed with code {proc.returncode}")
+            if proc.stderr:
+                logs.append(proc.stderr.strip())
+            payload = VideoConcatResult(
+                video_path=None, segments=None, logs=logs
+            ).model_dump()
+            return Command(
+                update={
+                    "messages": [
+                        ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+                    ]
+                }
+            )
+
+        # Upload the concatenated video
+        upload = upload_media_to_google(
+            str(output_path), google_api_key=os.getenv("GOOGLE_API_KEY")
+        )
+        payload: Dict[str, Any] = {
+            "video": {
+                "kind": "video",
+                "path": str(output_path),
+                "mime_type": "video/mp4",
+                "file_id": upload.get("file_id"),
+                "file_uri": upload.get("file_uri"),
+            },
+            "segments": request.video_paths,
+            "logs": [log for log in logs if log],
+        }
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(json.dumps(payload), tool_call_id=tool_call_id),
+                    HumanMessage(
+                        content=[
+                            {
+                                "type": "media",
+                                "file_uri": upload.get("file_uri"),
+                                "mime_type": upload.get("mime_type"),
+                            },
+                        ]
+                    ),
+                ]
+            }
+        )
+
+    finally:
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+
+@tool
+def run_ffmpeg_binary(
+    request: FFmpegExecuteRequest,
+    tool_call_id: Annotated[str, InjectedToolCallId],
+    config: RunnableConfig,
+) -> Command:
     """Execute the ffmpeg binary with a provided full command string.
 
     Ensures -y flag and creates output directory if provided.
@@ -284,433 +587,146 @@ def run_ffmpeg_binary(request: FFmpegExecuteRequest) -> Dict[str, str]:
                 command=planned_command,
             )
 
-        return {
+        # Upload output if present
+        file_info: Dict[str, Optional[str]] = {"file_id": None, "file_uri": None}
+        if request.output_path and os.path.exists(request.output_path):
+            file_info = upload_media_to_google(
+                request.output_path, google_api_key=os.getenv("GOOGLE_API_KEY")
+            )
+
+        payload: Dict[str, Any] = {
             "output_path": request.output_path or "",
             "ffmpeg_command": planned_command,
             "stdout_tail": stdout_tail,
             "stderr_tail": stderr_tail,
+            "file_id": file_info.get("file_id"),
+            "file_uri": file_info.get("file_uri"),
         }
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(json.dumps(payload), tool_call_id=tool_call_id),
+                    HumanMessage(
+                        content=[
+                            {
+                                "type": "media",
+                                "file_uri": file_info.get("file_uri"),
+                                "mime_type": file_info.get("mime_type"),
+                            },
+                        ]
+                    ),
+                ]
+            }
+        )
     except ToolExecutionError as e:
-        # Expose as a JSON string for ToolMessage
-        return {
+        # Expose error via Command ToolMessage
+        payload = {
             "output_path": request.output_path or "",
             "ffmpeg_command": getattr(e, "command", request.command),
             "stdout_tail": "",
             "stderr_tail": str(e),
+            "error": True,
         }
-
-
-@tool
-def score_video(
-    video_path: str, target_quality_score: float | None = None
-) -> Dict[str, Any]:
-    """Score a video by probing metadata and using an LLM rubric (0-10)."""
-    try:
-        # Lightweight probe for metadata
-        if not os.path.exists(video_path):
-            return {"error": f"Video not found: {video_path}"}
-        meta: Dict[str, Any] = {}
-        try:
-            probe = ffmpeg.probe(video_path)  # type: ignore[no-untyped-call]
-            streams = probe.get("streams", [])
-            vstreams = [s for s in streams if s.get("codec_type") == "video"]
-            astreams = [s for s in streams if s.get("codec_type") == "audio"]
-            fmt = probe.get("format", {})
-            if vstreams:
-                v0 = vstreams[0]
-                meta["width"] = v0.get("width")
-                meta["height"] = v0.get("height")
-                meta["avg_frame_rate"] = v0.get("avg_frame_rate")
-            if astreams:
-                a0 = astreams[0]
-                meta["audio_channels"] = a0.get("channels")
-            meta["duration"] = fmt.get("duration")
-        except Exception:
-            pass
-
-        api_key = os.getenv("GOOGLE_API_KEY", "")
-        if not api_key:
-            return {"error": "GOOGLE_API_KEY not set for scoring"}
-
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            google_api_key=api_key,
-            temperature=0.2,
-        ).with_structured_output(VideoQualityAssessment)
-
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    """
-You are a strict video quality evaluator. Evaluate the video based on the provided metadata and return a structured assessment.
-                    """.strip(),
-                ),
-                (
-                    "human",
-                    """
-Evaluate this video path with the provided metadata (you cannot open the file).
-Video Path: {video_path}
-Metadata: {metadata}
-Target (optional): {target}
-                    """.strip(),
-                ),
-            ]
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+                ]
+            }
         )
-        messages = prompt.format_messages(
-            video_path=video_path,
-            metadata=json.dumps(meta),
-            target=json.dumps({"target_quality_score": target_quality_score})
-            if target_quality_score is not None
-            else "{}",
-        )
-
-        try:
-            assessment: VideoQualityAssessment = cast(
-                VideoQualityAssessment, llm.invoke(messages)
-            )
-        except Exception as e:
-            return {"error": f"Failed to get structured assessment: {e}"}
-
-        # The assessment is already validated by Pydantic with proper ranges
-        score = round(
-            (
-                assessment.visual_quality
-                + assessment.audio_quality
-                + assessment.narrative_coherence
-            )
-            / 3.0,
-            2,
-        )
-        return {
-            "quality_score": score,
-            "breakdown": {
-                "visual_quality": assessment.visual_quality,
-                "audio_quality": assessment.audio_quality,
-                "narrative_coherence": assessment.narrative_coherence,
-            },
-            "feedback": assessment.feedback,
-        }
-    except Exception as e:
-        return {"error": f"Scoring failed: {e}"}
-
-
-"""
-Removed legacy external media search/download tool in favor of generate_image.
-"""
-
-
-"""
-Removed legacy ElevenLabs TTS tool.
-"""
-
-
-"""
-Removed legacy ASS subtitle generation tool.
-"""
-
-
-"""
-Removed legacy media library search tool.
-"""
 
 
 @tool
 def analyze_video_quality(
-    video_path: str,
-    recent_renders: List[Dict[str, Any]] | None = None,
-    target_quality_score: float | None = None,
-) -> Dict[str, Any]:
-    """Analyze video quality with an LLM and return combined scoring.
+    scene_index: int,
+    score: float,
+    feedback: Optional[str] = None,
+    storyboard: Optional[Storyboard] = None,
+    tool_call_id: Annotated[str, InjectedToolCallId] = "",
+    config: RunnableConfig | None = None,
+) -> Command:
+    """Update a single scene's quality score and feedback via Command (KISS).
 
     Inputs:
-        - video_path: Path to the video to evaluate
-        - recent_renders: Optional list of recent render dicts (<=3 recommended) providing
-          prior ffmpeg command, output paths, quality scores/breakdowns, created_at, media_used
-        - target_quality_score: Optional target score (0-10) for calibration context
-
-    Returns dict:
-        - quality_score: float (0-10)
-        - breakdown: dict with visual_quality, audio_quality, narrative_coherence
-        - feedback: str
-        - improvement_suggestions: List[str]
+      - scene_index: index of the scene to update
+      - score: numeric score (0-10) provided by the LLM
+      - feedback: optional short feedback string
+      - storyboard: optional current storyboard to update; if omitted, no-op
     """
     try:
-        if not os.path.exists(video_path):
-            return {"error": f"Video not found: {video_path}"}
-
-        # Extract lightweight metadata (best-effort)
-        meta: Dict[str, Any] = {}
-        try:
-            probe = ffmpeg.probe(video_path)  # type: ignore[no-untyped-call]
-            streams = probe.get("streams", [])
-            vstreams = [s for s in streams if s.get("codec_type") == "video"]
-            astreams = [s for s in streams if s.get("codec_type") == "audio"]
-            fmt = probe.get("format", {})
-            if vstreams:
-                v0 = vstreams[0]
-                meta["video_codec"] = v0.get("codec_name")
-                meta["width"] = v0.get("width")
-                meta["height"] = v0.get("height")
-                meta["avg_frame_rate"] = v0.get("avg_frame_rate")
-            if astreams:
-                a0 = astreams[0]
-                meta["audio_codec"] = a0.get("codec_name")
-                meta["audio_channels"] = a0.get("channels")
-            meta["duration"] = fmt.get("duration")
-            meta["bit_rate"] = fmt.get("bit_rate")
-            # Additional lightweight file info
-            try:
-                stat = os.stat(video_path)
-                meta["file_size_bytes"] = stat.st_size
-                meta["modified_time"] = getattr(stat, "st_mtime", None)
-                meta["created_time"] = getattr(stat, "st_ctime", None)
-            except Exception:
-                pass
-            try:
-                base = os.path.basename(video_path)
-                meta["file_name"] = base
-                meta["file_extension"] = os.path.splitext(base)[1].lower()
-            except Exception:
-                pass
-        except Exception:
-            # Non-fatal
-            meta = {}
-
-        # Prepare prior renders context (most recent first, trimmed)
-        prior_context: Dict[str, Any] = {"recent_renders": []}
-        if target_quality_score is not None:
-            prior_context["target_quality_score"] = float(target_quality_score)
-        try:
-            renders_list = list(recent_renders or [])
-            try:
-                renders_list = sorted(
-                    renders_list,
-                    key=lambda r: float(r.get("created_at", 0.0) or 0.0),
-                    reverse=True,
-                )
-            except Exception:
-                pass
-            trimmed: List[Dict[str, Any]] = []
-            for r in renders_list[:3]:
-                try:
-                    trimmed.append(
-                        {
-                            "generated_video_file_path": r.get(
-                                "generated_video_file_path", ""
+        if storyboard is None or not isinstance(scene_index, int):
+            return Command(
+                update={
+                    "messages": [
+                        ToolMessage(
+                            content=json.dumps(
+                                {
+                                    "error": "Missing storyboard or invalid scene_index",
+                                }
                             ),
-                            "ffmpeg_command": r.get("ffmpeg_command", ""),
-                            "quality_score": r.get("quality_score", None),
-                            "quality_breakdown": r.get("quality_breakdown", None),
-                            "created_at": r.get("created_at", None),
-                            "media_used": r.get("media_used", []),
-                        }
+                            tool_call_id=tool_call_id,
+                        )
+                    ]
+                }
+            )
+
+        # Clamp score to [0, 10]
+        try:
+            normalized_score = max(0.0, min(10.0, float(score)))
+        except Exception:
+            normalized_score = 0.0
+
+        if scene_index < 0 or scene_index >= len(storyboard.scenes):
+            return Command(
+                update={
+                    "messages": [
+                        ToolMessage(
+                            content=json.dumps(
+                                {
+                                    "error": "scene_index out of range",
+                                    "scene_index": scene_index,
+                                    "num_scenes": len(storyboard.scenes),
+                                }
+                            ),
+                            tool_call_id=tool_call_id,
+                        )
+                    ]
+                }
+            )
+
+        # Update the targeted scene
+        scene = storyboard.scenes[scene_index]
+        scene.quality_score = normalized_score
+        if feedback is not None:
+            scene.feedback = feedback
+
+        # Return Command to update state.storyboard and message history
+        return Command(
+            update={
+                "storyboard": storyboard,
+                "messages": [
+                    ToolMessage(
+                        content=json.dumps(
+                            {
+                                "updated": True,
+                                "scene_index": scene_index,
+                                "score": normalized_score,
+                                "feedback": feedback or "",
+                            }
+                        ),
+                        tool_call_id=tool_call_id,
                     )
-                except Exception:
-                    continue
-            prior_context["recent_renders"] = trimmed
-        except Exception:
-            prior_context["recent_renders"] = []
-
-        api_key = os.getenv("GOOGLE_API_KEY", "")
-        if not api_key:
-            return {"error": "GOOGLE_API_KEY not set for quality analysis"}
-
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            google_api_key=api_key,
-            temperature=0.2,
+                ],
+            }
         )
-
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    """
-You are a strict video quality evaluator.
-Return ONLY JSON with this schema:
-{
-  "visual_quality": number (0-10),
-  "audio_quality": number (0-10),
-  "narrative_coherence": number (0-10),
-  "feedback": string,
-  "improvement_suggestions": string[]
-}
-Scores must be integers.
-                    """.strip(),
-                ),
-                (
-                    "human",
-                    """
-Evaluate the video using the provided metadata. You cannot view the file; judge based on plausible expectations.
-Video Path: {video_path}
-Metadata: {metadata}
-
- Prior renders (most recent first) and target, for calibration:
- {prior_context}
-                    """.strip(),
-                ),
-            ]
-        )
-
-        messages = prompt.format_messages(
-            video_path=video_path,
-            metadata=json.dumps(meta),
-            prior_context=json.dumps(prior_context),
-        )
-        resp = llm.invoke(messages)
-        content = getattr(resp, "content", "")
-
-        data: Dict[str, Any]
-        try:
-            # If model returns non-JSON text, try to find JSON block
-            start = content.find("{")
-            end = content.rfind("}")
-            payload = content[start : end + 1] if start != -1 and end != -1 else content
-            data = json.loads(payload)
-        except Exception:
-            return {"error": "Failed to parse JSON from LLM response", "raw": content}
-
-        def _clamp(x: Any) -> int:
-            try:
-                return max(0, min(10, int(x)))
-            except Exception:
-                return 0
-
-        v = _clamp(data.get("visual_quality"))
-        a = _clamp(data.get("audio_quality"))
-        n = _clamp(data.get("narrative_coherence"))
-        total = v + a + n  # 0-30
-        normalized = round(total / 3.0, 2)  # 0-10
-
-        return {
-            "quality_score": normalized,
-            "breakdown": {
-                "visual_quality": v,
-                "audio_quality": a,
-                "narrative_coherence": n,
-                "total": total,
-            },
-            "feedback": data.get("feedback", ""),
-            "improvement_suggestions": data.get("improvement_suggestions", []),
-        }
     except Exception as e:
-        return {"error": f"Quality analysis failed: {e}"}
-
-
-"""
-Removed legacy create_video planning tool.
-"""
-
-
-"""
-Removed legacy execute_ffmpeg in favor of run_ffmpeg_binary alias.
-"""
-
-
-"""
-Removed legacy list_recent_renders tool.
-"""
-
-
-"""
-Removed legacy OpenAI transcription tool.
-"""
-
-
-# Initialize tmp directories
-async def initialize_tmp_directories():
-    """Initialize temporary directories for the video generation agent."""
-    directories = [
-        "/tmp/assets",
-        "/tmp/audio",
-        "/tmp/unsplash",
-        "/tmp/subtitles",
-        "/tmp/videos",
-    ]
-
-    import asyncio
-
-    def _create_dirs():
-        for directory in directories:
-            os.makedirs(directory, exist_ok=True)
-
-    await asyncio.to_thread(_create_dirs)
-
-
-def _safe_remove_path(path: str) -> tuple[bool, str | None]:
-    """Attempt to remove a file or directory tree safely.
-
-    Returns (success, error_message_or_None).
-    """
-    try:
-        if not os.path.exists(path):
-            return True, None
-        if os.path.isdir(path) and not os.path.islink(path):
-            shutil.rmtree(path, ignore_errors=False)
-        else:
-            os.remove(path)
-        return True, None
-    except Exception as e:
-        return False, str(e)
-
-
-def cleanup_tmp_directories(preserve_paths: List[str] | None = None) -> Dict[str, Any]:
-    """Cleanup temporary files created by the video generation agent.
-
-    This removes files from known temp directories while preserving any paths
-    explicitly listed in `preserve_paths` (e.g., the final video output).
-
-    It intentionally does NOT delete the media library directory `/tmp/assets`.
-
-    Returns a summary dict with keys: removed_files, errors, preserved, directories_processed.
-    """
-    preserved: set[str] = set(preserve_paths or [])
-
-    # Directories that hold ephemeral artifacts
-    target_directories: List[str] = [
-        "/tmp/unsplash",  # documented location
-        "/tmp/unsplash_photos",  # actual download location used by tool
-        "/tmp/audio",
-        "/tmp/subtitles",
-        "/tmp/videos",  # keep final video if preserved
-    ]
-
-    removed: List[str] = []
-    errors: List[str] = []
-    processed: List[str] = []
-
-    for directory in target_directories:
-        if not os.path.isdir(directory):
-            continue
-        processed.append(directory)
-
-        try:
-            for name in os.listdir(directory):
-                candidate = os.path.join(directory, name)
-                # Preserve any explicitly preserved file
-                if candidate in preserved:
-                    continue
-                ok, err = _safe_remove_path(candidate)
-                if ok:
-                    removed.append(candidate)
-                elif err:
-                    errors.append(f"{candidate}: {err}")
-        except Exception as e:
-            errors.append(f"{directory}: {e}")
-
-        # Optionally remove empty aux directories (but keep /tmp/videos for future runs)
-        try:
-            if directory != "/tmp/videos" and not os.listdir(directory):
-                # best-effort remove empty dir
-                os.rmdir(directory)
-        except Exception:
-            # non-fatal
-            pass
-
-    return {
-        "removed_files": removed,
-        "errors": errors,
-        "preserved": sorted(list(preserved)),
-        "directories_processed": processed,
-    }
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(
+                        content=json.dumps({"error": f"Quality update failed: {e}"}),
+                        tool_call_id=tool_call_id,
+                    )
+                ]
+            }
+        )

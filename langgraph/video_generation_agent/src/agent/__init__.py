@@ -6,8 +6,6 @@ This module defines a custom graph for video generation with standardized models
 from .graph import graph
 from .models import (
     GenerateImageRequest,
-    KlingVideoRequest,
-    KlingVideoResult,
     Storyboard,
     StoryboardCreateRequest,
     StoryboardUpdateRequest,
@@ -21,6 +19,4 @@ __all__ = [
     "StoryboardCreateRequest",
     "StoryboardUpdateRequest",
     "GenerateImageRequest",
-    "KlingVideoRequest",
-    "KlingVideoResult",
 ]

@@ -23,7 +23,7 @@ async def main() -> None:
 
     print(f"Streaming run to {base_url}...\n")
     async for chunk in client.runs.stream(
-        None,
+        input_payload["user_id"],
         "agent",
         input=input_payload,
         stream_mode="messages-tuple",

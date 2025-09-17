@@ -10,13 +10,14 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Literal, Optional, TypedDict, cast
+from typing import Annotated, Any, Dict, List, Optional, TypedDict, cast
 
 import httpx
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage
 from langchain_core.utils import convert_to_secret_str
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.runtime import Runtime
@@ -31,7 +32,9 @@ if _env_file.exists():
     print(f"✅ Loaded environment variables from {_env_file}")  # noqa: T201
 else:
     print(f"ℹ️  No .env file found at {_env_file}")  # noqa: T201
-    print("   Environment variables will be loaded from system environment or runtime context")  # noqa: T201
+    print(  # noqa: T201
+        "   Environment variables will be loaded from system environment or runtime context"
+    )  # noqa: T201
 
 
 class Context(TypedDict, total=False):
@@ -97,7 +100,9 @@ def _extract_latest_user_text(state: CoachingAgentState) -> str:
     return ""
 
 
-def mem0_search_node(state: CoachingAgentState, runtime: Runtime[Context]) -> Dict[str, Any]:
+def mem0_search_node(
+    state: CoachingAgentState, runtime: Runtime[Context]
+) -> Dict[str, Any]:
     """Query Mem0 for top-K relevant memories and join them into a string."""
     user_text = _extract_latest_user_text(state)
     if not user_text:
@@ -117,7 +122,11 @@ def mem0_search_node(state: CoachingAgentState, runtime: Runtime[Context]) -> Di
     if isinstance(ctx, dict) and isinstance(ctx.get("mem0_enable_graph"), bool):
         default_enable_graph = cast(bool, ctx.get("mem0_enable_graph"))
 
-    enable_graph_flag = bool(state.get("enable_graph") if state.get("enable_graph") is not None else default_enable_graph)
+    enable_graph_flag = bool(
+        state.get("enable_graph")
+        if state.get("enable_graph") is not None
+        else default_enable_graph
+    )
 
     payload = {
         "user_id": state.get("user_id", "default"),
@@ -133,6 +142,7 @@ def mem0_search_node(state: CoachingAgentState, runtime: Runtime[Context]) -> Di
             resp.raise_for_status()
             data = resp.json()
             results = data.get("results", []) if isinstance(data, dict) else []
+
             # Normalize and sort by score if present
             def score_of(item: Any) -> float:
                 try:
@@ -232,23 +242,37 @@ def llm_node(state: CoachingAgentState, runtime: Runtime[Context]) -> Dict[str, 
     """Generate an assistant reply using the coaching system prompt and memories."""
     llm = _get_openai_llm(runtime)
     user_text = _extract_latest_user_text(state)
+    if not user_text:
+        return {}
+
     memories = state.get("memories_text", "")
 
     system_content = COACH_SYSTEM_PROMPT
     if memories:
-        system_content += f"\n\nHere is some additional information on your pupil:\n{memories}"
+        system_content += (
+            f"\n\nHere is some additional information on your pupil:\n{memories}"
+        )
 
     system_message = SystemMessage(content=system_content)
 
     response = llm.invoke([system_message] + state.get("messages", []))
     if isinstance(response, AIMessage):
-        assistant_text = response.content if isinstance(response.content, str) else str(response.content)
+        assistant_text = (
+            response.content
+            if isinstance(response.content, str)
+            else str(response.content)
+        )
         return {"messages": [response], "assistant_text": assistant_text}
     # Fallback (should not generally happen)
-    return {"messages": [AIMessage(content="I'm here to help.")], "assistant_text": "I'm here to help."}
+    return {
+        "messages": [AIMessage(content="I'm here to help.")],
+        "assistant_text": "I'm here to help.",
+    }
 
 
-def mem0_add_node(state: CoachingAgentState, runtime: Runtime[Context]) -> Dict[str, Any]:
+def mem0_add_node(
+    state: CoachingAgentState, runtime: Runtime[Context]
+) -> Dict[str, Any]:
     """Write the user's latest message to Mem0 for long-term memory."""
     user_text = _extract_latest_user_text(state)
     if not user_text:
@@ -256,9 +280,7 @@ def mem0_add_node(state: CoachingAgentState, runtime: Runtime[Context]) -> Dict[
 
     base_url = _get_mem0_base_url(runtime)
     enable_graph_flag = bool(
-        state.get("enable_graph")
-        if state.get("enable_graph") is not None
-        else True
+        state.get("enable_graph") if state.get("enable_graph") is not None else True
     )
 
     payload = {
@@ -277,6 +299,8 @@ def mem0_add_node(state: CoachingAgentState, runtime: Runtime[Context]) -> Dict[
 
 
 # Build the graph mirroring the n8n flow
+checkpointer = MemorySaver()
+
 graph = (
     StateGraph(CoachingAgentState, context_schema=Context)
     .add_node("mem0_search", mem0_search_node)
@@ -286,5 +310,5 @@ graph = (
     .add_edge("mem0_search", "llm")
     .add_edge("llm", "mem0_add")
     .add_edge("mem0_add", END)
-    .compile(name="Mem0 Coaching Agent")
+    .compile(name="Mem0 Coaching Agent", checkpointer=checkpointer)
 )

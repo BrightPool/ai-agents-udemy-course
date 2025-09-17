@@ -69,63 +69,29 @@ customer_support_agent/
 
 ### Mem0 local server (Docker)
 
-This agent calls a local Mem0 server at `http://localhost:8000`. Spin up Mem0's dependencies with Docker, then run the Mem0 server.
+The agent expects a Mem0 API at `http://localhost:8000`. The repository now ships with a
+`docker-compose.yml` that launches Mem0 together with its Qdrant (vector) and Neo4j (graph) back ends.
 
-1) Start Qdrant (and optional Neo4j for graph memory) with Docker Compose
+1. Copy the sample environment file and add your secrets:
 
-```yaml
-# docker-compose.mem0.yml
-version: "3.8"
-services:
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: qdrant
-    ports:
-      - "6333:6333"
-    volumes:
-      - qdrant_data:/qdrant/storage
+   ```bash
+   cp .env.mem0.example .env.mem0
+   # Edit .env.mem0 and provide OPENAI_API_KEY / other LLM keys as needed
+   ```
 
-  neo4j:
-    image: neo4j:5
-    container_name: neo4j
-    ports:
-      - "7474:7474"   # HTTP UI
-      - "7687:7687"   # Bolt
-    environment:
-      - NEO4J_AUTH=neo4j/password
-      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
+2. Start the stack:
 
-volumes:
-  qdrant_data:
-  neo4j_data:
-  neo4j_logs:
-```
+   ```bash
+   docker compose up -d
+   # Mem0 API:        http://localhost:8000
+   # Qdrant console:  http://localhost:6333
+   # Neo4j browser:   http://localhost:7474 (bolt://localhost:7687)
+   ```
 
-```bash
-docker compose -f docker-compose.mem0.yml up -d
-# Qdrant now on http://localhost:6333, Neo4j on http://localhost:7474 (bolt://localhost:7687)
-```
+   The compose file wires service discovery so Mem0 can reach Qdrant/Neo4j directly. Adjust the
+   Neo4j credentials in `.env.mem0` if you change them from their defaults.
 
-2) Run the Mem0 server (Docker)
-
-- Clone the Mem0 open-source repository and use its Docker setup (recommended):
-
-```bash
-git clone https://github.com/mem0ai/mem0
-cd mem0/server
-cp .env.example .env
-# Edit .env to set your LLM provider (e.g., OPENAI_API_KEY) and vector/graph configs
-# Ensure Qdrant host=host.docker.internal, port=6333 (from the compose above)
-# For graph memory with Neo4j, set NEO4J_URI=bolt://host.docker.internal:7687 and NEO4J_AUTH
-
-docker compose up -d
-# Mem0 API should now be on http://localhost:8000
-```
-
-3) Quick health check for Mem0
+3. Quick health check for Mem0
 
 ```bash
 curl -s -X POST \
@@ -139,7 +105,7 @@ curl -s -X POST \
   }'
 ```
 
-4) Configure this project to talk to Mem0
+4. Configure this project to talk to Mem0
 
 Set the environment variables (either export them or add to a `.env` in this project root):
 

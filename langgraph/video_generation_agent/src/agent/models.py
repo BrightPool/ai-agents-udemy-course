@@ -7,10 +7,32 @@ for type safety and validation of video generation workflows.
 from __future__ import annotations
 
 import os
-from typing import List, Literal, Optional
+import uuid
+from typing import Annotated, List, Literal, Optional
 
 from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
+
+
+class VideoGenerationState(BaseModel):
+    """Minimal state for the video generation agent."""
+
+    # Conversation and required input
+    messages: Annotated[List[BaseMessage], add_messages] = []
+
+    # Iteration control
+    current_iteration: Optional[int] = Field(
+        None, description="Current iteration count"
+    )
+    max_iterations_reached: Optional[bool] = Field(
+        None, description="Whether max iterations reached"
+    )
+
+    # Final artifact
+    final_video_path: Optional[str] = Field(None, description="Final video file path")
+    storyboard: Optional[Storyboard] = Field(None, description="Current storyboard")
+
 
 # Video resolution presets
 VideoResolution = Literal[
@@ -33,33 +55,8 @@ class VideoGenerationContext(BaseModel):
     )
     fal_key: Optional[str] = Field(
         default_factory=lambda: os.getenv("FAL_API_KEY"),
-        description="fal.ai API key for Kling endpoints",
+        description="fal.ai API key for video generation endpoints",
     )
-    # Legacy/unused keys kept optional for compatibility
-    elevenlabs_api_key: Optional[str] = Field(None, description="ElevenLabs API key")
-    unsplash_access_key: Optional[str] = Field(None, description="Unsplash API key")
-
-
-class VideoGenerationState(BaseModel):
-    """Minimal state for the video generation agent."""
-
-    # Conversation and required input
-    messages: List[BaseMessage] = Field(default_factory=list)
-
-    # Iteration control
-    current_iteration: Optional[int] = Field(
-        None, description="Current iteration count"
-    )
-    max_iterations_reached: Optional[bool] = Field(
-        None, description="Whether max iterations reached"
-    )
-
-    # Final artifact
-    final_video_path: Optional[str] = Field(None, description="Final video file path")
-
-    # User-provided visuals (first chat)
-    user_image_paths: Optional[List[str]] = Field(None, description="Local image paths")
-    user_image_urls: Optional[List[str]] = Field(None, description="Image URLs")
 
 
 class FFmpegExecuteRequest(BaseModel):
@@ -86,11 +83,21 @@ Additional models for storyboard and image/video generation tools.
 class StoryboardScene(BaseModel):
     """Single storyboard scene with prompt and duration."""
 
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()), description="Unique scene id"
+    )
+    title: Optional[str] = Field(None, description="Scene title")
+    description: Optional[str] = Field(None, description="Scene description")
     prompt: str = Field(..., description="Visual prompt for image/video generation")
     duration_seconds: float = Field(6.0, gt=0, description="Scene duration in seconds")
     rendered_video_file_path: Optional[str] = Field(
         None, description="Path to rendered video file for this scene"
     )
+    # Simple scoring attached to each scene (KISS)
+    quality_score: Optional[float] = Field(
+        None, ge=0, le=10, description="Quality score (0-10)"
+    )
+    feedback: Optional[str] = Field(None, description="Short qualitative feedback")
 
 
 class Storyboard(BaseModel):
@@ -124,42 +131,87 @@ class GenerateImageRequest(BaseModel):
     """Request to generate image(s) from text using Gemini Image API."""
 
     prompt: str = Field(..., min_length=1)
-    num_images: int = Field(1, ge=1, le=4)
     output_basename: str = Field(
         "product_ad_image", description="Base filename for saved images (no ext)"
     )
-    input_image_paths: Optional[List[str]] = Field(
-        None, description="Optional local image paths for edit/composition"
+
+
+class Veo3VideoRequest(BaseModel):
+    """Request schema for generating video with fal.ai Veo 3 Fast."""
+
+    prompt: str = Field(..., description="Video prompt")
+    aspect_ratio: Literal["16:9", "9:16", "1:1"] = Field(
+        "16:9", description="Aspect ratio for the resulting video"
     )
-    input_image_urls: Optional[List[str]] = Field(
-        None, description="Optional image URLs for edit/composition"
+    duration: Literal["4s", "6s", "8s"] = Field(
+        "8s", description="Desired video duration"
     )
-
-
-class KlingVideoRequest(BaseModel):
-    """Request to generate a video from a still image using fal.ai Kling endpoint."""
-
-    prompt: str = Field(..., description="Video prompt / scene description")
+    negative_prompt: Optional[str] = Field(
+        None, description="Negative prompt to guide the model away from elements"
+    )
+    enhance_prompt: bool = Field(
+        True, description="Whether to let the model enhance the prompt"
+    )
+    auto_fix: bool = Field(
+        True, description="Automatically attempt to fix policy violations"
+    )
+    resolution: Literal["720p", "1080p"] = Field(
+        "720p", description="Target output resolution"
+    )
+    generate_audio: bool = Field(
+        True, description="Whether to produce audio with the video"
+    )
+    seed: Optional[int] = Field(None, description="Seed for reproducibility")
     image_path: Optional[str] = Field(
-        None, description="Local path to input image; uploaded if provided"
+        None, description="Optional local reference image path"
     )
     image_url: Optional[str] = Field(
-        None, description="Public URL to input image; used if provided"
+        None, description="Optional hosted reference image URL"
     )
-    duration_seconds: float = Field(6.0, gt=1.0, le=60.0)
-    endpoint: str = Field(
-        "fal-ai/kling/v1", description="fal endpoint id for Kling variant"
+    image_base64: Optional[str] = Field(
+        None, description="Optional raw base64 payload for reference image"
     )
-    seed: Optional[int] = Field(None, description="Optional seed for reproducibility")
+    image_mime_type: Optional[str] = Field(
+        "image/png", description="Mime type for the base64 reference image"
+    )
 
 
-class KlingVideoResult(BaseModel):
-    """Result metadata for Kling video generation."""
+class Veo3VideoResult(BaseModel):
+    """Result metadata for Veo 3 Fast generation."""
 
     request_id: Optional[str] = None
     video_url: Optional[str] = None
-    video_path: Optional[str] = None
+    video_identifier: Optional[str] = None
     logs: Optional[List[str]] = None
+
+
+class VideoConcatRequest(BaseModel):
+    """Request to concatenate multiple video files using ffmpeg concat."""
+
+    video_paths: List[str] = Field(
+        ..., min_length=2, description="Ordered list of video file paths to concatenate"
+    )
+    output_path: Optional[str] = Field(
+        None,
+        description="Explicit path for the concatenated video. Defaults to /tmp/videos",
+    )
+    output_basename: str = Field(
+        "concatenated_video", description="Base name used when auto-generating output"
+    )
+
+
+class VideoConcatResult(BaseModel):
+    """Result payload for concatenated videos."""
+
+    video_path: Optional[str] = Field(
+        None, description="Path to the concatenated video file"
+    )
+    segments: Optional[List[str]] = Field(
+        None, description="Resolved local paths for each segment"
+    )
+    logs: Optional[List[str]] = Field(
+        None, description="ffmpeg logs captured during run"
+    )
 
 
 class VideoQualityAssessment(BaseModel):
