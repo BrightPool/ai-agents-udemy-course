@@ -109,6 +109,11 @@ Open `dspy/customer_support_agent/customer-support-agent.ipynb` and track these 
 How this maps:
 - LangGraph’s `add_messages` automatically aggregates; in DSPy you explicitly maintain `History` and pass it each call.
 
+Preferred pattern for chat:
+- Own `History` inside your `dspy.Module` (e.g., `self.history = dspy.History(messages=[])`) and maintain it there for continuity across turns.
+- Avoid global history variables; expose a simple `chat(text)` that forwards into your module.
+- Avoid naming collisions: don't name your module attribute `history` if your framework/tools expect `module.history` to be a list; prefer `self.conversation_history` instead and pass it to Signatures as the `history` input field.
+
 #### 4.3 Tools (plain functions)
 
 Port each `@tool` into a normal Python function. See Cell 3 in the notebook for the working versions:
@@ -176,14 +181,30 @@ Notes:
 
 For deep research agents (e.g., `open_deep_research`), implement a single ReAct Signature (e.g., `ResearchReActSignature`) and provide tools like `openai_search` and `think_tool`. Avoid building multi-phase orchestration; let ReAct plan tool usage.
 
-#### 4.6 Entry wrapper with history
+#### 4.6 Module-based wrapper with history (preferred)
 
-Use a single entry-point that:
-- Validates input
-- Applies `is_relevant_query`
-- Appends to history
-- Calls ReAct
-- Appends assistant answer back to history
+Wrap your ReAct agent in a `dspy.Module` and have the module own its `History` to keep chat state consistent across turns and make reuse straightforward:
+
+```python
+class MyAgent(dspy.Module):
+    def __init__(self):
+        super().__init__()
+        self.history = dspy.History(messages=[])
+        self.react = dspy.ReAct(MySignature, tools=[...], max_iters=3)
+
+    def forward(self, user_message: str):
+        # Append user message
+        self.history.messages.append({"role": "user", "content": user_message})
+        # Run ReAct with internal history
+        result = self.react(user_message=user_message, history=self.history)
+        # Append assistant answer
+        answer = getattr(result, "answer", "")
+        if isinstance(answer, str) and answer.strip():
+            self.history.messages.append({"role": "assistant", "content": answer})
+        return result
+```
+
+For simple cases, expose a convenience `chat(text)` that calls your module; the module maintains `History` internally.
 
 See Cell 5 `run_support_agent(...)`. Example:
 
@@ -277,6 +298,8 @@ Expected output includes `action` (e.g., `get_status`), the `tool_result`, and a
 - Missing docs: if documentation files aren’t copied to `dspy/customer_support_agent/documentation`, `doc_search` will return “not found” and degrade quality.
 - Over-long docs: `doc_search` trims content. This mirrors the LangGraph warning/truncation approach.
 - Max iterations: if the agent loops unnecessarily, reduce `max_iters` or tighten the prompt within the Signature.
+- History attribute collision: don’t name a module attribute `history`; some internals expect a list-like object there. Use `self.conversation_history = dspy.History(messages=[])` and pass it to Signatures as `history`.
+- dspy.Predict signature format: when using inline predictors, use a valid mapping string, e.g., `dspy.Predict("question -> answer")`, not just `"answer"`.
 
 ---
 
@@ -286,10 +309,12 @@ Expected output includes `action` (e.g., `get_status`), the `tool_result`, and a
 - Recreate tools as plain functions with the same behavior.
 - Implement `is_relevant_query` and the `_classify_query_to_category` heuristic.
 - Create a `dspy.Signature` whose docstring mirrors the LangGraph system prompt.
-- Build a `dspy.ReAct` agent with `tools=[...]` and `max_iters`.
-- Maintain `dspy.History`; append user/assistant messages and pass it directly to calls.
-- Provide a `run_support_agent` wrapper with a JSON-like return for easy testing.
-- Test the same sample inputs used in `run_graph.py`.
+- Build a `dspy.ReAct` agent with `tools=[...]` and `max_iters` (use ReAct for any tool-using agents).
+- Include `history: dspy.History` in your Signature.
+- Prefer a Module-based wrapper that owns `self.conversation_history = dspy.History(messages=[])` and updates it in `forward`.
+- Call your agent via `agent(user_message="...")` repeatedly to maintain chat continuity.
+- Avoid comments like “ported from LangGraph”.
+- For OpenAI reasoning models, use `temperature=1.0` and `max_tokens >= 16000` in `dspy.LM(...)`.
 
 ---
 
