@@ -1,0 +1,46 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:pyodide@*": "0.26.2",
+    "npm:pyodide@0.26.2": "0.26.2"
+  },
+  "npm": {
+    "pyodide@0.26.2": {
+      "integrity": "sha512-8VCRdFX83gBsWs6XP2rhG8HMaB+JaVyyav4q/EMzoV8fXH8HN6T5IISC92SNma6i1DRA3SVXA61S1rJcB8efgA==",
+      "dependencies": [
+        "ws"
+      ]
+    },
+    "ws@8.18.3": {
+      "integrity": "sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg=="
+    }
+  },
+  "remote": {
+    "https://deno.land/std@0.186.0/_util/asserts.ts": "178dfc49a464aee693a7e285567b3d0b555dc805ff490505a8aae34f9cfb1462",
+    "https://deno.land/std@0.186.0/bytes/bytes_list.ts": "31d664f4d42fa922066405d0e421c56da89d751886ee77bbe25a88bf0310c9d0",
+    "https://deno.land/std@0.186.0/bytes/concat.ts": "d26d6f3d7922e6d663dacfcd357563b7bf4a380ce5b9c2bbe0c8586662f25ce2",
+    "https://deno.land/std@0.186.0/bytes/copy.ts": "939d89e302a9761dcf1d9c937c7711174ed74c59eef40a1e4569a05c9de88219",
+    "https://deno.land/std@0.186.0/io/buf_reader.ts": "06fff3337091c49e99ebd2dd790c9a90364c087a2953ea081667400fd6c6cebb",
+    "https://deno.land/std@0.186.0/io/buf_writer.ts": "48c33c8f00b61dcbc7958706741cec8e59810bd307bc6a326cbd474fe8346dfd",
+    "https://deno.land/std@0.186.0/io/buffer.ts": "17f4410eaaa60a8a85733e8891349a619eadfbbe42e2f319283ce2b8f29723ab",
+    "https://deno.land/std@0.186.0/io/copy_n.ts": "0cc7ce07c75130f6fc18621ec1911c36e147eb9570664fee0ea12b1988167590",
+    "https://deno.land/std@0.186.0/io/limited_reader.ts": "6c9a216f8eef39c1ee2a6b37a29372c8fc63455b2eeb91f06d9646f8f759fc8b",
+    "https://deno.land/std@0.186.0/io/mod.ts": "2665bcccc1fd6e8627cca167c3e92aaecbd9897556b6f69e6d258070ef63fd9b",
+    "https://deno.land/std@0.186.0/io/multi_reader.ts": "9c2a0a31686c44b277e16da1d97b4686a986edcee48409b84be25eedbc39b271",
+    "https://deno.land/std@0.186.0/io/read_delim.ts": "c02b93cc546ae8caad8682ae270863e7ace6daec24c1eddd6faabc95a9d876a3",
+    "https://deno.land/std@0.186.0/io/read_int.ts": "7cb8bcdfaf1107586c3bacc583d11c64c060196cb070bb13ae8c2061404f911f",
+    "https://deno.land/std@0.186.0/io/read_lines.ts": "c526c12a20a9386dc910d500f9cdea43cba974e853397790bd146817a7eef8cc",
+    "https://deno.land/std@0.186.0/io/read_long.ts": "f0aaa420e3da1261c5d33c5e729f09922f3d9fa49f046258d4ff7a00d800c71e",
+    "https://deno.land/std@0.186.0/io/read_range.ts": "28152daf32e43dd9f7d41d8466852b0d18ad766cd5c4334c91fef6e1b3a74eb5",
+    "https://deno.land/std@0.186.0/io/read_short.ts": "805cb329574b850b84bf14a92c052c59b5977a492cd780c41df8ad40826c1a20",
+    "https://deno.land/std@0.186.0/io/read_string_delim.ts": "5dc9f53bdf78e7d4ee1e56b9b60352238ab236a71c3e3b2a713c3d78472a53ce",
+    "https://deno.land/std@0.186.0/io/slice_long_to_bytes.ts": "48d9bace92684e880e46aa4a2520fc3867f9d7ce212055f76ecc11b22f9644b7",
+    "https://deno.land/std@0.186.0/io/string_reader.ts": "da0f68251b3d5b5112485dfd4d1b1936135c9b4d921182a7edaf47f74c25cc8f",
+    "https://deno.land/std@0.186.0/io/string_writer.ts": "8a03c5858c24965a54c6538bed15f32a7c72f5704a12bda56f83a40e28e5433e"
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:pyodide@0.26.2"
+    ]
+  }
+}
