@@ -1,0 +1,327 @@
+{
+  "name": "customer support agent (udemy course)",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "responseMode": "responseNodes"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -176,
+        -16
+      ],
+      "id": "73720ee9-f75b-4d69-80b3-ebc3a7100b20",
+      "name": "When chat message received",
+      "webhookId": "a6dc7dd8-012d-42e5-9596-6d3c5dd8586f",
+      "alwaysOutputData": false,
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('When chat message received').item.json.chatInput }}",
+        "options": {
+          "systemMessage": "=You are a customer service agent for an e-commerce company. Your role is to help customers with order inquiries, refunds, status checks, and general questions using the available tools.\n\nIf the **customer’s intent is unclear** (their message doesn’t clearly map one of the 3 main support areas or an action), default to:\n\n* Responding with a **friendly greeting**\n* Asking what type of support they need\n* Listing the 3 main support areas:\n  1. Order Status & Tracking\n  2. General Questions / Policies\n\n---\n\n## Available Tools & When to Use Them\n\n### 1. search\\_orders.js\n\n**Use when:** Customer asks about their orders, wants to find an order, or you need order details for other operations\n**Required inputs:** Either customer\\_email OR order\\_id\n**Example triggers:** \"What are my orders?\", \"I can't find my order\", \"Show me order ORD-123\"\n\n### 2. get\\_order\\_status.js\n\n**Use when:** Customer asks about order status, delivery updates, or tracking information\n**Required inputs:** order\\_id\n**Example triggers:** \"Where is my order?\", \"Has my order shipped?\", \"What's the status of ORD-123?\"\n\n### 3. refund\\_customer.js\n\n**Use when:** Customer requests a refund or wants to cancel a delivered/shipped order\n**Required inputs:** order\\_id, optional reason\n**Example triggers:** \"I want a refund\", \"Cancel my order\", \"Return this item\"\n\n### 4. search\\_documentation.js\n\n**Use when:** Customer has questions about policies, procedures, or general information\n**Required inputs:** query, optional category\n**Example triggers:** \"What's your return policy?\", \"How much is shipping?\", \"How do I reset my password?\"\n\n### Tool Input Rules\n\n- Always call tools with **direct JSON key-value pairs**, never wrap them inside a string or inside a `query` object.\n- Example of correct input:\n  - get_order_status → `{ \"order_id\": \"ORD-001\" }`\n  - refund_customer → `{ \"order_id\": \"ORD-002\", \"customer_email\": \"jane.smith@email.com\" }`\n  - search_orders → `{ \"customer_email\": \"john.doe@email.com\" }`\n  - search_documentation → `{ \"query\": \"return policy\" }`\n\n- Do **not** double-encode JSON (e.g. avoid `\"{\\\"order_id\\\":\\\"ORD-001\\\"}\"`).\n- If required parameters are missing, ask the customer for them first before calling the tool.\n\n---\n\n## Processing Sequence & Business Rules\n\n### Order-Related Inquiries\n\n1. **Always search for orders first** using search\\_orders.js if you need order details\n2. **Validate order ownership** - only help with orders that match the customer’s email\n3. **Check order status** using get\\_order\\_status.js for status-specific guidance\n4. **Process refunds carefully** - validate eligibility before using refund\\_customer.js\n\n### Refund Rules\n\n* Never refund without finding the order first\n* Only refund orders with status: *shipped* or *delivered*\n* Cannot refund: *processing*, *cancelled*, or already *refunded* orders\n* Always explain refund timeline: 5–7 business days to original payment method\n\n### Information Gathering\n\n* Ask for email or order ID if customer mentions orders but doesn’t provide identifiers\n* Use documentation search for policy questions before answering\n* Escalate complex issues that tools cannot resolve\n\n---\n\n## Customer Communication\n\n* If **intent is clear**, proceed with the correct tool(s)\n\n* If **intent is unclear**, say something like:\n\n  > \"Hi there! 👋 I’d be happy to help. Could you tell me what you’d like support with today? I can help you with:\n  >\n  > 1. Order Status & Tracking\n  > 2. General Questions / Policies\"\n\n* Always be empathetic and professional\n\n* Explain what you’re doing: *\"Let me look up your order...\"*\n\n* Provide clear next steps and offer alternatives when needed"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        -16
+      ],
+      "id": "aaa746ef-0ded-42a5-909c-69cbcb7427c0",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        176,
+        240
+      ],
+      "id": "9e61e4c6-a695-4a61-ae25-8bdcb75c65c1",
+      "name": "gpt 4.1-mini",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "message": "={{ $json.output }}",
+        "waitUserReply": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        -16
+      ],
+      "id": "2ebc6a33-73ea-4fdd-a9c1-1e36b33a2c80",
+      "name": "Respond to Chat"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to find customer orders by searching with either a customer's email address or a specific order ID, returning complete order details including status, products, and delivery information.",
+        "jsCode": "const items = $input.all();\nconst item = items[0].json;\nconst orders = item.orders;\n\n// Inputs passed from AI agent\nconst email = $json.customer_email;\nconst orderId = $json.order_id;\n\nlet results = orders;\n\nif (orderId) {\n  results = results.filter(o => o.order_id === orderId);\n} else if (email) {\n  results = results.filter(o => o.customer_email === email);\n}\n\nreturn JSON.stringify({\n  error: results.length === 0,\n  orders: results\n});\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        240
+      ],
+      "id": "02c53401-1af3-4e42-bed5-912cbe9faef2",
+      "name": "search_orders"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to retrieve the current status and detailed information for a specific order by providing the order ID, including delivery status and status-specific guidance messages.",
+        "jsCode": "// Get incoming data\nconst items = $input.all();\nconst item = items[0].json;\n\n// Orders database\nconst orders = item.orders || [];\n\n// If no orders, return an error\nif (!orders.length) {\n  return JSON.stringify({\n    error: true,\n    message: \"No orders found in database.\"\n  });\n}\n\n// Map all orders into a simplified structure\nconst results = orders.map(o => ({\n  order_id: o.order_id,\n  customer_email: o.customer_email,\n  status: o.status,\n  status_display: o.status.charAt(0).toUpperCase() + o.status.slice(1),\n}));\n\n// Return everything\nreturn JSON.stringify({\n  error: false,\n  message: `Retrieved ${results.length} orders.`,\n  orders: results\n});\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        784,
+        240
+      ],
+      "id": "3d9856ef-59dc-4de0-a585-0a90d4809dec",
+      "name": "get_order_status"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to search through company documentation by providing a query and optional category (shipping, returns, products, account, payment), with automatic category classification when no category is specified.",
+        "jsCode": "/**\n * Company Documentation Tool for n8n\n *\n * Always returns the full company documentation content.\n */\n\n// Mock documentation database - in production this would come from files or a database\nconst DOCUMENTATION_DB = {\n  shipping: `\nSHIPPING INFORMATION\n\nStandard Shipping:\n- 5-7 business days delivery\n- Free for orders over $50\n- $5.99 for orders under $50\n\nExpress Shipping:\n- 2-3 business days delivery\n- $12.99 flat rate\n\nOvernight Shipping:\n- Next business day delivery\n- $24.99 flat rate\n\nInternational Shipping:\n- 10-15 business days\n- Rates vary by country\n\nTracking:\n- Tracking numbers are provided via email once shipped\n- Track your package at our website using your order number\n  `,\n  \n  returns: `\nRETURNS & REFUNDS POLICY\n\nReturn Window:\n- 30 days from delivery date\n- Items must be in original condition\n\nReturn Process:\n1. Contact customer service\n2. Receive return authorization (RMA) number\n3. Package item with RMA number\n4. Ship to our returns center\n\nRefund Timeline:\n- 5-7 business days after we receive your return\n- Refunds processed to original payment method\n\nExchange Policy:\n- Free exchanges for defective items\n- Size/color exchanges subject to availability\n\nNon-returnable Items:\n- Personalized or custom items\n- Items marked as final sale\n  `,\n  \n  products: `\nPRODUCT INFORMATION\n\nWarranty Coverage:\n- 1 year manufacturer warranty on all electronics\n- 30 days warranty on accessories\n- Warranty covers manufacturing defects\n\nProduct Specifications:\n- Detailed specs available on each product page\n- Compatibility information provided\n- User manuals available for download\n\nTechnical Support:\n- Live chat support Monday-Friday 9AM-6PM\n- Email support available 24/7\n- Phone support: 1-800-SUPPORT\n\nProduct Care:\n- Follow care instructions on product labels\n- Keep original packaging for warranty claims\n- Register products for extended warranty options\n  `,\n  \n  account: `\nACCOUNT MANAGEMENT\n\nCreating an Account:\n- Visit our website and click \"Sign Up\"\n- Provide email and create password\n- Verify email address\n\nPassword Reset:\n- Click \"Forgot Password\" on login page\n- Enter your email address\n- Check email for reset link\n- Create new password\n\nAccount Dashboard:\n- View order history\n- Track current orders\n- Update shipping addresses\n- Manage payment methods\n- Download invoices\n\nProfile Settings:\n- Update personal information\n- Change email preferences\n- Set communication preferences\n- Delete account (contact support)\n  `,\n  \n  payment: `\nPAYMENT INFORMATION\n\nAccepted Payment Methods:\n- Visa, MasterCard, American Express, Discover\n- PayPal\n- Apple Pay\n- Google Pay\n- Shop Pay\n\nPayment Security:\n- All transactions encrypted with SSL\n- We never store full credit card numbers\n- PCI DSS compliant processing\n\nBilling:\n- Orders charged when shipped\n- Pre-authorization may appear immediately\n- Invoices emailed upon shipment\n\nPayment Issues:\n- Declined cards: contact your bank\n- PayPal issues: verify PayPal account\n- Billing address must match card address\n- International cards accepted with valid billing address\n  `\n};\n\n// Return the whole documentation set\nreturn JSON.stringify({\n  error: false,\n  message: \"Full company documentation retrieved successfully\",\n  documentation: DOCUMENTATION_DB,\n  metadata: {\n    categories: Object.keys(DOCUMENTATION_DB),\n    total_sections: Object.keys(DOCUMENTATION_DB).length,\n    total_length: Object.values(DOCUMENTATION_DB).reduce((sum, doc) => sum + doc.length, 0)\n  }\n});\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        944,
+        240
+      ],
+      "id": "6421d5ec-0168-4ff6-aa5b-aff888c2388b",
+      "name": "search_documentation"
+    },
+    {
+      "parameters": {
+        "content": "# Customer Support Agent\n",
+        "height": 512,
+        "width": 1568,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        -112
+      ],
+      "id": "08297a39-5039-4b09-bc50-5b877c557636",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "### Model\n",
+        "height": 192,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        128,
+        176
+      ],
+      "id": "5bf567c6-dd11-4198-8eba-cd2f74965c89",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "### Memory\n",
+        "height": 192,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        352,
+        176
+      ],
+      "id": "711c692d-f2ee-4c0f-b5f2-1f64eb8a13aa",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When chat message received').item.json.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        400,
+        240
+      ],
+      "id": "a587d905-a8fb-461c-8939-f346c993e87e",
+      "name": "Chat Basic"
+    },
+    {
+      "parameters": {
+        "content": "### Tools\n",
+        "height": 192,
+        "width": 512
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        576,
+        176
+      ],
+      "id": "7c88c039-fd14-47f5-b475-e8e68b4d5553",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access workflow-level static data (global persistence)\nconst staticData = $getWorkflowStaticData('global');\n\n// Initialize only once\nif (!staticData.orders) {\n  staticData.orders = [\n    {\n      order_id: \"ORD-001\",\n      customer_email: \"john.doe@email.com\",\n      customer_name: \"John Doe\",\n      product: \"Wireless Headphones\",\n      price: 99.99,\n      status: \"delivered\",\n      order_date: \"2024-01-15\",\n      delivery_date: \"2024-01-18\"\n    },\n    {\n      order_id: \"ORD-002\",\n      customer_email: \"jane.smith@email.com\",\n      customer_name: \"Jane Smith\",\n      product: \"Smart Watch\",\n      price: 199.99,\n      status: \"shipped\",\n      order_date: \"2024-01-20\",\n      delivery_date: null\n    },\n    {\n      order_id: \"ORD-003\",\n      customer_email: \"bob.wilson@email.com\",\n      customer_name: \"Bob Wilson\",\n      product: \"Laptop Stand\",\n      price: 49.99,\n      status: \"processing\",\n      order_date: \"2024-01-22\",\n      delivery_date: null\n    },\n    {\n      order_id: \"ORD-004\",\n      customer_email: \"alice.brown@email.com\",\n      customer_name: \"Alice Brown\",\n      product: \"Bluetooth Speaker\",\n      price: 79.99,\n      status: \"delivered\",\n      order_date: \"2024-01-10\",\n      delivery_date: \"2024-01-13\"\n    },\n    {\n      order_id: \"ORD-005\",\n      customer_email: \"charlie.davis@email.com\",\n      customer_name: \"Charlie Davis\",\n      product: \"Phone Case\",\n      price: 24.99,\n      status: \"cancelled\",\n      order_date: \"2024-01-25\",\n      delivery_date: null\n    }\n  ];\n}\n\n// Always return current DB state\nreturn [{ json: staticData }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        -16
+      ],
+      "id": "c61cffdc-1009-4ed1-af01-5c162fafea05",
+      "name": "simulate database",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "content": "### Database\n\n**Order ID:** ORD-001\n\n* Customer: John Doe ([john.doe@email.com](mailto:john.doe@email.com))\n* Product: Wireless Headphones\n* Price: \\$99.99\n* Status: Delivered\n* Order Date: 2024-01-15\n* Delivery Date: 2024-01-18\n\n---\n\n**Order ID:** ORD-002\n\n* Customer: Jane Smith ([jane.smith@email.com](mailto:jane.smith@email.com))\n* Product: Smart Watch\n* Price: \\$199.99\n* Status: Shipped\n* Order Date: 2024-01-20\n* Delivery Date: Pending\n\n---\n\n**Order ID:** ORD-003\n\n* Customer: Bob Wilson ([bob.wilson@email.com](mailto:bob.wilson@email.com))\n* Product: Laptop Stand\n* Price: \\$49.99\n* Status: Processing\n* Order Date: 2024-01-22\n* Delivery Date: Pending\n\n---\n\n**Order ID:** ORD-004\n\n* Customer: Alice Brown ([alice.brown@email.com](mailto:alice.brown@email.com))\n* Product: Bluetooth Speaker\n* Price: \\$79.99\n* Status: Delivered\n* Order Date: 2024-01-10\n* Delivery Date: 2024-01-13\n\n---\n\n**Order ID:** ORD-005\n\n* Customer: Charlie Davis ([charlie.davis@email.com](mailto:charlie.davis@email.com))\n* Product: Phone Case\n* Price: \\$24.99\n* Status: Cancelled\n* Order Date: 2024-01-25\n* Delivery Date: N/A\n",
+        "height": 1184,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        -112
+      ],
+      "id": "f9da56a8-ac04-41de-883f-071ff15b3aa4",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "simulate database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gpt 4.1-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_orders": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_order_status": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_documentation": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Basic": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "simulate database": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5bdaa5a8-40f3-4183-9b5b-6693dbcf361d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "5qzMasHVgMFzc2z6",
+  "tags": []
+}
