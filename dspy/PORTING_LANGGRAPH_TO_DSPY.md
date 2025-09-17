@@ -72,6 +72,10 @@ What this tells you:
 | Relevance filtering | `is_relevant_query()` before LLM | Same function before invoking ReAct |
 | Models | Pydantic models | Optional; use Python types or keep simple |
 
+Standard policy:
+- Whenever an agent needs tools (function calls), use DSPy ReAct to handle tool-calling loops rather than manual orchestration.
+- Always include a `history: dspy.History` input in your Signature and pass a maintained `History(messages=[])` each turn.
+
 ---
 
 ### 3) Copy assets: keep local files in sync
