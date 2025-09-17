@@ -11,17 +11,17 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Literal, TypedDict
+from typing import Any, Dict, Literal, TypedDict
 
 from dotenv import load_dotenv
-from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.utils import convert_to_secret_str
+from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
-from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 from langgraph.runtime import Runtime
 
+from agent.state import BlogAgentState
 from agent.tools import (
     assemble_blog,
     change_outline,
@@ -48,24 +48,33 @@ else:
 
 
 class Context(TypedDict):
-    """Context parameters for the marketing blog agent."""
+    """Runtime context parameters for the marketing blog agent.
 
-    anthropic_api_key: str
+    This TypedDict defines the runtime configuration that can be passed
+    to the LangGraph agent, including API keys and execution limits.
+
+    Attributes:
+        anthropic_api_key: API key for Anthropic Claude model access
+        max_iterations: Maximum number of graph execution steps allowed
+    """
+
+    openai_api_key: str
     max_iterations: int
 
 
-class BlogAgentState(TypedDict):
-    """State for the marketing blog agent."""
-
-    # Core state
-    messages: Annotated[List[AnyMessage], add_messages]
-
-    # Required input
-    topic: str
-
-
 def is_relevant_query(query: str) -> bool:
-    """Basic filter for marketing/blog requests to avoid off-topic usage."""
+    """Check if a query is relevant to marketing/blog writing tasks.
+
+    Args:
+        query: The user's query string to evaluate
+
+    Returns:
+        bool: True if the query contains marketing/blog-related keywords, False otherwise
+
+    This function filters out off-topic requests by checking for relevant keywords
+    like 'blog', 'outline', 'marketing', etc. to ensure the agent only responds
+    to appropriate blog writing tasks.
+    """
     q = query.lower()
     keywords = [
         "blog",
@@ -83,21 +92,37 @@ def is_relevant_query(query: str) -> bool:
 
 
 def llm_call(state: BlogAgentState, runtime: Runtime[Context]) -> Dict[str, Any]:
-    """LLM decides whether to call a tool or not for blog writing."""
-    # Set up the LLM with Anthropic Claude
+    """Orchestrate the blog writing workflow using the main LLM node.
+
+    This function serves as the central decision-making node in the LangGraph.
+    It processes the current conversation state and determines whether to:
+    - Call a tool to perform blog writing actions (search, outline, write, edit)
+    - Respond directly to the user
+    - Continue the conversation flow
+
+    Args:
+        state: Current state of the blog agent including messages and topic
+        runtime: Runtime context containing API keys and configuration
+
+    Returns:
+        Dict containing updated messages from the LLM response
+
+    The function includes relevance filtering to ensure only blog-related queries
+    are processed, and handles tool calling for the various blog writing operations.
+    """
+    # Set up the LLM with OpenAI GPT
     ctx = getattr(runtime, "context", None)
     api_key_value = None
     if isinstance(ctx, dict):
-        api_key_value = ctx.get("anthropic_api_key")  # type: ignore[assignment]
+        api_key_value = ctx.get("openai_api_key")  # type: ignore[assignment]
     if not api_key_value:
-        api_key_value = os.getenv("ANTHROPIC_API_KEY")
+        api_key_value = os.getenv("OPENAI_API_KEY")
 
-    llm = ChatAnthropic(
-        model_name="claude-3-5-sonnet-20241022",
+    llm = ChatOpenAI(
+        model="gpt-5-nano",
         api_key=convert_to_secret_str(api_key_value or ""),
         temperature=0.1,  # Low temperature for consistent responses
         timeout=30,
-        stop=None,
     )
 
     # Define tools
@@ -176,7 +201,22 @@ tool_node = ToolNode(
 
 
 def should_continue(state: BlogAgentState) -> Literal["tool_node", END]:  # type: ignore
-    """Decide if we should continue the loop or stop based upon whether the LLM made a tool call."""
+    """Conditional router that determines the next step in the graph execution.
+
+    This function acts as a conditional edge in the LangGraph, examining the
+    most recent message to decide whether:
+    - To route to "tool_node" if the LLM made a tool call that needs execution
+    - To route to END if the conversation should terminate
+
+    Args:
+        state: Current state containing the conversation messages
+
+    Returns:
+        Either "tool_node" to execute a tool or END to terminate the graph
+
+    The decision is based on whether the last AIMessage contains tool_calls,
+    which indicates the LLM wants to perform an action rather than respond directly.
+    """
     messages = state["messages"]
     last_message = messages[-1]
 

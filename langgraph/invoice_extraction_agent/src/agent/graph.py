@@ -17,9 +17,11 @@ class InvoiceExtractionState(TypedDict, total=False):
 
     messages: Annotated[List[AnyMessage], add_messages]
 
-def run_invoice_extraction(state: InvoiceExtractionState) -> Dict[str, List[AnyMessage]]:
-    """Execute structured invoice extraction and return an AI response."""
 
+def run_invoice_extraction(
+    state: InvoiceExtractionState,
+) -> Dict[str, List[AnyMessage]]:
+    """Execute structured invoice extraction and return an AI response."""
     invoice_text: Optional[str] = None
     for msg in reversed(state.get("messages", [])):
         if isinstance(msg, HumanMessage) and isinstance(msg.content, str):
@@ -29,7 +31,9 @@ def run_invoice_extraction(state: InvoiceExtractionState) -> Dict[str, List[AnyM
     if not invoice_text:
         return {
             "messages": [
-                AIMessage(content="Please provide the raw invoice text so I can extract fields."),
+                AIMessage(
+                    content="Please provide the raw invoice text so I can extract fields."
+                ),
             ]
         }
 

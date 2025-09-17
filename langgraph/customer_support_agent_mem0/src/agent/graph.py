@@ -1,6 +1,9 @@
 """Mem0-powered Coaching LangGraph Agent.
 
-This graph mirrors the provided n8n workflow:
+This module implements a conversational coaching agent that leverages Mem0
+for long-term memory and personalized responses. The agent follows a
+three-step process:
+
 1) Search Mem0 for relevant memories (top K, with optional graph enabled)
 2) Generate a reply using an OpenAI chat model with a coaching system prompt
 3) Write the user's message back to Mem0 for long-term memory
@@ -8,50 +11,68 @@ This graph mirrors the provided n8n workflow:
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-from typing import Annotated, Any, Dict, List, Optional, TypedDict, cast
+from typing import Annotated, Any, Dict, List, TypedDict
 
-import httpx
-from dotenv import load_dotenv
-from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage
-from langchain_core.utils import convert_to_secret_str
-from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.messages import AIMessage, AnyMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.runtime import Runtime
 
-# Load environment variables from .env file if it exists
-_current_file = Path(__file__)
-_project_root = _current_file.parent.parent.parent
-_env_file = _project_root / ".env"
+from agent.utils import (
+    extract_latest_user_text,
+    get_default_k,
+    get_mem0_client,
+    get_openai_llm,
+    load_env_if_exists,
+)
 
-if _env_file.exists():
-    load_dotenv(_env_file)
-    print(f"✅ Loaded environment variables from {_env_file}")  # noqa: T201
-else:
-    print(f"ℹ️  No .env file found at {_env_file}")  # noqa: T201
-    print(  # noqa: T201
-        "   Environment variables will be loaded from system environment or runtime context"
-    )  # noqa: T201
+load_env_if_exists()
 
 
 class Context(TypedDict, total=False):
     """Execution context for the Mem0 coaching agent.
 
-    These can be provided via RunnableConfig.context when executing the graph
-    or sourced from environment variables.
+    Defines configuration options that can be provided via RunnableConfig.context
+    when executing the graph, or sourced from environment variables. These
+    settings control various aspects of the agent's behavior and external
+    service connections.
+
+    Attributes:
+        openai_api_key: OpenAI API key for LLM access.
+        mem0_default_k: Default number of memories to retrieve in searches.
+        mem0_enable_graph: Whether to enable graph-based memory relationships.
+        qdrant_host: Qdrant vector database hostname.
+        qdrant_port: Qdrant vector database port number.
+        neo4j_uri: Neo4j graph database connection URI.
+        neo4j_username: Neo4j database username.
+        neo4j_password: Neo4j database password.
     """
 
     openai_api_key: str
-    mem0_base_url: str
     mem0_default_k: int
     mem0_enable_graph: bool
+    qdrant_host: str
+    qdrant_port: int
+    neo4j_uri: str
+    neo4j_username: str
+    neo4j_password: str
 
 
 class CoachingAgentState(TypedDict, total=False):
-    """Mutable state for the coaching agent across DAG nodes."""
+    """Mutable state for the coaching agent across DAG nodes.
+
+    This TypedDict defines the structure of the agent's state as it flows
+    through the LangGraph execution graph. It contains both input parameters
+    and derived fields that are populated during execution.
+
+    Attributes:
+        messages: Conversation history with automatic message addition support.
+        user_id: Unique identifier for the user/conversation (required).
+        k: Number of memories to retrieve (optional, uses default if not set).
+        enable_graph: Whether to use graph-based memory relationships.
+        memories_text: Retrieved memories joined as a string.
+        assistant_text: Generated assistant response content.
+    """
 
     # Conversation messages
     messages: Annotated[List[AnyMessage], add_messages]
@@ -68,100 +89,85 @@ class CoachingAgentState(TypedDict, total=False):
     assistant_text: str
 
 
-def _get_openai_llm(runtime: Runtime[Context]) -> ChatOpenAI:
-    ctx = getattr(runtime, "context", None)
-    api_key_value: Optional[str] = None
-    if isinstance(ctx, dict):
-        api_key_value = cast(Optional[str], ctx.get("openai_api_key"))
-    if not api_key_value:
-        api_key_value = os.getenv("OPENAI_API_KEY")
-
-    return ChatOpenAI(
-        model="gpt-4.1-mini",
-        api_key=convert_to_secret_str(api_key_value or ""),
-        temperature=0.3,
-        timeout=30,
-    )
-
-
-def _get_mem0_base_url(runtime: Runtime[Context]) -> str:
-    ctx = getattr(runtime, "context", None)
-    if isinstance(ctx, dict):
-        base = cast(Optional[str], ctx.get("mem0_base_url"))
-        if base:
-            return base.rstrip("/")
-    return (os.getenv("MEM0_BASE_URL") or "http://localhost:8000").rstrip("/")
-
-
 def _extract_latest_user_text(state: CoachingAgentState) -> str:
-    for msg in reversed(state.get("messages", [])):
-        if isinstance(msg, HumanMessage) and isinstance(msg.content, str):
-            return msg.content
-    return ""
+    """Extract the most recent user message from the conversation state.
+
+    Internal helper function that wraps the utility function for state-specific
+    message extraction.
+
+    Args:
+        state: Current agent state containing conversation messages.
+
+    Returns:
+        str: Content of the latest human message, or empty string if none found.
+    """
+    return extract_latest_user_text(state.get("messages", []))
 
 
 def mem0_search_node(
     state: CoachingAgentState, runtime: Runtime[Context]
 ) -> Dict[str, Any]:
-    """Query Mem0 for top-K relevant memories and join them into a string."""
+    """Query Mem0 for top-K relevant memories and join them into a string.
+
+    This node searches the user's memory store for relevant past conversations
+    and context that can inform the coaching response. It handles various
+    response formats from the Mem0 SDK and ensures robust error handling.
+
+    Args:
+        state: Current agent state containing user input and search parameters.
+        runtime: LangGraph runtime providing access to configuration context.
+
+    Returns:
+        Dict[str, Any]: State update containing 'memories_text' field with
+                        concatenated relevant memories, or empty dict if no
+                        user text or search fails.
+
+    Note:
+        Uses best-effort error handling - search failures are logged but don't
+        interrupt the conversation flow.
+    """
     user_text = _extract_latest_user_text(state)
     if not user_text:
         return {}
 
-    base_url = _get_mem0_base_url(runtime)
+    # Determine K and graph flag from context/env defaults
+    k = int(state.get("k") or get_default_k(runtime, fallback=3))
 
-    # Determine K and graph flag from state or context/env defaults
-    default_k = 3
-    ctx = getattr(runtime, "context", None)
-    if isinstance(ctx, dict) and isinstance(ctx.get("mem0_default_k"), int):
-        default_k = cast(int, ctx.get("mem0_default_k"))
-
-    k = int(state.get("k") or default_k)
-
-    default_enable_graph = True
-    if isinstance(ctx, dict) and isinstance(ctx.get("mem0_enable_graph"), bool):
-        default_enable_graph = cast(bool, ctx.get("mem0_enable_graph"))
-
-    enable_graph_flag = bool(
-        state.get("enable_graph")
-        if state.get("enable_graph") is not None
-        else default_enable_graph
-    )
-
-    payload = {
-        "user_id": state.get("user_id", "default"),
-        "query": user_text,
-        "k": k,
-        "enable_graph": enable_graph_flag,
-    }
+    m = get_mem0_client(runtime)
 
     memories_text = ""
     try:
-        with httpx.Client(timeout=20) as client:
-            resp = client.post(f"{base_url}/api/v1/memories/search", json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            results = data.get("results", []) if isinstance(data, dict) else []
+        # Use limit=k to align with Mem0 Python SDK
+        results: Any = m.search(
+            query=user_text, user_id=state.get("user_id", "default"), limit=int(k)
+        )
 
-            # Normalize and sort by score if present
-            def score_of(item: Any) -> float:
-                try:
-                    return float(item.get("score", 0.0))
-                except Exception:
-                    return 0.0
+        # Normalize to a list regardless of SDK return shape
+        items: List[Any] = []
+        if isinstance(results, dict) and isinstance(results.get("results"), list):
+            items = results.get("results", [])
+        elif isinstance(results, list):
+            items = results
 
-            if isinstance(results, list):
-                results_sorted = sorted(results, key=score_of, reverse=True)
-                top10 = results_sorted[:10]
-                memory_texts: List[str] = []
-                for r in top10:
-                    if isinstance(r, dict):
-                        mem_val = r.get("memory")
-                        if isinstance(mem_val, str):
-                            memory_texts.append(mem_val)
-                    elif isinstance(r, str):
-                        memory_texts.append(r)
-                memories_text = "\n".join(memory_texts)
+        # Sort by score if present, else keep order
+        def score_of(item: Any) -> float:
+            """Extract score from memory item for sorting."""
+            try:
+                return float(item.get("score", 0.0)) if isinstance(item, dict) else 0.0
+            except Exception:
+                return 0.0
+
+        items_sorted = sorted(items, key=score_of, reverse=True) if items else []
+        topn = items_sorted[: max(1, int(k))] if items_sorted else []
+        memory_texts: List[str] = []
+        for r in topn:
+            if isinstance(r, dict):
+                mem_val = r.get("memory")
+                if isinstance(mem_val, str):
+                    memory_texts.append(mem_val)
+            elif isinstance(r, str):
+                memory_texts.append(r)
+        memories_text = "\n".join(memory_texts)
     except Exception as exc:  # Best-effort memory; don't fail the run
         print(f"⚠️  Mem0 search failed: {exc}")  # noqa: T201
 
@@ -239,8 +245,26 @@ COACH_SYSTEM_PROMPT = (
 
 
 def llm_node(state: CoachingAgentState, runtime: Runtime[Context]) -> Dict[str, Any]:
-    """Generate an assistant reply using the coaching system prompt and memories."""
-    llm = _get_openai_llm(runtime)
+    """Generate an assistant reply using the coaching system prompt and memories.
+
+    This node is the core of the coaching agent, combining the system prompt
+    with retrieved memories to generate personalized coaching responses.
+    It handles message formatting and ensures proper response structure.
+
+    Args:
+        state: Current agent state containing messages and retrieved memories.
+        runtime: LangGraph runtime providing access to configuration context.
+
+    Returns:
+        Dict[str, Any]: State update containing the AI response message and
+                        assistant text content. Returns empty dict if no user
+                        text is available.
+
+    Note:
+        Includes a fallback response mechanism in case the LLM doesn't return
+        a properly formatted AIMessage.
+    """
+    llm = get_openai_llm(runtime)
     user_text = _extract_latest_user_text(state)
     if not user_text:
         return {}
@@ -273,34 +297,37 @@ def llm_node(state: CoachingAgentState, runtime: Runtime[Context]) -> Dict[str, 
 def mem0_add_node(
     state: CoachingAgentState, runtime: Runtime[Context]
 ) -> Dict[str, Any]:
-    """Write the user's latest message to Mem0 for long-term memory."""
+    """Write the user's latest message to Mem0 for long-term memory.
+
+    This final node stores the user's input in the memory system to build
+    a persistent understanding of the user's context, preferences, and
+    conversation history for future interactions.
+
+    Args:
+        state: Current agent state containing the user's message to store.
+        runtime: LangGraph runtime providing access to configuration context.
+
+    Returns:
+        Dict[str, Any]: Empty dictionary (no state changes needed).
+
+    Note:
+        Uses best-effort error handling - memory storage failures are logged
+        but don't interrupt the conversation flow.
+    """
     user_text = _extract_latest_user_text(state)
     if not user_text:
         return {}
 
-    base_url = _get_mem0_base_url(runtime)
-    enable_graph_flag = bool(
-        state.get("enable_graph") if state.get("enable_graph") is not None else True
-    )
-
-    payload = {
-        "user_id": state.get("user_id", "default"),
-        "memory": user_text,
-        "enable_graph": enable_graph_flag,
-    }
-
+    m = get_mem0_client(runtime)
     try:
-        with httpx.Client(timeout=20) as client:
-            resp = client.post(f"{base_url}/api/v1/memories", json=payload)
-            resp.raise_for_status()
+        m.add(user_text, user_id=state.get("user_id", "default"))
     except Exception as exc:  # Best-effort write; don't fail the run
         print(f"⚠️  Mem0 add failed: {exc}")  # noqa: T201
     return {}
 
 
-# Build the graph mirroring the n8n flow
-checkpointer = MemorySaver()
-
+# Compiled LangGraph for the Mem0-powered coaching agent
+# Execution flow: START → mem0_search → llm → mem0_add → END
 graph = (
     StateGraph(CoachingAgentState, context_schema=Context)
     .add_node("mem0_search", mem0_search_node)
@@ -310,5 +337,5 @@ graph = (
     .add_edge("mem0_search", "llm")
     .add_edge("llm", "mem0_add")
     .add_edge("mem0_add", END)
-    .compile(name="Mem0 Coaching Agent", checkpointer=checkpointer)
+    .compile(name="Mem0 Coaching Agent")
 )

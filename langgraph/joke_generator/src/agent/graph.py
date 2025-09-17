@@ -187,7 +187,7 @@ graph = (
     .add_node("audience_evaluator", audience_evaluator_node)
     # Add edges to connect nodes
     .add_edge(START, "comedian")
-    .add_conditional_edges("comedian", should_continue, ["audience_evaluator"])
+    .add_edge("comedian", "audience_evaluator")
     .add_edge("audience_evaluator", END)
     .compile(name="Joke Generator Agent")
 )

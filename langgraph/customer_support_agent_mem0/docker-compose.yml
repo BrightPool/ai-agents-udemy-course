@@ -1,13 +1,15 @@
 services:
   mem0-server:
-    image: ghcr.io/mem0ai/mem0:latest
+    image: mem0/mem0-api-server:latest
     container_name: mem0-server
     restart: unless-stopped
     depends_on:
-      - qdrant
-      - neo4j
+      qdrant:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
     env_file:
-      - .env.mem0
+      - .env
     environment:
       # Overwrite service discovery defaults so the API can reach co-located stores
       - QDRANT_URL=http://qdrant:6333
@@ -16,13 +18,19 @@ services:
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USERNAME=${NEO4J_USERNAME:-neo4j}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:-mem0-graph}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     ports:
       - "8000:8000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      test:
+        [
+          "CMD-SHELL",
+          "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/8000 && printf \"GET /api/v1/health HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && timeout 2 cat <&3 | grep -q \"200 OK\"'",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -32,6 +40,16 @@ services:
       - "6333:6333"
     volumes:
       - qdrant_data:/qdrant/storage
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/6333 && printf \"GET /readyz HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && timeout 2 cat <&3 | grep -q \"all shards are ready\"'",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   neo4j:
     image: neo4j:5
@@ -40,6 +58,10 @@ services:
     environment:
       - NEO4J_AUTH=${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-mem0-graph}
       - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
     ports:
       - "7474:7474"
       - "7687:7687"
@@ -47,6 +69,20 @@ services:
       - neo4j_data:/data
       - neo4j_logs:/logs
       - neo4j_plugins:/plugins
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "cypher-shell",
+          "-u",
+          "neo4j",
+          "-p",
+          "${NEO4J_PASSWORD:-mem0-graph}",
+          "RETURN 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
   qdrant_data:
