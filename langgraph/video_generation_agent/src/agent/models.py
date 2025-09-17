@@ -15,6 +15,13 @@ from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
 
 
+# Reducer for concurrent storyboard updates: choose latest non-None
+def _use_latest_storyboard(
+    current: Optional[Storyboard], update: Optional[Storyboard]
+) -> Optional[Storyboard]:
+    return update if update is not None else current
+
+
 class VideoGenerationState(BaseModel):
     """Minimal state for the video generation agent."""
 
@@ -31,7 +38,9 @@ class VideoGenerationState(BaseModel):
 
     # Final artifact
     final_video_path: Optional[str] = Field(None, description="Final video file path")
-    storyboard: Optional[Storyboard] = Field(None, description="Current storyboard")
+    storyboard: Annotated[Optional[Storyboard], _use_latest_storyboard] = Field(
+        None, description="Current storyboard"
+    )
 
 
 # Video resolution presets
@@ -88,7 +97,10 @@ class StoryboardScene(BaseModel):
     )
     title: Optional[str] = Field(None, description="Scene title")
     description: Optional[str] = Field(None, description="Scene description")
-    prompt: str = Field(..., description="Visual prompt for image/video generation")
+    prompt: str = Field(
+        ...,
+        description="Visual prompt for image/video generation. This should be very expressive as we have full control of the scene (i.e. sounds, characters, shots, style of shots etc.)",
+    )
     duration_seconds: float = Field(6.0, gt=0, description="Scene duration in seconds")
     rendered_video_file_path: Optional[str] = Field(
         None, description="Path to rendered video file for this scene"
@@ -134,45 +146,36 @@ class GenerateImageRequest(BaseModel):
     output_basename: str = Field(
         "product_ad_image", description="Base filename for saved images (no ext)"
     )
+    max_images: int = Field(
+        1,
+        ge=1,
+        le=4,
+        description="Max number of images to save; files numbered starting at 1",
+    )
 
 
 class Veo3VideoRequest(BaseModel):
-    """Request schema for generating video with fal.ai Veo 3 Fast."""
+    """KISS request for generating video with fal.ai Veo 3 Image-to-Video.
 
-    prompt: str = Field(..., description="Video prompt")
-    aspect_ratio: Literal["16:9", "9:16", "1:1"] = Field(
-        "16:9", description="Aspect ratio for the resulting video"
+    Always uses a local file from /tmp/images. Provide the filename only.
+    The tool will upload it to fal storage and pass its URL to the API.
+    """
+
+    prompt: str = Field(
+        ..., description="Text describing how to animate the input image"
     )
-    duration: Literal["4s", "6s", "8s"] = Field(
-        "8s", description="Desired video duration"
+    image_filename: str = Field(
+        ..., description="Filename under /tmp/images (e.g., scene_1_1.png)"
     )
-    negative_prompt: Optional[str] = Field(
-        None, description="Negative prompt to guide the model away from elements"
+    aspect_ratio: Literal["auto", "16:9", "9:16"] = Field(
+        "auto", description="Aspect ratio for the resulting video"
     )
-    enhance_prompt: bool = Field(
-        True, description="Whether to let the model enhance the prompt"
-    )
-    auto_fix: bool = Field(
-        True, description="Automatically attempt to fix policy violations"
-    )
+    duration: Literal["8s"] = Field("8s", description="Desired video duration")
     resolution: Literal["720p", "1080p"] = Field(
         "720p", description="Target output resolution"
     )
     generate_audio: bool = Field(
-        True, description="Whether to produce audio with the video"
-    )
-    seed: Optional[int] = Field(None, description="Seed for reproducibility")
-    image_path: Optional[str] = Field(
-        None, description="Optional local reference image path"
-    )
-    image_url: Optional[str] = Field(
-        None, description="Optional hosted reference image URL"
-    )
-    image_base64: Optional[str] = Field(
-        None, description="Optional raw base64 payload for reference image"
-    )
-    image_mime_type: Optional[str] = Field(
-        "image/png", description="Mime type for the base64 reference image"
+        True, description="Whether to produce audio with the video (default: True)"
     )
 
 
@@ -183,6 +186,20 @@ class Veo3VideoResult(BaseModel):
     video_url: Optional[str] = None
     video_identifier: Optional[str] = None
     logs: Optional[List[str]] = None
+
+
+class Veo3VideoBatchRequest(BaseModel):
+    """Batch request to generate multiple scene videos concurrently."""
+
+    requests: List[Veo3VideoRequest] = Field(
+        ..., description="List of scene video requests"
+    )
+    stitch_after: bool = Field(
+        False, description="Whether to concatenate the resulting clips automatically"
+    )
+    output_basename: str = Field(
+        "storyboard", description="Base name for the concatenated output if stitching"
+    )
 
 
 class VideoConcatRequest(BaseModel):

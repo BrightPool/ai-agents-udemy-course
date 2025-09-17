@@ -38,6 +38,9 @@ from agent.tools import (
 from agent.tools import (
     veo3_generate_video as veo3_tool,
 )
+from agent.tools import (
+    veo3_generate_videos_batch as veo3_batch_tool,
+)
 from agent.utils import cleanup_tmp_directories, initialize_tmp_directories
 
 
@@ -70,9 +73,11 @@ async def initialize_agent(
         content="""
 You are a product advertisement creative agent.
 
-Format goal: Create a Product Advertisement creative concept → write storyboard (3 scenes) → edit storyboard → generate_image → generate_video_per_scene → concat_videos → analyze_video_quality. Produce a 3-scene video: beginning, middle, end.
+Format goal: Create a Product Advertisement creative concept → write storyboard (3 scenes) → edit storyboard → generate_image → ensure each scene has a hero image → generate video per scene (veo3 image-to-video) → wait for all clips to finish → concat_videos → analyze_video_quality. Produce a 3-scene video: beginning, middle, end.
 
-Guidance: After generating multiple scene clips (typically one per storyboard scene), call concat_videos with the ordered list of clip URLs/paths. The tool will download remote sources automatically before stitching.
+Guidance: Only start generating videos when each scene has an image. Generate all scene videos asynchronously and wait for all to complete (use the batch tool) before stitching. Then call concat_videos with the ordered list of clip paths.
+
+Audio: ALWAYS generate videos with audio (generate_audio: true) unless the user explicitly requests silent videos. Audio enhances the viewing experience and engagement.
 
 Note: Video generation endpoints often have short max durations. For longer videos, generate multiple clips and then concatenate them.
 """
@@ -136,6 +141,7 @@ async def agentic_step(
         update_scene_tool,
         generate_image_tool,
         veo3_tool,
+        veo3_batch_tool,
         concat_videos_tool,
         run_ffmpeg_tool,
         analyze_video_quality_tool,
@@ -201,6 +207,7 @@ tool_node = ToolNode(
         update_scene_tool,
         generate_image_tool,
         veo3_tool,
+        veo3_batch_tool,
         concat_videos_tool,
         run_ffmpeg_tool,
         analyze_video_quality_tool,

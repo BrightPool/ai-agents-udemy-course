@@ -23,11 +23,12 @@ from .models import (
     GenerateImageRequest,
     Storyboard,
     StoryboardCreateRequest,
+    Veo3VideoBatchRequest,
     Veo3VideoRequest,
     VideoConcatRequest,
     VideoConcatResult,
 )
-from .utils import upload_media_to_google
+from .utils import download_file_to_path, upload_media_to_google
 
 
 class ToolExecutionError(Exception):
@@ -42,6 +43,99 @@ class ToolExecutionError(Exception):
         """
         super().__init__(message)
         self.command = command
+
+
+def _resolve_image_to_fal_url(
+    *,
+    image_path: Optional[str] = None,
+    image_url: Optional[str] = None,
+    image_base64: Optional[str] = None,
+    gcs_or_file_id: Optional[str] = None,
+    mime_type: Optional[str] = None,
+) -> str:
+    """Normalize any input image source into a fal-hosted URL.
+
+    Rules (KISS):
+    1) If local path -> upload via fal and return URL
+    2) If Google file id/URL -> download with Google API -> upload via fal
+    3) If http(s) URL -> download -> upload via fal
+    4) If base64 -> write temp file -> upload via fal
+
+    Raises ToolExecutionError if unable to produce a fal URL.
+    """
+    # 1) Local path
+    if isinstance(image_path, str) and os.path.exists(image_path):
+        try:
+            return fal_client.upload_file(image_path)
+        except Exception as e:
+            raise ToolExecutionError(f"Failed to upload image_path to fal: {e}")
+
+    # Prepare temp dir
+    os.makedirs("/tmp/images", exist_ok=True)
+
+    def _upload_temp(temp_path: str) -> str:
+        try:
+            return fal_client.upload_file(temp_path)
+        except Exception as e:
+            raise ToolExecutionError(f"Failed to upload image to fal: {e}")
+
+    # 2) Google file id / URL
+    candidate = gcs_or_file_id or image_url
+    if isinstance(candidate, str) and (
+        candidate.startswith("files/")
+        or ("generativelanguage.googleapis.com" in candidate and "/files/" in candidate)
+    ):
+        tmp_path = f"/tmp/images/source_{uuid.uuid4().hex[:8]}"
+        ok = download_file_to_path(
+            candidate, tmp_path, google_api_key=os.getenv("GOOGLE_API_KEY")
+        )
+        if not ok:
+            raise ToolExecutionError(
+                "Failed to download Google file; ensure GOOGLE_API_KEY is set and file id is valid"
+            )
+        return _upload_temp(tmp_path)
+
+    # 3) Generic http(s) URL -> download then upload
+    if isinstance(image_url, str) and (
+        image_url.startswith("http://") or image_url.startswith("https://")
+    ):
+        try:
+            import urllib.request
+
+            tmp_path = f"/tmp/images/source_{uuid.uuid4().hex[:8]}"
+            urllib.request.urlretrieve(image_url, tmp_path)  # nosec B310
+            return _upload_temp(tmp_path)
+        except Exception as e:
+            raise ToolExecutionError(f"Failed to fetch image_url: {e}")
+
+    # 4) Base64 -> write then upload
+    if isinstance(image_base64, str) and image_base64:
+        try:
+            if image_base64.startswith("data:"):
+                header, b64_data = image_base64.split(",", 1)
+                mt = header.split(";", 1)[0].split(":", 1)[-1] or (
+                    mime_type or "image/png"
+                )
+            else:
+                b64_data = image_base64
+                mt = mime_type or "image/png"
+
+            raw = base64.b64decode(b64_data)
+            ext = (
+                ".png"
+                if mt.endswith("png")
+                else (".jpg" if "jpeg" in mt or "jpg" in mt else ".bin")
+            )
+            tmp_path = f"/tmp/images/source_{uuid.uuid4().hex[:8]}{ext}"
+            with open(tmp_path, "wb") as f:
+                f.write(raw)
+            return _upload_temp(tmp_path)
+        except Exception as e:
+            raise ToolExecutionError(f"Failed to process base64 image: {e}")
+
+    raise ToolExecutionError(
+        "No valid image provided. Supply image_path, gcs_uri/files/<id>, image_url, or image_base64."
+    )
 
 
 @tool
@@ -66,17 +160,27 @@ def create_story_board(request: StoryboardCreateRequest) -> Storyboard:
                 f"{brand} {product} ad for {ta}. {sid} of story, tone: {tone}. "
                 f"Key message: {key_msg}. Visual focus: product + person."
             )
+            # Enriched prompt for maximum video vibes and storyboard guidance
             prompt = (
-                f"Photorealistic {product} with a person interacting, cinematic lighting, "
-                f"brand aesthetic for {brand}, clean composition, ad-ready. Scene: {sid}."
+                f"Storyboard scene: {sid}. Create a hero frame to animate later. "
+                f"Style: cinematic, ad-grade, brand aesthetic for {brand}. "
+                f"Visuals: {product} centered with human interaction; clean composition; depth of field. "
+                f"Lighting: soft key light with rim highlights; high dynamic range; realistic. "
+                f"Camera: {('establishing wide to medium push-in' if sid == 'beginning' else ('handheld medium tracking' if sid == 'middle' else 'slow dolly-out reveal'))}. "
+                f"Mood: {tone}. "
+                f"Music: modern {('inspirational build-up' if sid == 'beginning' else ('energetic percussive mid-tempo' if sid == 'middle' else 'uplifting resolve'))}, instrumental only. "
+                f"Shots: use a primary hero angle; ensure cohesive color grading; cinematic vibes. "
+                f"Avoid text overlays. Maintain brand cleanliness."
             )
+            # Align default scene duration to 8 seconds to match image-to-video clips
+            duration_seconds = max(8.0, float(request.default_scene_duration_seconds))
             scenes.append(
                 {
                     "id": scene_id,
                     "title": title,
                     "description": desc,
                     "prompt": prompt,
-                    "duration_seconds": request.default_scene_duration_seconds,
+                    "duration_seconds": duration_seconds,
                 }
             )
 
@@ -176,16 +280,23 @@ def generate_image(
         messages = []
 
         # If there are input image paths, add them to the prompt
-        messages.append(HumanMessage(content=request.prompt))
+        messages.append(
+            HumanMessage(
+                content=f"""f Can you please just generate a single image for the following prompt: {request.prompt}"""
+            )
+        )
         response = llm.invoke(
             [HumanMessage(content=request.prompt)],
-            generation_config={"response_modalities": ["IMAGE"]},
+            generation_config={"response_modalities": ["TEXT", "IMAGE"]},
         )
 
         os.makedirs("/tmp/images", exist_ok=True)
         images_payload: List[Dict[str, Any]] = []
         file_uploads = []
-        for idx, block in enumerate(response.content):
+        saved_count = 0
+        for idx, block in enumerate(response.content, start=1):
+            if saved_count >= max(1, int(getattr(request, "max_images", 1))):
+                break
             image_url: Optional[str] = None
             if isinstance(block, dict):
                 val = block.get("image_url")
@@ -229,6 +340,7 @@ def generate_image(
                 payload_item["base64"] = b64_data
             images_payload.append(payload_item)
             file_uploads.append(upload)
+            saved_count += 1
 
         if not images_payload:
             payload = {"error": "No images in model response", "images": []}
@@ -276,53 +388,66 @@ def veo3_generate_video(
     tool_call_id: Annotated[str, InjectedToolCallId],
     config: RunnableConfig,
 ) -> Command:
-    """Generate a video using Google's Veo 3 Fast endpoint on fal.ai.
+    """Generate a video using fal.ai Veo 3 Image-to-Video endpoint.
 
-    Supports optional reference imagery via path, hosted URL, or base64 payload.
-    Returns structured metadata including the resulting video URL.
+    Aligns to schema: prompt, image_url (data URI or hosted URL), aspect_ratio,
+    duration (8s), resolution (720p/1080p), generate_audio.
+
+    Simplified: reads a local file under /tmp/images (request.image_filename),
+    uploads to fal storage, then submits to the image-to-video endpoint.
     """
     try:
         fal_api_key = os.getenv("FAL_KEY") or os.getenv("FAL_API_KEY")
-        if fal_api_key:
-            os.environ.setdefault("FAL_KEY", fal_api_key)
+        if not fal_api_key:
+            raise ToolExecutionError(
+                "Missing FAL_KEY/FAL_API_KEY. Please set it in your environment or .env"
+            )
+        os.environ.setdefault("FAL_KEY", fal_api_key)
 
-        reference_url: Optional[str] = request.image_url
-        if request.image_path and os.path.exists(request.image_path):
-            try:
-                reference_url = fal_client.upload_file(request.image_path)
-            except Exception:
-                reference_url = reference_url or None
+        # Resolve local path under /tmp/images
+        local_path = os.path.join("/tmp/images", request.image_filename)
+        if not os.path.exists(local_path):
+            payload = {
+                "error": f"Image not found: {local_path}",
+                "hint": "Ensure the image was generated/saved under /tmp/images",
+            }
+            return Command(
+                update={
+                    "messages": [
+                        ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+                    ]
+                }
+            )
 
-        if request.image_base64:
-            if request.image_base64.startswith("data:"):
-                reference_url = request.image_base64
-            else:
-                mime = request.image_mime_type or "image/png"
-                reference_url = f"data:{mime};base64,{request.image_base64}"
+        # Upload to fal and get a hosted URL
+        try:
+            reference_url = fal_client.upload_file(local_path)
+        except Exception as e:
+            payload = {"error": f"Failed to upload to fal: {e}"}
+            return Command(
+                update={
+                    "messages": [
+                        ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+                    ]
+                }
+            )
 
-        # using synchronous run keeps things simple; no queue/log streaming
+        # Fail fast if no valid reference
+        # reference_url already a fal-hosted URL
 
+        # Build arguments per image-to-video schema
+        # Coerce duration to 8s for image-to-video (API constraint)
         arguments: Dict[str, Any] = {
             "prompt": request.prompt,
             "aspect_ratio": request.aspect_ratio,
-            "duration": request.duration,
-            "enhance_prompt": request.enhance_prompt,
-            "auto_fix": request.auto_fix,
+            "duration": "8s",
             "resolution": request.resolution,
             "generate_audio": request.generate_audio,
+            "image_url": reference_url,
         }
 
-        if reference_url:
-            arguments["image_url"] = reference_url
-        if request.negative_prompt:
-            arguments["negative_prompt"] = request.negative_prompt
-        if request.seed is not None:
-            arguments["seed"] = int(request.seed)
-
-        result = fal_client.run(
-            "fal-ai/veo3/fast",
-            arguments=arguments,
-        )
+        # Use the image-to-video endpoint
+        result = fal_client.run("fal-ai/veo3/image-to-video", arguments=arguments)
 
         request_id = getattr(result, "request_id", None)
         video_url: Optional[str] = None
@@ -392,6 +517,221 @@ def veo3_generate_video(
         )
     except Exception as exc:
         payload = {"error": f"error: {exc}"}
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+                ]
+            }
+        )
+
+
+@tool
+def veo3_generate_videos_batch(
+    request: Veo3VideoBatchRequest,
+    tool_call_id: Annotated[str, InjectedToolCallId],
+    config: RunnableConfig,
+) -> Command:
+    """Generate multiple Veo3 Image-to-Video clips concurrently and optionally stitch.
+
+    - Validates that each request has an image (image_url, image_base64, image_path, gcs_uri/gsc_uri)
+    - Submits all requests concurrently using fal subscribe for better throughput
+    - Waits for all to complete, returns list of local paths and URLs
+    - If stitch_after=True, concatenates the videos and returns the final artifact
+    """
+    try:
+        # Validate presence of image source in every request
+        missing: List[int] = []
+        for idx, r in enumerate(request.requests):
+            has_image = any(
+                [
+                    bool(r.image_filename),
+                ]
+            )
+            if not has_image:
+                missing.append(idx)
+        if missing:
+            msg = {
+                "error": "All scenes must include an image before generating videos",
+                "missing_indices": missing,
+            }
+            return Command(
+                update={
+                    "messages": [
+                        ToolMessage(json.dumps(msg), tool_call_id=tool_call_id)
+                    ]
+                }
+            )
+
+        fal_api_key = os.getenv("FAL_KEY") or os.getenv("FAL_API_KEY")
+        if not fal_api_key:
+            raise ToolExecutionError(
+                "Missing FAL_KEY/FAL_API_KEY. Please set it in your environment or .env"
+            )
+        os.environ.setdefault("FAL_KEY", fal_api_key)
+
+        # Helper to build arguments per single request (reuse single-tool logic partially)
+        def build_args(r: Veo3VideoRequest) -> Dict[str, Any]:
+            local_path = os.path.join("/tmp/images", r.image_filename)
+            if not os.path.exists(local_path):
+                raise ToolExecutionError(f"Image not found: {local_path}")
+            try:
+                reference_url = fal_client.upload_file(local_path)
+            except Exception as e:
+                raise ToolExecutionError(f"Failed to upload to fal: {e}")
+
+            args: Dict[str, Any] = {
+                "prompt": r.prompt,
+                "aspect_ratio": r.aspect_ratio,
+                "duration": "8s",
+                "resolution": r.resolution,
+                "generate_audio": r.generate_audio,
+                "image_url": reference_url,
+            }
+            return args
+
+        # Submit all requests concurrently with subscribe (with_logs disabled for brevity)
+        handlers = []
+        for r in request.requests:
+            args = build_args(r)
+            handler = fal_client.submit("fal-ai/veo3/image-to-video", arguments=args)
+            handlers.append((r, handler))
+
+        # Collect results
+        local_paths: List[str] = []
+        urls: List[str] = []
+        for r, handler in handlers:
+            res = fal_client.result("fal-ai/veo3/image-to-video", handler.request_id)
+            video_url: Optional[str] = None
+            if isinstance(res, dict):
+                v = res.get("video")
+                if isinstance(v, dict):
+                    u = v.get("url") or v.get("video_url")
+                    if isinstance(u, str):
+                        video_url = u
+                if not video_url:
+                    u2 = res.get("url") or res.get("video_url")
+                    if isinstance(u2, str):
+                        video_url = u2
+            urls.append(video_url or "")
+
+            # download locally for stitching/upload
+            local_path: Optional[str] = None
+            try:
+                if video_url and video_url.startswith("http"):
+                    import urllib.request
+
+                    os.makedirs("/tmp/videos", exist_ok=True)
+                    local_path = f"/tmp/videos/veo3_scene_{uuid.uuid4().hex[:8]}.mp4"
+                    urllib.request.urlretrieve(video_url, local_path)  # nosec B310
+            except Exception:
+                local_path = None
+            if local_path:
+                local_paths.append(local_path)
+
+        # If stitching requested and we have 2+ clips, perform concat here
+        if request.stitch_after and len(local_paths) >= 2:
+            temp_dir = Path(tempfile.mkdtemp(prefix="video_concat_batch_"))
+            logs: List[str] = []
+            try:
+                concat_list_path = temp_dir / "concat_list.txt"
+                with concat_list_path.open("w", encoding="utf-8") as concat_file:
+                    for vp in local_paths:
+                        concat_file.write(f"file '{vp}'\n")
+
+                output_dir = Path("/tmp/videos")
+                output_dir.mkdir(parents=True, exist_ok=True)
+                output_path = (
+                    output_dir / f"{request.output_basename}_{uuid.uuid4().hex[:8]}.mp4"
+                )
+
+                concat_command = [
+                    "ffmpeg",
+                    "-y",
+                    "-f",
+                    "concat",
+                    "-safe",
+                    "0",
+                    "-i",
+                    str(concat_list_path),
+                    "-c",
+                    "copy",
+                    str(output_path),
+                ]
+
+                proc = subprocess.run(
+                    concat_command, capture_output=True, text=True, check=False
+                )
+
+                if proc.returncode != 0 or not output_path.exists():
+                    if proc.stderr:
+                        logs.append(proc.stderr.strip())
+                    payload = {
+                        "video": None,
+                        "segments": local_paths,
+                        "logs": logs,
+                    }
+                    return Command(
+                        update={
+                            "messages": [
+                                ToolMessage(
+                                    json.dumps(payload), tool_call_id=tool_call_id
+                                )
+                            ]
+                        }
+                    )
+
+                upload = upload_media_to_google(
+                    str(output_path), google_api_key=os.getenv("GOOGLE_API_KEY")
+                )
+                payload = {
+                    "video": {
+                        "kind": "video",
+                        "path": str(output_path),
+                        "mime_type": "video/mp4",
+                        "file_id": upload.get("file_id"),
+                        "file_uri": upload.get("file_uri"),
+                    },
+                    "segments": local_paths,
+                    "logs": logs,
+                }
+                return Command(
+                    update={
+                        "messages": [
+                            ToolMessage(json.dumps(payload), tool_call_id=tool_call_id),
+                            HumanMessage(
+                                content=[
+                                    {
+                                        "type": "media",
+                                        "file_uri": upload.get("file_uri"),
+                                        "mime_type": upload.get("mime_type"),
+                                    },
+                                ]
+                            ),
+                        ]
+                    }
+                )
+            finally:
+                try:
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                except Exception:
+                    pass
+
+        payload = {
+            "videos": {
+                "local_paths": local_paths,
+                "urls": urls,
+            }
+        }
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(json.dumps(payload), tool_call_id=tool_call_id)
+                ]
+            }
+        )
+    except Exception as exc:
+        payload = {"error": f"batch error: {exc}"}
         return Command(
             update={
                 "messages": [

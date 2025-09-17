@@ -62,6 +62,93 @@ def upload_media_to_google(
         return {"file_id": None, "file_uri": None, "mime_type": None}
 
 
+# Best-effort download for Google file storage URIs or HTTP(S) URLs
+def download_file_to_path(
+    uri_or_id: str, dest_path: str, *, google_api_key: Optional[str] = None
+) -> bool:
+    """Download a file identified by a Google file URI/ID or HTTP(S) URL.
+
+    Returns True on success. Supports:
+      - data URIs (writes decoded content)
+      - http/https URLs
+      - Google GenAI file ids like "files/abc123" via genai client
+    """
+    try:
+        if not isinstance(uri_or_id, str) or not uri_or_id:
+            return False
+
+        # data URI
+        if uri_or_id.startswith("data:"):
+            import base64 as _b64
+
+            try:
+                header, b64_data = uri_or_id.split(",", 1)
+            except ValueError:
+                return False
+            content = _b64.b64decode(b64_data)
+            os.makedirs(os.path.dirname(dest_path) or ".", exist_ok=True)
+            with open(dest_path, "wb") as f:
+                f.write(content)
+            return True
+
+        # HTTP(S)
+        if uri_or_id.startswith("http://") or uri_or_id.startswith("https://"):
+            # Special-case Google GenAI file URLs and rewrite to files/{id}
+            if (
+                "generativelanguage.googleapis.com" in uri_or_id
+                and "/files/" in uri_or_id
+            ):
+                try:
+                    # Extract the ID after '/files/' and before any trailing segments or query
+                    import urllib.parse as _up
+
+                    parsed = _up.urlparse(uri_or_id)
+                    parts = parsed.path.split("/files/")
+                    file_id = parts[1].split("/")[0] if len(parts) > 1 else None
+                    if file_id:
+                        rewritten = f"files/{file_id}"
+                        return download_file_to_path(
+                            rewritten, dest_path, google_api_key=google_api_key
+                        )
+                except Exception:
+                    pass
+
+            import urllib.request as _url
+
+            os.makedirs(os.path.dirname(dest_path) or ".", exist_ok=True)
+            _url.urlretrieve(uri_or_id, dest_path)  # nosec B310
+            return True
+
+        # Google GenAI file id (e.g., files/xyz)
+        if uri_or_id.startswith("files/"):
+            api_key = _get_google_api_key(google_api_key)
+            if not api_key:
+                return False
+            try:
+                from google import genai  # type: ignore[import-untyped]
+
+                client = genai.Client(api_key=api_key)
+                # download API may vary by version; try common attributes
+                downloaded = getattr(client.files, "download", None)
+                if callable(downloaded):
+                    resp = downloaded(name=uri_or_id)
+                    content = getattr(resp, "content", None) or getattr(
+                        resp, "data", None
+                    )
+                    if isinstance(content, (bytes, bytearray)):
+                        os.makedirs(os.path.dirname(dest_path) or ".", exist_ok=True)
+                        with open(dest_path, "wb") as f:
+                            f.write(content)
+                        return True
+            except Exception:
+                return False
+
+        # Fallback: unsupported scheme
+        return False
+    except Exception:
+        return False
+
+
 # Initialize tmp directories
 async def initialize_tmp_directories():
     """Initialize temporary directories for the video generation agent."""
