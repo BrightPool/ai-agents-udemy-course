@@ -57,6 +57,8 @@ def create_audience_evaluator():
                 "topic": "evaluation",
                 "joke": joke,
                 "lm_type": cast(Literal["cheap", "smart"], "cheap"),
+                "audience_profiles": self.profiles,
+                "evaluate_only": True,
             }
 
             # Run the graph

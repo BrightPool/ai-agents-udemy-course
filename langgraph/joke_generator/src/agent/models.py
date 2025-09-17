@@ -50,3 +50,7 @@ class JokeGeneratorState(TypedDict, total=False):
     audience_responses: List[Literal["hilarious", "funny", "meh", "not funny", "offensive"]]
     audience_reactions: List[str]
     lm_type: Literal["cheap", "smart"]
+    # Optional: explicit audience profiles to use during evaluation
+    audience_profiles: List[str]
+    # If True and a 'joke' is provided, skip generation and only evaluate
+    evaluate_only: bool

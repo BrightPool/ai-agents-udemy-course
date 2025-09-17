@@ -40,26 +40,31 @@ The agent tracks comprehensive state including:
 ## Tools
 
 ### 1. ElevenLabs Text-to-Speech
+
 - Generates high-quality speech from text
 - Supports multiple voices and models
 - Saves audio to `/tmp/audio/` directory
 
 ### 2. Unsplash Search & Download
+
 - Searches Unsplash for images based on query
 - Downloads images to `/tmp/unsplash/` directory
 - Supports quality selection and count limits
 
 ### 3. ASS Subtitle Generation
+
 - Creates Advanced SubStation Alpha subtitle files
 - Customizable font size, color, timing
 - Saves to `/tmp/subtitles/` directory
 
 ### 4. Media Library Search
+
 - Hardcoded library of 10 curated assets
 - Includes images, audio, and video clips
 - Tag-based search functionality
 
 ### 5. Video Creation (FFmpeg)
+
 - Professional video creation using FFmpeg
 - Supports multiple input formats
 - Configurable resolution, duration, and quality
@@ -75,22 +80,26 @@ The agent tracks comprehensive state including:
 ### Installation
 
 1. **Install LangGraph CLI**:
+
    ```bash
    uv add "langgraph-cli[inmem]"
    ```
 
 2. **Install dependencies**:
+
    ```bash
    uv sync
    ```
 
 3. **Set up environment variables**:
    Copy `.env.example` to `.env` and fill in your API keys:
+
    ```bash
    cp .env.example .env
    ```
 
    Required API keys:
+
    - `LANGSMITH_API_KEY`: LangSmith API key (free)
    - `GOOGLE_API_KEY`: Google Gemini API key
    - `ELEVENLABS_API_KEY`: ElevenLabs API key
@@ -99,11 +108,13 @@ The agent tracks comprehensive state including:
 ### Running the Agent
 
 1. **Start LangGraph Server**:
+
    ```bash
    langgraph dev
    ```
 
 2. **Test individual tools**:
+
    ```bash
    python main.py
    ```
@@ -122,8 +133,8 @@ client = get_sync_client(url="http://localhost:2024")
 
 # Create a video request
 user_request = """
-Create a 30-second promotional video about sustainable energy. 
-Include images of solar panels and wind turbines, 
+Create a 30-second promotional video about sustainable energy.
+Include images of solar panels and wind turbines,
 a professional voiceover, and subtitles.
 """
 
@@ -133,7 +144,6 @@ for chunk in client.runs.stream(
     "agent",
     input={
         "messages": [{"role": "human", "content": user_request}],
-        "user_request": user_request,
     },
     stream_mode="messages-tuple",
 ):

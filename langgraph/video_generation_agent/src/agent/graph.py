@@ -5,11 +5,16 @@ A sophisticated agent for creating videos with iterative quality improvement.
 
 from __future__ import annotations
 
+import base64
 import json
-from typing import Any, Dict, List
+import mimetypes
+import os
+from typing import Any, Dict, List, Optional, cast
 
+from google import genai  # type: ignore[import-untyped]
 from langchain_core.messages import (
     BaseMessage,
+    HumanMessage,
     SystemMessage,
     ToolMessage,
 )
@@ -19,30 +24,30 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.runtime import Runtime
 
-from .models import (
+from agent.models import (
     VideoGenerationContext,
     VideoGenerationState,
 )
-from .tools import (
+from agent.tools import (
     cleanup_tmp_directories,
     initialize_tmp_directories,
 )
-from .tools import (
+from agent.tools import (
     create_story_board as create_story_board_tool,
 )
-from .tools import (
+from agent.tools import (
     generate_image as generate_image_tool,
 )
-from .tools import (
+from agent.tools import (
     kling_generate_video_from_image as kling_tool,
 )
-from .tools import (
+from agent.tools import (
     run_ffmpeg_binary as run_ffmpeg_tool,
 )
-from .tools import (
+from agent.tools import (
     score_video as score_video_tool,
 )
-from .tools import (
+from agent.tools import (
     update_story_board as update_story_board_tool,
 )
 
@@ -52,7 +57,7 @@ async def initialize_agent(
 ) -> Dict[str, Any]:
     """Initialize the video generation agent."""
     # Initialize tmp directories
-    initialize_tmp_directories()
+    await initialize_tmp_directories()
 
     # Ensure ffmpeg is installed
     try:
@@ -84,6 +89,8 @@ Tools available:
 6. score_video: Evaluate video quality (0-10) and feedback
 
 Format goal: Create a Product Advertisement creative concept → write storyboard → edit storyboard → generate_image → generate_video_from_image → score_video. Produce a 3-scene video: beginning, middle, end.
+
+The other important things that are important is that kling can only produce 10 seconds of video. So if you need to generate a longer video, you need to generate multiple videos and then concatenate them.
 """
     )
 
@@ -181,15 +188,12 @@ Be comprehensive and professional.""",
         return {"messages": [response], "final_video_path": inferred_final_path}
 
 
-# Flattened, agentic flow using ToolNode
-
-
 async def agentic_step(
     state: VideoGenerationState, runtime: Runtime[VideoGenerationContext]
 ) -> Dict[str, Any]:
     """Single agent step: think and decide whether to call tools."""
     # Ensure tmp dirs exist; idempotent
-    initialize_tmp_directories()
+    await initialize_tmp_directories()
 
     tools = [
         create_story_board_tool,
@@ -208,6 +212,29 @@ async def agentic_step(
 
     # Continue the conversation based on state.messages
     prior = list(state.messages or [])
+    if not prior:
+        # Ensure at least one human message (Gemini requires contents)
+        prior = [
+            HumanMessage(
+                content=(
+                    "No prior input provided. Propose a 3-scene product ad storyboard "
+                    "(beginning, middle, end). Ask for missing details if needed."
+                )
+            )
+        ]
+    else:
+        # If there are no human messages yet, append a bootstrap human turn
+        has_human = any(isinstance(m, HumanMessage) for m in prior)
+        if not has_human:
+            prior.append(
+                HumanMessage(
+                    content=(
+                        "Continue the creative workflow. If context is insufficient, "
+                        "ask clarifying questions to proceed."
+                    )
+                )
+            )
+
     ai_msg = await llm.ainvoke(prior)
 
     next_iter = (state.current_iteration or 0) + 1
@@ -231,14 +258,112 @@ def route_after_agent(state: VideoGenerationState) -> str:
     return "tools" if tool_calls else "finalize"
 
 
+async def attach_video_renders_to_chat(
+    state: VideoGenerationState, runtime: Runtime[VideoGenerationContext]
+) -> Dict[str, Any]:
+    """Attach recent video renders as base64 and optional provider file IDs to chat history.
+
+    Looks at the latest ToolMessage, extracts fields like output_path/video_path,
+    reads the file if present, encodes as base64, and appends a HumanMessage
+    with multimodal content blocks. If Google GenAI client is available, also
+    uploads file and appends a message with provider-managed file_id.
+    """
+    attachments: List[HumanMessage] = []
+
+    # Find most recent tool payload with possible video paths
+    tool_payload: Optional[Dict[str, Any]] = None
+    last_tool_name: Optional[str] = None
+    for m in reversed(list(state.messages or [])):
+        if isinstance(m, ToolMessage):
+            last_tool_name = getattr(m, "name", None)
+            raw = getattr(m, "content", "")
+            if isinstance(raw, str) and raw:
+                try:
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, dict):
+                        tool_payload = parsed
+                        break
+                except Exception:
+                    continue
+
+    if not tool_payload:
+        return {"messages": []}
+
+    candidate_paths: List[str] = []
+    for key in ("output_path", "video_path"):
+        val = tool_payload.get(key)
+        if isinstance(val, str):
+            candidate_paths.append(val)
+    for key in ("outputs", "videos"):
+        val = tool_payload.get(key)
+        if isinstance(val, list):
+            candidate_paths.extend([v for v in val if isinstance(v, str)])
+
+    if not candidate_paths:
+        return {"messages": []}
+
+    client: Optional[genai.Client] = None
+    api_key = runtime.context.google_api_key
+    try:
+        if api_key:
+            client = genai.Client(api_key=api_key)
+    except Exception:
+        client = None
+
+    for path in candidate_paths:
+        try:
+            if not (isinstance(path, str) and os.path.exists(path)):
+                continue
+            mime_type, _ = mimetypes.guess_type(path)
+            mime_type = mime_type or "video/mp4"
+            with open(path, "rb") as f:
+                data = f.read()
+            b64 = base64.b64encode(data).decode("utf-8")
+
+            content_blocks = [
+                {
+                    "type": "text",
+                    "text": f"Rendered video from {last_tool_name or 'tool'}: {os.path.basename(path)}",
+                },
+                {"type": "video", "base64": b64, "mime_type": mime_type},
+            ]
+            attachments.append(HumanMessage(content=cast(List[Any], content_blocks)))
+
+            if client is not None:
+                try:
+                    uploaded = client.files.upload(file=path)
+                    file_id = getattr(uploaded, "name", None) or getattr(
+                        uploaded, "id", None
+                    )
+                    if isinstance(file_id, str):
+                        content_file_id = [
+                            {
+                                "type": "text",
+                                "text": "Provider file reference for rendered video.",
+                            },
+                            {"type": "video", "file_id": file_id},
+                        ]
+                        attachments.append(
+                            HumanMessage(content=cast(List[Any], content_file_id))
+                        )
+                except Exception:
+                    pass
+        except Exception:
+            continue
+
+    if not attachments:
+        return {}
+    return {"messages": state.messages + attachments}
+
+
 tool_node = ToolNode(
     [
         create_story_board_tool,
         update_story_board_tool,
-        generate_image_tool,
-        kling_tool,
-        run_ffmpeg_tool,
-        score_video_tool,
+        # generate_image_tool,
+        # kling_tool,
+        # run_ffmpeg_tool,
+        # score_video_tool,
     ]
 )
 
@@ -249,13 +374,15 @@ graph = (
     .add_node("initialize", initialize_agent)
     .add_node("agent", agentic_step)
     .add_node("tools", tool_node)
+    .add_node("attach_media", attach_video_renders_to_chat)
     .add_node("finalize", finalize_video)
     .add_edge(START, "initialize")
     .add_edge("initialize", "agent")
     .add_conditional_edges(
         "agent", route_after_agent, {"tools": "tools", "finalize": "finalize"}
     )
-    .add_edge("tools", "agent")
+    .add_edge("tools", "attach_media")
+    .add_edge("attach_media", "agent")
     .add_edge("finalize", END)
     .compile(name="Video Generation Agent")
 )

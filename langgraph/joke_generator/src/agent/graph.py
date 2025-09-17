@@ -67,8 +67,11 @@ def comedian_node(
     state: JokeGeneratorState, runtime: Runtime[Context]
 ) -> Dict[str, Any]:
     """Generate a joke about the given topic using structured output."""
-    llm = get_llm(runtime, state.get("lm_type", "cheap"))
+    # If evaluate_only and a joke already exists, skip generation
+    if state.get("evaluate_only") and state.get("joke"):
+        return {}
 
+    llm = get_llm(runtime, state.get("lm_type", "cheap"))
     topic = state.get("topic", "programming")
 
     # Use structured output with Pydantic
@@ -94,6 +97,16 @@ def comedian_node(
     return {"joke": response.joke, "topic": response.topic}
 
 
+# Fixed audience personas (single source of truth)
+DEFAULT_AUDIENCE_PROFILES = [
+    "35-year-old comedy club owner who has seen every major standup special and demands originality",
+    "42-year-old comedy critic who writes for The New Yorker and analyzes joke structure and social commentary",
+    "38-year-old professional comedian who performs nightly and is tired of hacky material",
+    "45-year-old comedy festival curator who looks for unique voices and fresh perspectives",
+    "40-year-old comedy writing professor who teaches advanced joke construction and timing",
+]
+
+
 def audience_evaluator_node(
     state: JokeGeneratorState, runtime: Runtime[Context]
 ) -> Dict[str, Any]:
@@ -101,24 +114,32 @@ def audience_evaluator_node(
     llm = get_llm(runtime, "cheap")  # Use cheap model for evaluation
 
     joke = state.get("joke", "")
-
-    # Audience profiles are handled by the prompt; no local list needed.
+    profiles = state.get("audience_profiles", DEFAULT_AUDIENCE_PROFILES)
 
     # Use structured output with Pydantic
     structured_llm = llm.with_structured_output(AudienceSignature)
 
     system_message = SystemMessage(
-        content="""You are evaluating a joke from the perspective of different audience members.
-        For each persona, provide:
-        1. A short reaction explaining their inner thought process when hearing the joke
-        2. A rating on this scale:
-           - "hilarious" (5 points)
-           - "funny" (4 points)
-           - "meh" (3 points)
-           - "not funny" (2 points)
-           - "offensive" (1 point)
-
-        Return structured responses with reactions and ratings for each persona."""
+        content=(
+            "You are evaluating a joke from the perspective of five distinct audience personas.\n"
+            "Here are the personas (in order):\n"
+            f"1) {profiles[0]}\n"
+            f"2) {profiles[1]}\n"
+            f"3) {profiles[2]}\n"
+            f"4) {profiles[3]}\n"
+            f"5) {profiles[4]}\n\n"
+            "For each persona, provide in the SAME ORDER:\n"
+            "1. A short inner-thought reaction to the joke (1-2 concise sentences)\n"
+            "2. A rating on this exact scale: 'hilarious', 'funny', 'meh', 'not funny', 'offensive'\n\n"
+            "Return a structured JSON object matching this schema exactly:\n"
+            "{\n"
+            "  'joke': str,                         # repeat the joke string verbatim\n"
+            "  'profiles': list[str],               # the five personas above, same order\n"
+            "  'reactions': list[str],              # length 5, same order as profiles\n"
+            "  'responses': list['hilarious'|'funny'|'meh'|'not funny'|'offensive']  # length 5\n"
+            "}\n"
+            "Ensure the lengths of 'reactions' and 'responses' are exactly 5 and aligned with 'profiles'."
+        )
     )
 
     human_message = HumanMessage(content=f"Evaluate this joke: {joke}")
@@ -150,7 +171,7 @@ def should_continue(
     state: JokeGeneratorState,
 ) -> Literal["audience_evaluator", "__end__"]:
     """Decide whether to continue to audience evaluation or end."""
-    # Always continue to audience evaluation after joke generation
+    # If evaluate_only and a joke is provided, still proceed to evaluation
     return "audience_evaluator"
 
 

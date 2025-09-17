@@ -12,15 +12,11 @@ from .models import (
     StoryboardCreateRequest,
     StoryboardUpdateRequest,
     VideoGenerationContext,
-    VideoGenerationRequest,
-    VideoGenerationSummary,
 )
 
 __all__ = [
     "graph",
     "VideoGenerationContext",
-    "VideoGenerationRequest",
-    "VideoGenerationSummary",
     "Storyboard",
     "StoryboardCreateRequest",
     "StoryboardUpdateRequest",

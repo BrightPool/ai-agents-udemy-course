@@ -52,6 +52,8 @@ def create_audience_evaluator():
                 "topic": "evaluation",
                 "joke": joke,
                 "lm_type": "cheap",
+                "audience_profiles": self.profiles,
+                "evaluate_only": True,
             }
 
             # Run the graph

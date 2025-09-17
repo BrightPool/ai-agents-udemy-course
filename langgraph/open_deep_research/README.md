@@ -15,11 +15,11 @@ A lightweight AI research assistant that turns a question into a comprehensive r
 
 The system runs a **5-stage DAG**:
 
-1. **Clarifier** – Optionally asks for missing info
-2. **Planner** – Writes a focused research brief
-3. **Query Generator** – Produces N concrete search queries
-4. **Query Runner** – Executes queries concurrently using OpenAI
-5. **Report Writer** – Synthesizes a comprehensive final report
+1. **Clarifier** (`clarify_with_user`) – Analyzes user queries and requests clarification if needed
+2. **Planner** (`write_research_brief`) – Transforms messages into structured research briefs
+3. **Query Generator** (`generate_research_queries`) – Produces concrete search queries from the brief
+4. **Query Runner** (`run_queries`) – Executes queries concurrently using OpenAI search
+5. **Report Writer** (`final_report_generation`) – Synthesizes findings into final reports
 
 ## 🎯 Key Features
 
@@ -161,36 +161,60 @@ asyncio.run(research())
 
 ### The AI Research Tools
 
-**🔍 OpenAI Search Tool**
+**🔍 OpenAI Search Tool** (`openai_search`)
 
 - Uses OpenAI's knowledge to produce comprehensive summaries
 - Executes multiple queries concurrently for faster coverage
-- Supports both general research and news-focused queries
+- Single tool invocation handles all queries in parallel
+- Returns consolidated research findings for report generation
 
-**🤔 Think Tool (optional)**
-
-- Available for experiments, but not required in the simplified DAG
+```python
+# How queries are executed in the code
+results = await openai_search.ainvoke({"queries": queries}, config)
+```
 
 ## 🏛️ Technical Architecture (For Developers)
 
-### Simple DAG
+### Simple DAG Structure
 
 ```
 Main Workflow (AgentState)
-├── clarify_with_user
-├── write_research_brief
-├── generate_research_queries
-├── run_queries
-└── final_report_generation
+├── clarify_with_user       # Analyzes and clarifies user queries
+├── write_research_brief    # Generates structured research briefs
+├── generate_research_queries # Creates concrete search queries
+├── run_queries            # Executes queries concurrently
+└── final_report_generation # Synthesizes final report
 ```
 
-### 5-Phase Pipeline
+### 5-Phase Pipeline with Routing Logic
 
-1. **Clarification** – Ensure the request is unambiguous
-2. **Planning** – Create a focused research brief
-3. **Query Generation** – Produce N concrete, diverse queries
-4. **Parallel Query Execution** – Run queries concurrently via OpenAI
-5. **Final Report** – Synthesize a comprehensive, cited report
+1. **Clarification** (`clarify_with_user`)
+
+   - Uses structured output (`ClarifyWithUser`) to analyze queries
+   - Prevents infinite loops with `maximum_clarification_attempts` limit
+   - Routes to END if clarification needed, or to planning phase
+
+2. **Planning** (`write_research_brief`)
+
+   - Uses structured output (`ResearchQuestion`) for consistent briefs
+   - Transforms user messages into focused research objectives
+
+3. **Query Generation** (`generate_research_queries`)
+
+   - Generates configurable number of queries (default: 6)
+   - Parses and trims query list to exact count
+   - Routes to query execution phase
+
+4. **Parallel Query Execution** (`run_queries`)
+
+   - Single `openai_search` tool invocation handles all queries
+   - Internally parallelized for performance
+   - Returns consolidated findings
+
+5. **Final Report** (`final_report_generation`)
+   - Robust token limit handling with progressive truncation
+   - Retry logic with 3 attempts maximum
+   - Graceful error recovery and state cleanup
 
 ### Why Parallel Processing Matters
 
@@ -212,17 +236,49 @@ results = await openai_search.ainvoke({"queries": queries}, config)
 
 ## ⚙️ Customization & Development
 
+### Configuration Options (`src/agent/configuration.py`)
+
+The agent behavior can be customized through the `Configuration` class:
+
+- **Model Configuration**:
+
+  - `research_model`: Model for clarification and planning phases
+  - `final_report_model`: Model for report generation
+  - `research_model_max_tokens`: Token limits for research phases
+  - `final_report_model_max_tokens`: Token limits for report generation
+
+- **Query Settings**:
+
+  - `num_queries`: Number of search queries to generate (default: 6)
+
+- **Safety Limits**:
+  - `maximum_clarification_attempts`: Prevents infinite clarification loops
+  - `max_structured_output_retries`: Retry limit for structured output failures
+
 ### Adding New Research Capabilities
 
-- **Add/Swap Tools**: Edit `run_queries` in `src/agent/deep_researcher.py` to combine additional tools alongside `openai_search`.
-- **Modify Agent Behavior**: Edit `src/agent/configuration.py` to adjust:
+- **Extend Query Execution**: Modify `run_queries` in `src/agent/deep_researcher.py` to add additional tools alongside `openai_search`
+- **Add New Phases**: Insert new nodes in the DAG workflow
+- **Custom Tools**: Add new research tools in `src/agent/utils.py`
 
-- Model assignments for different phases
-- Token limits and iteration counts
-- Number of generated queries (`NUM_QUERIES`)
+### Prompt Customization (`src/agent/prompts.py`)
 
-**Customize Prompts:**
-Edit `src/agent/prompts.py` to tweak clarification, brief creation, query generation, and reporting.
+Available prompts for customization:
+
+- `clarify_with_user_instructions`: Query analysis and clarification logic
+- `transform_messages_into_research_topic_prompt`: Research brief generation
+- `generate_research_queries_prompt`: Query generation from briefs
+- `final_report_generation_prompt`: Report synthesis and formatting
+
+### Error Handling & Robustness
+
+The implementation includes several robustness features:
+
+- **Token Limit Management**: Progressive truncation with retry logic in report generation
+- **Infinite Loop Prevention**: Maximum clarification attempts limit
+- **Structured Output Reliability**: Retry mechanisms for structured AI responses
+- **Graceful Degradation**: Fallback error messages when operations fail
+- **State Cleanup**: Automatic cleanup of intermediate research data
 
 ### Development Workflow
 
@@ -235,11 +291,14 @@ Edit `src/agent/prompts.py` to tweak clarification, brief creation, query genera
 
 This project demonstrates:
 
-- **DAG-based AI Systems** - A simple, reliable research pipeline
-- **Clear State Management** - Minimal, focused state definitions
-- **Parallel I/O** - Running multiple web queries concurrently
-- **Tool Integration** - Building and using custom AI tools
-- **Practical Architecture** - Maintainable and easy to customize
+- **LangGraph StateGraph Architecture** - Building complex workflows with routing logic
+- **Structured Output Patterns** - Using Pydantic models for reliable AI responses
+- **Async Parallel Processing** - Concurrent query execution for performance
+- **Robust Error Handling** - Token limits, retries, and graceful degradation
+- **Configuration Management** - Runtime model and behavior customization
+- **Tool Development** - Creating and integrating custom AI research tools
+- **State Management** - Complex state graphs with cleanup and routing
+- **Production-Ready Patterns** - Retry logic, logging, and error recovery
 
 ## 📚 Resources
 

@@ -6,7 +6,7 @@ import shlex
 import shutil
 import subprocess
 from io import BytesIO
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import fal_client  # type: ignore[import-untyped]
 import ffmpeg  # type: ignore[import-untyped]
@@ -24,6 +24,7 @@ from .models import (
     Storyboard,
     StoryboardCreateRequest,
     StoryboardUpdateRequest,
+    VideoQualityAssessment,
 )
 
 
@@ -76,24 +77,10 @@ def create_story_board(request: StoryboardCreateRequest) -> Storyboard:
                 }
             )
 
-        return Storyboard(
-            product_name=product,
-            brand=brand,
-            target_audience=ta,
-            key_message=key_msg,
-            tone=tone,
-            scenes=scenes,  # type: ignore[arg-type]
-        )
+        return Storyboard(scenes=scenes)  # type: ignore[arg-type]
     except Exception:
         # Return an empty storyboard on error
-        return Storyboard(
-            product_name=request.product_name,
-            brand=request.brand,
-            target_audience=request.target_audience,
-            key_message=request.key_message,
-            tone=request.tone,
-            scenes=[],
-        )
+        return Storyboard(scenes=[])
 
 
 @tool
@@ -102,8 +89,6 @@ def update_story_board(request: StoryboardUpdateRequest) -> Storyboard:
 
     For safety and determinism, performs lightweight rule-based updates:
     - If instructions mention duration like `duration=8`, apply to all scenes.
-    - If instructions mention tone, update tone.
-    - If instructions include 'emphasize <text>', append to key_message.
     """
     sb = request.storyboard
     instructions = request.instructions.lower()
@@ -117,18 +102,6 @@ def update_story_board(request: StoryboardUpdateRequest) -> Storyboard:
             new_dur = float(dur_match.group(1))
             for sc in sb.scenes:
                 sc.duration_seconds = max(1.0, min(60.0, new_dur))
-
-        # Update tone if mentioned as tone=...
-        tone_match = re.search(r"tone\s*=\s*([a-zA-Z\- ]{3,40})", instructions)
-        if tone_match:
-            sb.tone = tone_match.group(1).strip()
-
-        # Emphasize phrase in key message
-        emph_match = re.search(r"emphasize\s+([\w \-]{3,60})", instructions)
-        if emph_match:
-            phrase = emph_match.group(1).strip()
-            if phrase and phrase.lower() not in sb.key_message.lower():
-                sb.key_message = f"{sb.key_message}. Emphasis: {phrase}."
 
         return sb
     except Exception:
@@ -157,15 +130,21 @@ def generate_image(request: GenerateImageRequest) -> List[str]:
         idx = 0
         # Extract images from interleaved parts
         for part in response.candidates[0].content.parts:  # type: ignore[index]
-            if getattr(part, "inline_data", None) is not None:
-                try:
-                    image = Image.open(BytesIO(part.inline_data.data))
-                    out_path = f"/tmp/images/{request.output_basename}_{idx}.png"
-                    image.save(out_path)
-                    saved.append(out_path)
-                    idx += 1
-                except Exception:
-                    continue
+            inline_data = getattr(part, "inline_data", None)
+            if inline_data is None:
+                continue
+            data = getattr(inline_data, "data", None)
+            if not isinstance(data, (bytes, bytearray, memoryview)):
+                # Skip parts without byte-like data
+                continue
+            try:
+                image = Image.open(BytesIO(bytes(data)))
+                out_path = f"/tmp/images/{request.output_basename}_{idx}.png"
+                image.save(out_path)
+                saved.append(out_path)
+                idx += 1
+            except Exception:
+                continue
 
         if not saved:
             return ["Error: No images in model response"]
@@ -357,14 +336,14 @@ def score_video(
             model="gemini-2.5-flash",
             google_api_key=api_key,
             temperature=0.2,
-        )
+        ).with_structured_output(VideoQualityAssessment)
+
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
                     "system",
                     """
-You are a strict video quality evaluator. Return ONLY compact JSON with fields:
-{"visual_quality": int 0-10, "audio_quality": int 0-10, "narrative_coherence": int 0-10, "feedback": string}
+You are a strict video quality evaluator. Evaluate the video based on the provided metadata and return a structured assessment.
                     """.strip(),
                 ),
                 (
@@ -385,34 +364,32 @@ Target (optional): {target}
             if target_quality_score is not None
             else "{}",
         )
-        resp = llm.invoke(messages)
-        content = getattr(resp, "content", "")
+
         try:
-            start = content.find("{")
-            end = content.rfind("}")
-            payload = content[start : end + 1] if start != -1 and end != -1 else content
-            data = json.loads(payload)
-        except Exception:
-            return {"error": "Failed to parse JSON from LLM response", "raw": content}
+            assessment: VideoQualityAssessment = cast(
+                VideoQualityAssessment, llm.invoke(messages)
+            )
+        except Exception as e:
+            return {"error": f"Failed to get structured assessment: {e}"}
 
-        def _clamp(x: Any) -> int:
-            try:
-                return max(0, min(10, int(x)))
-            except Exception:
-                return 0
-
-        v = _clamp(data.get("visual_quality"))
-        a = _clamp(data.get("audio_quality"))
-        n = _clamp(data.get("narrative_coherence"))
-        score = round((v + a + n) / 3.0, 2)
+        # The assessment is already validated by Pydantic with proper ranges
+        score = round(
+            (
+                assessment.visual_quality
+                + assessment.audio_quality
+                + assessment.narrative_coherence
+            )
+            / 3.0,
+            2,
+        )
         return {
             "quality_score": score,
             "breakdown": {
-                "visual_quality": v,
-                "audio_quality": a,
-                "narrative_coherence": n,
+                "visual_quality": assessment.visual_quality,
+                "audio_quality": assessment.audio_quality,
+                "narrative_coherence": assessment.narrative_coherence,
             },
-            "feedback": data.get("feedback", ""),
+            "feedback": assessment.feedback,
         }
     except Exception as e:
         return {"error": f"Scoring failed: {e}"}
@@ -642,7 +619,7 @@ Removed legacy OpenAI transcription tool.
 
 
 # Initialize tmp directories
-def initialize_tmp_directories():
+async def initialize_tmp_directories():
     """Initialize temporary directories for the video generation agent."""
     directories = [
         "/tmp/assets",
@@ -652,8 +629,13 @@ def initialize_tmp_directories():
         "/tmp/videos",
     ]
 
-    for directory in directories:
-        os.makedirs(directory, exist_ok=True)
+    import asyncio
+
+    def _create_dirs():
+        for directory in directories:
+            os.makedirs(directory, exist_ok=True)
+
+    await asyncio.to_thread(_create_dirs)
 
 
 def _safe_remove_path(path: str) -> tuple[bool, str | None]:
