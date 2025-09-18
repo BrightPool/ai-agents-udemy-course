@@ -8,7 +8,7 @@ This project mirrors the "testimonial video generator" n8n workflow using LangGr
 2. **Persona Setup** - define available personas, select the form submission choice, and materialize the persona profile.
 3. **Phase 1 - Buying Situations** - ask Anthropic Claude to produce exactly three buying situations for the persona and validate them with Pydantic models.
 4. **Phase 2 - Prompt Generation Loop** - iterate over each buying situation, request a structured Veo3 testimonial prompt, and cache both the structured output and the final prompt string.
-5. **Phase 3 - Video Generation** - submit prompt strings to FAL (`/fal-ai/veo3` queue), poll until all statuses are `COMPLETED`, fetch the finished video URLs, download them locally, build a concat manifest, and merge them into `final_output.mp4` via `ffmpeg`.
+5. **Phase 3 - Video Generation** - call the `fal_client.run` endpoint for each prompt, extract the returned video URLs (falling back to the queue endpoint if needed), download the clips locally, build a concat manifest, and merge them into `final_output.mp4` via `ffmpeg`.
 6. **Completion** - return the local URL (`http://localhost:3001/video/<execution_id>/final_output.mp4`) alongside the execution id and a success message.
 
 The LangGraph DAG exactly reproduces the control flow of the original n8n nodes (waiting loop, conditional branching, and concatenation pipeline), while keeping all intermediate artefacts on disk for inspection.
@@ -19,8 +19,8 @@ The LangGraph DAG exactly reproduces the control flow of the original n8n nodes 
 - `define_personas` / `set_persona` - replicate n8n persona definition and selection logic.
 - `generate_buying_situations` - call Claude 3.5 Sonnet and coerce the response into `BuyingSituationsOutput` (expects three entries).
 - `generate_prompt_for_current` -> `next_prompt_or_submit` -> `increment_prompt_index` - structured prompt loop mirroring the split/batch cycle in n8n.
-- `submit_fal_requests` -> `wait_30_seconds` -> `poll_statuses` - queue requests, throttle polling, and branch until everything completes.
-- `fetch_video_urls` -> `download_videos` -> `prepare_concat_file` -> `merge_videos_ffmpeg` - materialize videos and create the final reel.
+- `submit_fal_requests` -> `collect_video_urls` - synchronously generate Veo3 clips through the FAL client and retrieve their URLs.
+- `download_videos` -> `prepare_concat_file` -> `merge_videos_ffmpeg` - materialize videos and create the final reel.
 - `complete` - emit the JSON payload consumed by the React front-end.
 
 ## Prerequisites
@@ -29,7 +29,7 @@ The LangGraph DAG exactly reproduces the control flow of the original n8n nodes 
 - `ffmpeg` available on your `PATH` (required for the concat step)
 - API credentials:
   - `ANTHROPIC_API_KEY` (Claude 3.5 Sonnet)
-  - FAL queue auth - either `FAL_API_KEY` or a header pair (`FAL_AUTH_HEADER_NAME` / `FAL_AUTH_HEADER_VALUE`)
+  - FAL queue auth - `FAL_KEY` (preferred) or `FAL_API_KEY`; optional overrides via `FAL_QUEUE_URL` / `FAL_REQUEST_URL_BASE`
 
 Optional but recommended tools:
 
@@ -57,10 +57,9 @@ Populate `.env` with the required keys:
 
 ```
 ANTHROPIC_API_KEY=sk-ant-api03-...
+FAL_KEY=key-...
+# Optional overrides / fallbacks
 FAL_API_KEY=key-...
-# or supply a custom header
-FAL_AUTH_HEADER_NAME=Authorization
-FAL_AUTH_HEADER_VALUE=Key key-...
 FAL_QUEUE_URL=https://queue.fal.run/fal-ai/veo3
 FAL_REQUEST_URL_BASE=https://queue.fal.run/fal-ai/veo3/requests
 ```

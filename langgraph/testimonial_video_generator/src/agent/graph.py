@@ -18,6 +18,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
 
+import fal_client  # type: ignore[import-untyped]
 import httpx
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
@@ -72,9 +73,7 @@ class VideoAgentState(TypedDict, total=False):
     prompt_strings: List[str]
 
     # Phase 3
-    fal_requests: List[Dict[str, str]]  # {request_id, status_url}
-    all_complete: bool
-    statuses: List[str]
+    run_results: List[Dict[str, Any]]
     video_urls: List[str]
     downloaded_files: List[str]
     final_output_path: str
@@ -97,6 +96,81 @@ def _get_llm() -> ChatAnthropic:
 
 def _ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
+
+
+def _ensure_fal_key() -> str:
+    """Ensure the fal SDK sees a valid API key and return it."""
+    key = os.getenv("FAL_KEY") or os.getenv("FAL_API_KEY")
+    if not key:
+        raise RuntimeError(
+            "Missing FAL_KEY or FAL_API_KEY environment variable for fal client."
+        )
+    # fal_client looks for FAL_KEY specifically
+    os.environ.setdefault("FAL_KEY", key)
+    return key
+
+
+def _fal_queue_slug() -> str:
+    """Determine the fal workflow slug (e.g. fal-ai/veo3)."""
+    slug = os.getenv("FAL_QUEUE_SLUG") or os.getenv("FAL_MODEL")
+    if slug:
+        return slug.strip("/")
+
+    queue_url = os.getenv("FAL_QUEUE_URL")
+    if queue_url and "queue.fal.run/" in queue_url:
+        return queue_url.split("queue.fal.run/", 1)[-1].strip("/")
+
+    return "fal-ai/veo3"
+
+
+def _fal_queue_url(slug: Optional[str] = None) -> str:
+    """Base queue URL corresponding to the slug."""
+    base_url = os.getenv("FAL_QUEUE_URL")
+    if base_url:
+        return base_url.rstrip("/")
+    slug_value = slug or _fal_queue_slug()
+    return f"https://queue.fal.run/{slug_value}"
+
+
+def _extract_video_url(payload: Dict[str, Any]) -> Optional[str]:
+    video_section = payload.get("video")
+    if isinstance(video_section, dict):
+        for key in ("url", "video_url"):
+            value = video_section.get(key)
+            if isinstance(value, str):
+                return value
+    for key in ("video_url", "url"):
+        value = payload.get(key)
+        if isinstance(value, str):
+            return value
+    return None
+
+
+def _as_dict(data: Any) -> Dict[str, Any]:
+    if isinstance(data, dict):
+        return data
+    for attr in ("model_dump", "dict", "to_dict"):
+        method = getattr(data, attr, None)
+        if callable(method):
+            try:
+                result = method()
+            except Exception:  # pragma: no cover - best effort
+                continue
+            if isinstance(result, dict):
+                return result
+    if hasattr(data, "__dict__"):
+        return dict(getattr(data, "__dict__"))
+    return {}
+
+
+def _fal_headers() -> Dict[str, str]:
+    _ensure_fal_key()
+    name = os.getenv("FAL_AUTH_HEADER_NAME", "Authorization")
+    header_value = os.getenv("FAL_AUTH_HEADER_VALUE")
+    api_key = os.getenv("FAL_KEY") or os.getenv("FAL_API_KEY")
+    if not header_value and api_key:
+        header_value = api_key if api_key.startswith("Key ") else f"Key {api_key}"
+    return {name: header_value} if header_value else {}
 
 
 def init_and_create_directory(state: VideoAgentState) -> VideoAgentState:
@@ -321,89 +395,51 @@ def increment_prompt_index(state: VideoAgentState) -> VideoAgentState:
     return {"situation_index": state.get("situation_index", 0) + 1}
 
 
-def _fal_headers() -> Dict[str, str]:
-    # Allow flexible header config to match n8n generic header auth
-    name = os.getenv("FAL_AUTH_HEADER_NAME", "Authorization")
-    value = os.getenv("FAL_AUTH_HEADER_VALUE")
-    if not value:
-        # Try common convention
-        api_key = os.getenv("FAL_API_KEY")
-        if api_key:
-            value = f"Key {api_key}"
-    return {name: value} if value else {}
-
-
 def submit_fal_requests(state: VideoAgentState) -> VideoAgentState:
-    """Submit prompt strings to the FAL queue API and collect request IDs."""
-    base_url = os.getenv("FAL_QUEUE_URL", "https://queue.fal.run/fal-ai/veo3")
-    headers = _fal_headers()
+    """Run Veo3 requests synchronously and capture their outputs."""
+    _ensure_fal_key()
+    slug = _fal_queue_slug()
     prompt_strings = state.get("prompt_strings", [])
-    fal_requests: List[Dict[str, str]] = []
-    with httpx.Client(timeout=60) as client:
-        for prompt in prompt_strings:
-            resp = client.post(base_url, headers=headers, json={"prompt": prompt})
-            resp.raise_for_status()
-            data = resp.json()
-            # Standard fields from FAL queue
-            request_id = data.get("request_id") or data.get("id")
-            status_url = data.get("status_url") or data.get("status")
-            if not request_id or not status_url:
-                raise ValueError(f"Unexpected FAL response: {data}")
-            fal_requests.append({"request_id": request_id, "status_url": status_url})
-    return {"fal_requests": fal_requests}
+    run_results: List[Dict[str, Any]] = []
+    for prompt in prompt_strings:
+        try:
+            result = fal_client.run(slug, arguments={"prompt": prompt})
+        except Exception as exc:  # pragma: no cover - network failure path
+            raise RuntimeError("Failed to run fal video generation") from exc
+        run_results.append(_as_dict(result))
+    return {"run_results": run_results}
 
 
-def wait_30_seconds(state: VideoAgentState) -> VideoAgentState:
-    """Sleep for 30 seconds between polling attempts."""
-    time.sleep(30)
-    return {}
-
-
-def poll_statuses(state: VideoAgentState) -> VideoAgentState:
-    """Poll FAL status endpoints and mark completion when all are done."""
-    headers = _fal_headers()
-    statuses: List[str] = []
-    with httpx.Client(timeout=30) as client:
-        for req in state.get("fal_requests", []):
-            url = req["status_url"]
-            resp = client.get(url, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            statuses.append(str(data.get("status", "")).upper())
-    all_complete = all(s == "COMPLETED" for s in statuses) if statuses else False
-    return {"statuses": statuses, "all_complete": all_complete}
-
-
-def all_completed_router(
-    state: VideoAgentState,
-) -> Literal["fetch_video_urls", "wait_again"]:
-    """Route to fetch URLs if completed, otherwise wait again."""
-    return "fetch_video_urls" if state.get("all_complete") else "wait_again"
-
-
-def fetch_video_urls(state: VideoAgentState) -> VideoAgentState:
-    """Fetch finalized video URLs from FAL request endpoints."""
-    base_url = os.getenv(
-        "FAL_REQUEST_URL_BASE", "https://queue.fal.run/fal-ai/veo3/requests"
-    )
-    headers = _fal_headers()
+def collect_video_urls(state: VideoAgentState) -> VideoAgentState:
+    """Extract downloadable URLs from FAL run results, fallback to HTTP when needed."""
+    run_results = state.get("run_results", [])
     video_urls: List[str] = []
-    with httpx.Client(timeout=60) as client:
-        for req in state.get("fal_requests", []):
-            rid = req["request_id"]
-            url = f"{base_url}/{rid}"
-            resp = client.get(url, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            # n8n expects data.video.url
-            video_url = (
-                data.get("video", {}).get("url")
-                if isinstance(data.get("video"), dict)
-                else data.get("video_url") or data.get("url")
-            )
-            if not video_url:
-                raise ValueError(f"No video URL in response: {data}")
-            video_urls.append(str(video_url))
+    headers = {}
+    base_url = os.getenv(
+        "FAL_REQUEST_URL_BASE",
+        f"{_fal_queue_url()}/requests",
+    ).rstrip("/")
+    for payload in run_results:
+        url = _extract_video_url(payload)
+        request_id = payload.get("request_id") or payload.get("id")
+        if not url and request_id:
+            _ensure_fal_key()
+            slug = _fal_queue_slug()
+            try:
+                result = fal_client.result(slug, request_id)
+            except Exception:
+                result = None
+            url = _extract_video_url(_as_dict(result))
+        if not url and request_id:
+            if not headers:
+                headers = _fal_headers()
+            with httpx.Client(timeout=60) as client:
+                resp = client.get(f"{base_url}/{request_id}", headers=headers)
+                resp.raise_for_status()
+                url = _extract_video_url(_as_dict(resp.json()))
+        if not url:
+            raise ValueError("No video URL returned from fal run")
+        video_urls.append(url)
     return {"video_urls": video_urls}
 
 
@@ -512,9 +548,7 @@ graph = (
     .add_node("increment_prompt_index", increment_prompt_index)
     # Phase 3: Video generation and merging
     .add_node("submit_fal_requests", submit_fal_requests)
-    .add_node("wait_30_seconds", wait_30_seconds)
-    .add_node("poll_statuses", poll_statuses)
-    .add_node("fetch_video_urls", fetch_video_urls)
+    .add_node("collect_video_urls", collect_video_urls)
     .add_node("download_videos", download_videos)
     .add_node("prepare_concat_file", prepare_concat_file)
     .add_node("merge_videos_ffmpeg", merge_videos_ffmpeg)
@@ -536,18 +570,9 @@ graph = (
     )
     .add_edge("increment_prompt_index", "generate_prompt_for_current")
     # Submit requests -> wait -> poll -> branch until all complete
-    .add_edge("submit_fal_requests", "wait_30_seconds")
-    .add_edge("wait_30_seconds", "poll_statuses")
-    .add_conditional_edges(
-        "poll_statuses",
-        all_completed_router,
-        {
-            "fetch_video_urls": "fetch_video_urls",
-            "wait_again": "wait_30_seconds",
-        },
-    )
+    .add_edge("submit_fal_requests", "collect_video_urls")
     # After completion: fetch URLs -> download -> prepare -> merge -> complete
-    .add_edge("fetch_video_urls", "download_videos")
+    .add_edge("collect_video_urls", "download_videos")
     .add_edge("download_videos", "prepare_concat_file")
     .add_edge("prepare_concat_file", "merge_videos_ffmpeg")
     .add_edge("merge_videos_ffmpeg", "complete")

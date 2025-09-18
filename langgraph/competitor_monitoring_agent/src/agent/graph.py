@@ -25,7 +25,7 @@ from .models import (
     SPRDocument,
 )
 from .tools import (
-    DEFAULT_DB_PATH,
+    DEFAULT_DB_URL,
     DEFAULT_OUTBOX_DIR,
     DEFAULT_SUBJECT,
     ensure_database,
@@ -34,7 +34,8 @@ from .tools import (
     format_digest_html,
     html_to_text,
     normalize_links,
-    parse_competitor_csv,
+    fetch_competitor_records,
+    parse_competitor_records,
     persist_links,
     write_email_to_outbox,
 )
@@ -99,9 +100,14 @@ class Context(TypedDict, total=False):
     openai_api_key: str
     openai_model_name: str
     competitor_sheet_url: str
+    competitor_sheet_worksheet: str
+    google_service_account_file: str
+    google_service_account_env_var: str
+    google_service_account_json: str
     user_agent: str
     digest_recipient: str
     digest_from: str
+    database_url: str
 
 
 class CompetitorMonitoringState(TypedDict, total=False):
@@ -158,21 +164,41 @@ def _build_openai_client(config: Optional[RunnableConfig], temperature: float = 
 
 
 def load_competitors(state: CompetitorMonitoringState, config: RunnableConfig) -> Dict[str, object]:
-    """Fetch the competitor CSV and parse into structured records."""
+    """Fetch competitor rows from Google Sheets and parse into structured records."""
 
     _ = state  # Explicitly acknowledge unused state in this node.
     sheet_url = _get_from_config(config, "competitor_sheet_url", "COMPETITOR_SHEET_URL", DEFAULT_SHEET_URL)
-    user_agent = _get_from_config(config, "user_agent", "USER_AGENT", DEFAULT_USER_AGENT)
+    worksheet_name = _get_from_config(
+        config, "competitor_sheet_worksheet", "COMPETITOR_SHEET_WORKSHEET"
+    )
+    service_account_file = _get_from_config(
+        config, "google_service_account_file", "GOOGLE_SERVICE_ACCOUNT_FILE"
+    )
+    service_account_env_var = _get_from_config(
+        config, "google_service_account_env_var", "GOOGLE_SERVICE_ACCOUNT_ENV_VAR"
+    )
+    service_account_json = _get_from_config(
+        config, "google_service_account_json", "GOOGLE_SERVICE_ACCOUNT_JSON"
+    )
 
     warnings: List[str] = []
     competitors: List[CompetitorSource] = []
     try:
-        csv_text = fetch_text(sheet_url or DEFAULT_SHEET_URL, headers={"User-Agent": user_agent or DEFAULT_USER_AGENT})
-        competitors = parse_competitor_csv(csv_text)
+        records = fetch_competitor_records(
+            sheet_url or DEFAULT_SHEET_URL,
+            worksheet=worksheet_name,
+            service_account_file=service_account_file,
+            service_account_env_var=service_account_env_var,
+            service_account_json=service_account_json,
+        )
+        competitors = parse_competitor_records(records)
         if not competitors:
             warnings.append("Competitor sheet fetched successfully but no rows were parsed.")
     except Exception as exc:  # noqa: BLE001
-        warnings.append(f"Failed to download competitor sheet: {exc!s}")
+        hint = ""
+        if sheet_url and "output=csv" in sheet_url:
+            hint = " (pygsheets requires the standard /spreadsheets/d/<ID>/ URL rather than the published CSV export.)"
+        warnings.append(f"Failed to load competitor sheet via pygsheets: {exc!s}{hint}")
 
     return {"competitors": competitors, "warnings": warnings}
 
@@ -182,7 +208,8 @@ def crawl_and_diff(state: CompetitorMonitoringState, config: RunnableConfig) -> 
 
     competitors = state.get("competitors", []) or []
     user_agent = _get_from_config(config, "user_agent", "USER_AGENT", DEFAULT_USER_AGENT)
-    connection = ensure_database(DEFAULT_DB_PATH)
+    database_url = _get_from_config(config, "database_url", "DATABASE_URL", DEFAULT_DB_URL)
+    connection = ensure_database(database_url or DEFAULT_DB_URL)
 
     new_links: List[DiscoveredLink] = []
     warnings = state.get("warnings", []).copy() if state.get("warnings") else []

@@ -2,24 +2,24 @@
 
 from __future__ import annotations
 
-import csv
-import sqlite3
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from html import unescape
 from html.parser import HTMLParser
-from io import StringIO
 from pathlib import Path
-from typing import Dict, Iterable, List, Sequence
+from typing import Dict, Iterable, List, Mapping, Sequence
 from urllib.parse import urljoin, urlparse, urlunparse
 
 import httpx
+import pygsheets
+import psycopg
 import re
 
 from .models import ArticleSummary, CompetitorSource, DigestEmail, DiscoveredLink
 
 
-DEFAULT_DB_PATH = Path("data/competitor_monitoring.db")
+DEFAULT_DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/competitors")
 DEFAULT_OUTBOX_DIR = Path("outbox")
 DEFAULT_SUBJECT = "daily competitor digest"
 DEFAULT_HEADERS = {
@@ -74,13 +74,73 @@ def fetch_text(url: str, headers: Dict[str, str] | None = None) -> str:
         return response.text
 
 
-def parse_competitor_csv(csv_text: str) -> List[CompetitorSource]:
-    """Convert CSV text to structured competitor sources."""
+def _build_pygsheets_client(
+    *,
+    service_account_file: str | None = None,
+    service_account_env_var: str | None = None,
+    service_account_json: str | None = None,
+) -> pygsheets.Client:
+    """Create and return a pygsheets client using the provided credentials."""
 
-    reader = csv.DictReader(StringIO(csv_text))
+    authorize_kwargs: Dict[str, object] = {"retries": 3, "local": False}
+
+    if service_account_json:
+        env_var = service_account_env_var or "PYGSHEETS_SERVICE_ACCOUNT_JSON"
+        os.environ[env_var] = service_account_json
+        service_account_env_var = env_var
+
+    if service_account_env_var:
+        return pygsheets.authorize(service_account_env_var=service_account_env_var, **authorize_kwargs)
+
+    if service_account_file:
+        return pygsheets.authorize(service_account_file=service_account_file, **authorize_kwargs)
+
+    # Fall back to default authorization flow (expects client_secret.json or cached creds).
+    return pygsheets.authorize(**authorize_kwargs)
+
+
+def fetch_competitor_records(
+    sheet_url: str,
+    *,
+    worksheet: str | None = None,
+    service_account_file: str | None = None,
+    service_account_env_var: str | None = None,
+    service_account_json: str | None = None,
+) -> List[Mapping[str, object]]:
+    """Fetch competitor rows from Google Sheets via pygsheets."""
+
+    client = _build_pygsheets_client(
+        service_account_file=service_account_file,
+        service_account_env_var=service_account_env_var,
+        service_account_json=service_account_json,
+    )
+
+    try:
+        spreadsheet = client.open_by_url(sheet_url)
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"Unable to open Google Sheet at {sheet_url}: {exc!s}") from exc
+
+    try:
+        worksheet_obj = spreadsheet.worksheet_by_title(worksheet) if worksheet else spreadsheet.sheet1
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(
+            f"Unable to load worksheet '{worksheet}' from sheet {sheet_url}: {exc!s}"
+        ) from exc
+
+    return worksheet_obj.get_all_records(empty_value="")
+
+
+def parse_competitor_records(records: Sequence[Mapping[str, object]]) -> List[CompetitorSource]:
+    """Convert Google Sheet rows into structured competitor sources."""
+
     competitors: List[CompetitorSource] = []
-    for row in reader:
-        normalized_row = {k.strip().lower(): (v or "").strip() for k, v in row.items() if k}
+    for row in records:
+        normalized_row = {
+            str(key).strip().lower(): (str(value).strip() if value is not None else "")
+            for key, value in row.items()
+            if key is not None
+        }
+
         root_url = normalized_row.get("url") or normalized_row.get("root_url")
         blog_url = normalized_row.get("blog urls") or normalized_row.get("blog_url")
         company = (
@@ -89,8 +149,10 @@ def parse_competitor_csv(csv_text: str) -> List[CompetitorSource]:
             or normalized_row.get("competitor")
             or "Unknown"
         )
+
         if not root_url or not blog_url:
             continue
+
         competitors.append(
             CompetitorSource(
                 company=company,
@@ -98,6 +160,7 @@ def parse_competitor_csv(csv_text: str) -> List[CompetitorSource]:
                 blog_url=blog_url,
             )
         )
+
     return competitors
 
 
@@ -149,50 +212,54 @@ def html_to_text(html: str, max_characters: int = 8000) -> str:
     return text
 
 
-def ensure_database(db_path: Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
-    """Create (if needed) and return a SQLite connection for storing URLs."""
+def ensure_database(db_url: str = DEFAULT_DB_URL) -> psycopg.Connection:
+    """Create (if needed) and return a Postgres connection for storing URLs."""
 
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(db_path)
-    connection.execute(
-        """
-        CREATE TABLE IF NOT EXISTS competitor_urls (
-            normalized_url TEXT PRIMARY KEY,
-            source_site TEXT NOT NULL,
-            date_found TEXT NOT NULL
+    connection = psycopg.connect(db_url, autocommit=True)
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS competitor_urls (
+                id SERIAL PRIMARY KEY,
+                normalized_url TEXT UNIQUE NOT NULL,
+                source_site TEXT NOT NULL,
+                date_found TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
         )
-        """
-    )
-    connection.commit()
     return connection
 
 
 def persist_links(
-    connection: sqlite3.Connection,
+    connection: psycopg.Connection,
     crawled: CrawledLinks,
 ) -> List[DiscoveredLink]:
     """Insert normalized links into storage and return only newly seen entries."""
 
     new_links: List[DiscoveredLink] = []
-    timestamp = datetime.utcnow().isoformat()
-    with connection:
+    discovered_at = datetime.utcnow()
+
+    with connection.cursor() as cursor:
         for normalized_url in crawled.normalized_links:
-            row = connection.execute(
+            cursor.execute(
                 """
-                INSERT OR IGNORE INTO competitor_urls (normalized_url, source_site, date_found)
-                VALUES (?, ?, ?)
+                INSERT INTO competitor_urls (normalized_url, source_site, date_found)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (normalized_url) DO NOTHING
                 """,
-                (normalized_url, crawled.competitor.root_url, timestamp),
+                (normalized_url, crawled.competitor.root_url, discovered_at),
             )
-            if row.rowcount == 1:
+
+            if cursor.rowcount == 1:
                 new_links.append(
                     DiscoveredLink(
                         normalized_url=normalized_url,
                         source_site=crawled.competitor.root_url,
                         competitor=crawled.competitor.company,
-                        discovered_at=datetime.fromisoformat(timestamp),
+                        discovered_at=discovered_at,
                     )
                 )
+
     return new_links
 
 
