@@ -1,0 +1,360 @@
+{
+  "name": "deep_research_agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "bf78149a-27bf-4ce2-9a38-dec6447ca2e7",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "user_message",
+              "name": "user_message",
+              "type": "string",
+              "value": "Summarize the latest approaches to structured reasoning in LLMs."
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "15109ce2-df12-4caa-9754-b9aa74fcb02a",
+      "name": "Set Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        112,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.7
+        }
+      },
+      "id": "dd51fa68-8fa5-496d-b670-52351a2ee369",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        64,
+        80
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_message }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a deep research assistant. Use tools to gather information (openai_search for research, think_tool for reflection). Keep searches focused, reflect after searches, and finish with a concise, well-structured research answer.\n\nWhen finished, produce:\n- reasoning: brief plan and justification\n- action: the primary tool used (one of: openai_search, think_tool, answer_direct)\n- tool_result: the most relevant tool output you used (may be empty for answer_direct)\n- answer: the final research answer/report\n\nBe clear, factual, and professional.",
+          "maxIterations": 5,
+          "returnIntermediateSteps": false
+        }
+      },
+      "id": "4db5fa2a-b16f-487e-9b0c-44d45b4569a2",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "final_answer",
+              "name": "final_answer",
+              "type": "string",
+              "value": "={{ $json.answer || 'No answer provided' }}"
+            },
+            {
+              "id": "reasoning",
+              "name": "reasoning",
+              "type": "string",
+              "value": "={{ $json.reasoning || 'No reasoning provided' }}"
+            },
+            {
+              "id": "action_taken",
+              "name": "action_taken",
+              "type": "string",
+              "value": "={{ $json.action || 'No action recorded' }}"
+            },
+            {
+              "id": "tool_result",
+              "name": "tool_result",
+              "type": "string",
+              "value": "={{ $json.tool_result || 'No tool result available' }}"
+            },
+            {
+              "id": "generated_at",
+              "name": "generated_at",
+              "type": "string",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ea9bb63f-66ff-4404-8980-0fa6abc69b9d",
+      "name": "Format Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        768,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"reasoning\": \"Brief plan and justification for the research approach\",\n  \"action\": \"openai_search\",\n  \"tool_result\": \"Most relevant tool output used to answer\",\n  \"answer\": \"Final research answer/report\"\n}",
+        "autoFix": true
+      },
+      "id": "8ff372c9-cf33-4ff2-8dda-ec1d3694e555",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        688,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $workflow.id }}{{ $now }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        80
+      ],
+      "id": "07f6ebb4-b2a6-459c-917a-16159ce30552",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        688,
+        272
+      ],
+      "id": "59ae57b2-5672-42b5-8520-0977f46d7b2e",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool when you want to run a deep research query. ",
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-5-mini\",\n  \"tools\": [\n    {\n      \"type\": \"web_search_preview\"\n    }\n  ],\n  \"input\": \"What did the fox say?\"\n}"
+      },
+      "id": "8b812faf-d93f-4d2b-a1ce-334be3aa334c",
+      "name": "openai_search",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        544,
+        80
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {}
+          ]
+        }
+      },
+      "id": "e00b61b3-34c8-4f69-ad06-88ee016a4658",
+      "name": "think_tool",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1,
+      "position": [
+        400,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Known bugs:\n- opemai_search tool (https://community.n8n.io/t/use-native-internal-web-search-tool-supported-by-openai-models/141465/7)\n\nNot tested:\n- output parser\nFinal format output",
+        "height": 320,
+        "width": 400,
+        "color": 3
+      },
+      "id": "df81c16f-7138-4088-a63b-51d19e030bcc",
+      "name": "Setup Guide1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        208,
+        256
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Input": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "openai_search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "think_tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "86300621-7a25-4f3c-ac8a-185627578f28",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "Q8YWuM6cFWJQjJ4n",
+  "tags": []
+}
