@@ -1,202 +1,118 @@
 # Video Generation Agent
 
-A sophisticated LangGraph agent for creating high-quality videos with iterative quality improvement using Google Gemini, ElevenLabs, Unsplash, and FFmpeg.
+A LangGraph agent that plans, illustrates, and produces short product-advertisement videos by coordinating multiple Gemini and fal.ai capabilities.
 
-## Features
+## Highlights
 
-- **Multi-modal AI**: Uses Google Gemini 1.5 Pro for video planning and quality assessment
-- **Text-to-Speech**: ElevenLabs integration for professional voiceovers
-- **Image Assets**: Unsplash API integration for high-quality images
-- **Subtitle Generation**: ASS file creation for video subtitles
-- **Media Library**: Hardcoded library of 10 curated assets
-- **Video Creation**: FFmpeg wrapper for professional video production
-- **Iterative Improvement**: Quality-based iteration until target quality is met
-- **State Management**: Comprehensive state tracking for video generation process
+- **Gemini 2.5 Flash orchestration** – the core planner/reasoner drives the creative workflow and conversations.
+- **Inline hero imagery** – uses `gemini-2.5-flash-image-preview` to generate photorealistic stills and automatically injects them as base64 blocks into the running chat.
+- **Native Veo 3 Fast video generation** – forwards storyboard prompts plus inline imagery directly to fal.ai’s `veo3/fast` endpoint and loops the resulting video URL back into the conversation.
+- **Media-aware chat history** – the agent records images/videos in the message stream (base64 or URL) so downstream tools can reuse them scene-by-scene.
+- **Automatic scene stitching** – once all clips are generated, `concat_videos` pulls the remote files (if needed) and uses ffmpeg to deliver a single polished mp4.
+- **Optional post tools** – ffmpeg helpers, Kling fallback, and scoring utilities remain available for future extensions.
 
-## Architecture
+## Architecture Overview
 
-The agent follows a sophisticated workflow:
+1. **Initialize** – create temp directories, surface environment warnings, seed the system prompt.
+2. **Agent loop** – Gemini 2.5 Flash reasons over the `VideoGenerationState.messages` history and decides which tool to call next.
+3. **Storyboard tools** – `create_story_board` and `update_story_board` craft a three-scene concept for the ad.
+4. **Image pass** – `generate_image` produces hero images, persists PNGs to `/tmp/images`, and returns base64 payloads.
+5. **Video pass** – `veo3_generate_video` sends prompts plus optional reference imagery (path/url/base64) to fal.ai and returns a streaming-ready URL.
+6. **Stitch** – `concat_videos` normalises segments (when needed) and concatenates them into a master mp4.
+7. **Attach media** – `attach_media_to_chat` converts tool payloads into human messages so the main LLM can see the latest visuals.
+8. **Finalize** – when no more tool calls are pending, a Gemini summary node reports on deliverables and clean-up runs.
 
-1. **Initialize**: Set up directories and LLM
-2. **Plan**: Analyze user request and create video production plan
-3. **Gather Assets**: Search media library and Unsplash for required assets
-4. **Create Content**: Generate audio, subtitles, and combine assets
-5. **Assess Quality**: Evaluate video quality and provide feedback
-6. **Iterate**: Improve video based on feedback (if needed)
-7. **Finalize**: Provide final summary and recommendations
+## State Shape
 
-## State Management
+`VideoGenerationState` keeps the loop minimal and chat-centric:
 
-The agent tracks comprehensive state including:
+- `messages`: running LangChain message history (LLM + tool turns).
+- `current_iteration`: iteration counter so Gemini stops at configured limits.
+- `max_iterations_reached`: flag toggled when the loop hits the user-defined cap.
+- `final_video_path`: optional local artifact recorded during ffmpeg steps.
+- `user_image_paths` / `user_image_urls`: scratch fields for user-provided reference art.
 
-- `video_quality`: Current quality score (0-10)
-- `ffmpeg_command`: FFmpeg command used for video creation
-- `assets_used`: List of assets utilized in the video
-- `number_of_renders`: Number of video renders completed
-- `current_iteration`: Current iteration count
-- `quality_satisfied`: Whether target quality is achieved
-- `max_iterations_reached`: Whether max iterations limit reached
+## Tooling
 
-## Tools
-
-### 1. ElevenLabs Text-to-Speech
-
-- Generates high-quality speech from text
-- Supports multiple voices and models
-- Saves audio to `/tmp/audio/` directory
-
-### 2. Unsplash Search & Download
-
-- Searches Unsplash for images based on query
-- Downloads images to `/tmp/unsplash/` directory
-- Supports quality selection and count limits
-
-### 3. ASS Subtitle Generation
-
-- Creates Advanced SubStation Alpha subtitle files
-- Customizable font size, color, timing
-- Saves to `/tmp/subtitles/` directory
-
-### 4. Media Library Search
-
-- Hardcoded library of 10 curated assets
-- Includes images, audio, and video clips
-- Tag-based search functionality
-
-### 5. Video Creation (FFmpeg)
-
-- Professional video creation using FFmpeg
-- Supports multiple input formats
-- Configurable resolution, duration, and quality
+- **`create_story_board` / `update_story_board`** – lightweight prompt constructors for three-scene arcs.
+- **`generate_image`** – wraps `ChatGoogleGenerativeAI` (`gemini-2.5-flash-image-preview`), saves PNGs, and returns base64/mime/path metadata.
+- **`veo3_generate_video`** – submits to `fal-ai/veo3/fast`, supporting optional reference imagery via path, hosted URL, or base64 data URI. Outputs logs, request id, and final video URL.
+- **`concat_videos`** – downloads remote clips when necessary, normalises codecs with ffmpeg, and stitches scenes into a single mp4 ready for scoring or export.
+- **`kling_generate_video_from_image`** – legacy Kling integration kept for experimentation.
+- **`run_ffmpeg_binary`** – best-effort ffmpeg execution helper.
+- **`score_video`** – Gemini-based rubric scoring of completed renders.
 
 ## Setup
 
-### Prerequisites
+### Requirements
 
-- Python 3.9+
-- FFmpeg installed on system
-- API keys for required services
+- Python 3.10+
+- FFmpeg available on PATH
+- Google Gemini and fal.ai credentials
 
-### Installation
+### Install dependencies
 
-1. **Install LangGraph CLI**:
+```bash
+uv add "langgraph-cli[inmem]"
+uv sync
+```
 
-   ```bash
-   uv add "langgraph-cli[inmem]"
-   ```
+Copy environment template and supply keys:
 
-2. **Install dependencies**:
+```bash
+cp .env.example .env
+```
 
-   ```bash
-   uv sync
-   ```
+Minimum variables:
 
-3. **Set up environment variables**:
-   Copy `.env.example` to `.env` and fill in your API keys:
+- `GOOGLE_API_KEY` – for Gemini (LLM + image preview).
+- `FAL_KEY` (or `FAL_API_KEY`) – for Veo 3 Fast.
+- Optional: `LANGSMITH_API_KEY` if you want LangSmith tracing.
 
-   ```bash
-   cp .env.example .env
-   ```
+### Run locally
 
-   Required API keys:
+1. Start the dev server: `langgraph dev`
+2. Open Studio: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
+3. Kick off a run from the UI or script (see below).
 
-   - `LANGSMITH_API_KEY`: LangSmith API key (free)
-   - `GOOGLE_API_KEY`: Google Gemini API key
-   - `ELEVENLABS_API_KEY`: ElevenLabs API key
-   - `UNSPLASH_ACCESS_KEY`: Unsplash API key
-
-### Running the Agent
-
-1. **Start LangGraph Server**:
-
-   ```bash
-   langgraph dev
-   ```
-
-2. **Test individual tools**:
-
-   ```bash
-   python main.py
-   ```
-
-3. **Access LangGraph Studio**:
-   Visit: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
-
-## Usage
-
-### Basic Usage
+## Usage Example
 
 ```python
 from langgraph_sdk import get_sync_client
 
-client = get_sync_client(url="http://localhost:2024")
+client = get_sync_client(url="http://127.0.0.1:2024")
 
-# Create a video request
-user_request = """
-Create a 30-second promotional video about sustainable energy.
-Include images of solar panels and wind turbines,
-a professional voiceover, and subtitles.
-"""
+prompt = "Create a 3-scene launch teaser for a smart water bottle."
 
-# Run the agent
-for chunk in client.runs.stream(
+run = client.runs.stream(
     None,
     "agent",
-    input={
-        "messages": [{"role": "human", "content": user_request}],
-    },
+    input={"messages": [{"role": "human", "content": prompt}]},
     stream_mode="messages-tuple",
-):
-    print(f"Event: {chunk.event}")
-    print(f"Data: {chunk.data}")
+)
+
+for event in run:
+    print(event.event, event.data)
 ```
 
-### Configuration
+To seed the flow with a custom hero image, drop a `HumanMessage` block containing `{"type": "image_url", "image_url": "data:image/png;base64,..."}`. The agent will forward that to Veo 3 automatically when constructing scenes.
 
-The agent accepts context parameters:
-
-- `max_iterations`: Maximum number of quality improvement iterations (default: 3)
-- `target_quality_score`: Target quality score to achieve (default: 8.0)
-- `google_api_key`: Google Gemini API key
-- `elevenlabs_api_key`: ElevenLabs API key
-- `unsplash_access_key`: Unsplash API key
-
-## Directory Structure
+## Directory Layout
 
 ```
 video_generation_agent/
 ├── src/agent/
-│   ├── __init__.py
-│   ├── graph.py          # Main LangGraph agent
-│   └── tools.py          # Custom tools
-├── tests/
-├── .env                  # Environment variables
-├── .env.example          # Environment template
-├── langgraph.json        # LangGraph configuration
-├── main.py              # Entry point and testing
-├── pyproject.toml       # Project dependencies
-└── README.md            # This file
+│   ├── graph.py          # LangGraph state machine and nodes
+│   ├── models.py         # Pydantic schemas for requests/results
+│   └── tools.py          # Tool implementations (Gemini, fal.ai, ffmpeg)
+├── example_video.mp4     # Reference artifact (optional)
+├── langgraph.json        # Config for CLI
+├── main.py               # Convenience runner
+├── pyproject.toml        # Poetry/uv project definition
+└── README.md             # You are here
 ```
 
-## Temporary Directories
-
-The agent creates and uses several temporary directories:
-
-- `/tmp/assets/`: Hardcoded media library assets
-- `/tmp/audio/`: Generated speech files
-- `/tmp/unsplash/`: Downloaded Unsplash images
-- `/tmp/subtitles/`: Generated subtitle files
-- `/tmp/videos/`: Final video outputs
-
-## Media Library Assets
-
-The agent includes 10 hardcoded assets:
-
-1. **Images**: Sunset beach, mountain landscape, city skyline, forest path, desert dunes, abstract pattern
-2. **Audio**: Ambient nature sounds, upbeat music
-3. **Videos**: Waterfall clip, clouds timelapse
-
-Each asset includes metadata: ID, type, filename, description, tags, and path.
+Temporary outputs live under `/tmp/images` for stills and whatever directory a video tool reports. The attachment node promotes any saved file (or returned URL) into the chat history so downstream steps—including Veo 3 or ffmpeg refinements—can reuse them without extra plumbing.
 
 ## Quality Assessment
 

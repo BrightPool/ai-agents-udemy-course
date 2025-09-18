@@ -10,155 +10,33 @@ Tools supporting a ReAct-style marketing blog writer workflow:
 from __future__ import annotations
 
 import json
-import os
-import random
-from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
-import numpy as np
 from langchain_core.tools import tool
-from dotenv import load_dotenv
 
-
-# --- Environment ---
-load_dotenv()
-
-
-# --- Example marketing corpus (can be replaced with your own docs) ---
-EXAMPLE_DOCS: List[dict] = [
-    {"id": "company_vision_1", "text": "Nimbus is the revenue automation platform for RevOps and Data teams. We replace brittle spreadsheets with governed, AI-assisted workflows."},
-    {"id": "pricing_tiers_1", "text": "Pricing: Starter $99/mo up to 5 seats; Pro $499/mo up to 25 seats; Scale $1,999/mo unlimited seats with SSO and SAML."},
-    {"id": "compliance_1", "text": "Compliance: SOC 2 Type II and ISO 27001 certified. GDPR compliant. HIPAA not supported."},
-    {"id": "data_residency_1", "text": "Data residency: EU customers can pin data to Frankfurt (eu-central-1). Default region us-east-1."},
-    {"id": "sla_support_1", "text": "SLA: 99.9% uptime. Support first response under 4 business hours; Scale gets 30-minute critical SLA."},
-    {"id": "support_channels_1", "text": "Support: Private Slack 9-5 PT on weekdays; 24/7 on-call for P1 incidents via PagerDuty."},
-    {"id": "integrations_crm_1", "text": "Integrations: Native connectors for Salesforce and HubSpot including bidirectional sync and custom objects."},
-    {"id": "integrations_warehouse_1", "text": "Warehouses: Snowflake and BigQuery supported; Redshift in private beta."},
-    {"id": "integrations_streaming_1", "text": "Streaming: Kafka and Segment sources supported; exactly-once event delivery with idempotency keys."},
-    {"id": "personas_1", "text": "Personas: RevOps needs pipeline visibility; Data Engineering needs reliable ingestion; Marketing Ops needs attribution sanity."},
-    {"id": "brand_voice_1", "text": "Voice: practical, no-hype, crisp verbs, short sentences. Avoid exclamation marks."},
-    {"id": "style_guide_1", "text": "Style: use US English, Oxford comma, and sentence case for headings."},
-    {"id": "product_features_1", "text": "Features: Rules Engine, Playbooks, and Workflows. Rules Engine executes row-level policies with audit logs."},
-    {"id": "security_1", "text": "Security: PII redaction enabled by default; customer-managed keys available on Scale."},
-    {"id": "programs_migration_1", "text": "Concierge Migration: free one-time program up to 20 hours; includes schema mapping and QA."},
-    {"id": "event_growth_summit_1", "text": "Growth Summit SF: Oct 14-16; booth B12; CEO Maya Chen keynote Oct 15 at 10:00am."},
-    {"id": "offer_code_1", "text": "Promo: BUILD25 gives 25% off the first year for contracts signed before Dec 31."},
-    {"id": "case_study_1", "text": "Case study: Acme Logistics increased lead-to-opportunity by 23% and cut churn 12% after adopting Nimbus."},
-    {"id": "limits_api_1", "text": "API limits: 600 requests/min per org and 10 requests/sec per user. 429 means back off."},
-    {"id": "data_retention_1", "text": "Data retention: logs stored 30 days by default; retention can be extended on Scale."},
-    {"id": "roadmap_1", "text": "Roadmap: AI Forecasting open beta in Q4; Redwood Plugin GA in Q1."},
-    {"id": "naming_1", "text": "Naming: use 'Nimbus' in external copy; avoid the internal codename 'AcmeCloud'."},
-    {"id": "billing_1", "text": "Billing: Annual contracts only; invoices net-30; procurement often requests a security questionnaire."},
-]
-
-
-# --- Embeddings + Index (OpenAI -> FAISS; with numpy fallback) ---
-_OPENAI_EMBED_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
-
-
-def _embed_texts(texts: List[str]) -> np.ndarray:
-    """Embed texts using OpenAI. Fallback to deterministic random vectors if unavailable."""
-    try:
-        from openai import OpenAI  # type: ignore
-
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        resp = client.embeddings.create(model=_OPENAI_EMBED_MODEL, input=texts)
-        vectors = [np.array(item.embedding, dtype=np.float32) for item in resp.data]
-        return np.vstack(vectors)
-    except Exception:
-        # Deterministic fallback for offline/dev environments
-        dim = 1536
-        fallback = []
-        for text in texts:
-            rng = random.Random(hash(text) % (2**32))
-            vec = np.array([rng.random() for _ in range(dim)], dtype=np.float32)
-            fallback.append(vec)
-        return np.vstack(fallback)
-
-
-def _build_index(texts: List[str]):
-    """Build cosine-sim FAISS index or numpy fallback."""
-    X = _embed_texts(texts)
-    # Normalize for cosine-like search via L2 on unit vectors
-    X_norm = X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-12)
-    try:
-        import faiss  # type: ignore
-
-        index = faiss.IndexFlatL2(X_norm.shape[1])
-        index.add(X_norm.astype("float32"))
-        backend = "faiss"
-    except Exception:
-        index = X_norm.astype("float32")  # store raw matrix for numpy fallback
-        backend = "numpy"
-
-    return X_norm.astype("float32"), index, backend
-
-
-_TEXTS = [d["text"] for d in EXAMPLE_DOCS]
-_X, _INDEX, _INDEX_BACKEND = _build_index(_TEXTS)
-_ID_LOOKUP = {i: EXAMPLE_DOCS[i]["id"] for i in range(len(EXAMPLE_DOCS))}
-
-
-def _search(query: str, k: int = 3) -> list[dict]:
-    """Semantic search over example docs returning list of dicts with id/text/score."""
-    q = _embed_texts([query])[0]
-    q = q / (np.linalg.norm(q) + 1e-12)
-
-    if _INDEX_BACKEND == "faiss":
-        import faiss  # type: ignore
-
-        distances, indices = _INDEX.search(q.reshape(1, -1), k)
-        idxs, dists = indices[0], distances[0]
-    else:
-        # numpy fallback: brute force L2 on unit vectors
-        diffs = _X - q[None, :]
-        l2 = np.sum(diffs * diffs, axis=1)
-        idxs = np.argsort(l2)[:k]
-        dists = l2[idxs]
-
-    results = []
-    for idx, dist in zip(idxs, dists):
-        if int(idx) < 0 or int(idx) >= len(EXAMPLE_DOCS):
-            continue
-        results.append(
-            {
-                "id": _ID_LOOKUP[int(idx)],
-                "text": EXAMPLE_DOCS[int(idx)]["text"],
-                # similarity ~ 1 - (L2 / 2) for unit vectors
-                "score": float(1.0 - float(dist) / 2.0),
-            }
-        )
-    return results
-
-
-# --- In-memory working state ---
-@dataclass
-class BlogStateMemory:
-    topic: Optional[str] = None
-    outline: List[str] = None  # type: ignore[assignment]
-    sections: dict[str, str] = None  # type: ignore[assignment]
-
-    def __post_init__(self) -> None:  # noqa: D401
-        if self.outline is None:
-            self.outline = []
-        if self.sections is None:
-            self.sections = {}
-
-
-_BLOG_STATE = BlogStateMemory()
+from .utils import _BLOG_STATE, _search
 
 
 # --- Tools ---
 @tool
 def search_context(query: str, k: int = 4) -> str:
-    """Vector search in marketing corpus; returns JSON with top-k results.
+    """Perform semantic search over the marketing knowledge corpus.
+
+    This tool searches through a curated collection of marketing content using
+    vector similarity to find relevant information for blog writing. It supports
+    both FAISS (fast) and NumPy (fallback) implementations for different environments.
 
     Args:
-        query: Search query
-        k: Number of results to return (default 4)
+        query: Natural language search query (e.g., "pricing strategy", "customer personas")
+        k: Number of top results to return (default: 4, max: 10)
 
     Returns:
-        JSON string: {"tool": "search_context", "results": [{id,text,score}, ...]}
+        JSON string containing:
+        - tool: "search_context"
+        - results: List of search results with id, text, and similarity score
+
+    The search results help ground blog content in company knowledge, ensuring
+    accurate and consistent messaging across marketing materials.
     """
     hits = _search(query, k=max(1, min(int(k), 10)))
     return json.dumps({"tool": "search_context", "results": hits})
@@ -166,31 +44,104 @@ def search_context(query: str, k: int = 4) -> str:
 
 @tool
 def change_outline(new_outline: List[str]) -> str:
-    """Replace the current outline with a new one. Returns updated outline as JSON."""
+    """Update the blog post outline structure.
+
+    This tool replaces the current outline with a new structure, allowing the
+    blog writing process to evolve and adapt based on research findings or
+    changing requirements. The outline defines the section structure that will
+    guide the writing process.
+
+    Args:
+        new_outline: List of section titles in the desired order
+
+    Returns:
+        JSON string containing:
+        - tool: "change_outline"
+        - outline: The updated list of section titles
+
+    The outline serves as the skeleton for the blog post, ensuring logical
+    flow and comprehensive coverage of the topic.
+    """
     _BLOG_STATE.outline = list(new_outline)
     return json.dumps({"tool": "change_outline", "outline": _BLOG_STATE.outline})
 
 
 @tool
 def write_section(section_title: str, draft: str) -> str:
-    """Persist a section draft authored by the model. Returns the saved section.
+    """Save a section draft to the blog state.
 
-    Note: The LLM should generate the draft and pass it to this tool.
+    This tool persists a newly written section draft, allowing the blog writing
+    process to build content incrementally. Each section is stored with its title
+    as a key, enabling easy retrieval and editing later in the process.
+
+    Args:
+        section_title: The heading/title of the section being written
+        draft: The complete content for this section
+
+    Returns:
+        JSON string containing:
+        - tool: "write_section"
+        - section_title: The title of the saved section
+        - saved: Boolean indicating successful save
+
+    Note: The LLM should generate comprehensive, well-structured draft content
+    that aligns with the overall blog topic and maintains consistent tone.
     """
     _BLOG_STATE.sections[section_title] = draft
-    return json.dumps({"tool": "write_section", "section_title": section_title, "saved": True})
+    return json.dumps(
+        {"tool": "write_section", "section_title": section_title, "saved": True}
+    )
 
 
 @tool
 def edit_section(section_title: str, new_draft: str) -> str:
-    """Replace an existing section draft with an edited version. Returns confirmation."""
+    """Update an existing section with improved content.
+
+    This tool allows for iterative refinement of blog sections by replacing
+    existing content with an improved version. It's useful for making corrections,
+    adding more detail, improving clarity, or adjusting tone and style.
+
+    Args:
+        section_title: The title of the section to be updated
+        new_draft: The revised content to replace the existing section
+
+    Returns:
+        JSON string containing:
+        - tool: "edit_section"
+        - section_title: The title of the updated section
+        - saved: Boolean indicating successful update
+
+    This tool enables the writing process to be iterative and quality-focused,
+    allowing for continuous improvement of individual sections.
+    """
     _BLOG_STATE.sections[section_title] = new_draft
-    return json.dumps({"tool": "edit_section", "section_title": section_title, "saved": True})
+    return json.dumps(
+        {"tool": "edit_section", "section_title": section_title, "saved": True}
+    )
 
 
 @tool
 def assemble_blog() -> str:
-    """Assemble the final blog from the current outline and sections. Returns the blog text."""
+    """Compile all sections into the final blog post.
+
+    This tool takes the current outline and all written sections to create
+    the complete blog post. It combines sections in the order specified by
+    the outline, formatting them with proper headers and spacing.
+
+    Returns:
+        JSON string containing:
+        - tool: "assemble_blog"
+        - final_blog: The complete assembled blog post as a formatted string
+
+    The assembled blog includes:
+    - Section headers formatted as markdown H1 (#)
+    - Proper spacing between sections
+    - Only sections that exist and have content
+    - Clean formatting suitable for publishing
+
+    This represents the final step in the blog writing process, producing
+    the complete, ready-to-publish article.
+    """
     parts: List[str] = []
     for title in _BLOG_STATE.outline:
         body = _BLOG_STATE.sections.get(title, "")
@@ -206,4 +157,3 @@ __all__ = [
     "edit_section",
     "assemble_blog",
 ]
-
