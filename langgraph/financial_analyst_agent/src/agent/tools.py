@@ -10,7 +10,12 @@ from langchain_core.tools import tool
 from openai import OpenAI
 from pydantic import ValidationError
 
-from .models import CodeInterpreterRequest, FinanceAnalysisRequest, HistoryRequest, PriceRequest
+from .models import (
+    CodeInterpreterRequest,
+    FinanceAnalysisRequest,
+    HistoryRequest,
+    PriceRequest,
+)
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -60,17 +65,17 @@ def _get_openai_client() -> OpenAI:
     if _CLIENT is None:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise RuntimeError("OPENAI_API_KEY must be set for financial analyst tools.")
+            raise RuntimeError(
+                "OPENAI_API_KEY must be set for financial analyst tools."
+            )
         _CLIENT = OpenAI(api_key=api_key)
     return _CLIENT
 
 
 def _extract_output_text(resp: Any) -> str:
     """Best-effort extraction of assistant text from a Responses API payload."""
-
     if hasattr(resp, "output_text") and resp.output_text:
         return resp.output_text
-
     output: Iterable[Any] | None = getattr(resp, "output", None)
     if not output:
         return ""
@@ -99,12 +104,10 @@ def _extract_output_text(resp: Any) -> str:
 @tool
 def yf_get_price(ticker: str) -> str:
     """Return the latest available price snapshot for the provided ticker."""
-
     try:
         PriceRequest(ticker=ticker)
     except ValidationError as exc:  # pragma: no cover - defensive guard
         return f"Invalid ticker request: {exc}"
-
     symbol = _sanitize_ticker(ticker)
     if not symbol:
         return "Ticker must be a non-empty string."
@@ -117,7 +120,9 @@ def yf_get_price(ticker: str) -> str:
 
         fast_info = getattr(security, "fast_info", None)
         if fast_info:
-            price = getattr(fast_info, "last_price", None) or fast_info.get("last_price")
+            price = getattr(fast_info, "last_price", None) or fast_info.get(
+                "last_price"
+            )
             currency = getattr(fast_info, "currency", None) or fast_info.get("currency")
 
         if price is None:
@@ -136,12 +141,10 @@ def yf_get_price(ticker: str) -> str:
 @tool
 def yf_get_history(ticker: str, period: str = "5d", interval: str = "1d") -> str:
     """Return up to the last 10 OHLCV rows for a ticker as plain text."""
-
     try:
         HistoryRequest(ticker=ticker, period=period, interval=interval)
     except ValidationError as exc:  # pragma: no cover - defensive guard
         return f"Invalid history request: {exc}"
-
     symbol = _sanitize_ticker(ticker)
     if not symbol:
         return "Ticker must be a non-empty string."
@@ -158,7 +161,7 @@ def yf_get_history(ticker: str, period: str = "5d", interval: str = "1d") -> str
             lines.append(
                 " ".join(
                     [
-                        str(index.date()),
+                        str(getattr(index, "date", index)),
                         f"O={_fmt_float(row.get('Open'))}",
                         f"H={_fmt_float(row.get('High'))}",
                         f"L={_fmt_float(row.get('Low'))}",
@@ -180,12 +183,10 @@ def yf_get_history(ticker: str, period: str = "5d", interval: str = "1d") -> str
 @tool
 def run_finance_analysis(question: str, context: str = "") -> str:
     """Call OpenAI to produce a low-temperature financial analysis answer."""
-
     try:
         FinanceAnalysisRequest(question=question, context=context)
     except ValidationError as exc:  # pragma: no cover - defensive guard
         return f"Invalid analysis request: {exc}"
-
     try:
         client = _get_openai_client()
     except Exception as exc:  # pragma: no cover - missing credentials
@@ -193,7 +194,9 @@ def run_finance_analysis(question: str, context: str = "") -> str:
 
     prompt_context = context.strip()
     input_text = (
-        f"Context:\n{prompt_context}\n\nQuestion:\n{question}" if prompt_context else question
+        f"Context:\n{prompt_context}\n\nQuestion:\n{question}"
+        if prompt_context
+        else question
     )
 
     instructions = (
@@ -220,12 +223,10 @@ def run_finance_analysis(question: str, context: str = "") -> str:
 @tool
 def code_interpreter_tool(question: str, context: str = "") -> str:
     """Execute Python inside the native OpenAI Code Interpreter."""
-
     try:
         CodeInterpreterRequest(question=question, context=context)
     except ValidationError as exc:  # pragma: no cover
         return f"Invalid code interpreter request: {exc}"
-
     try:
         client = _get_openai_client()
     except Exception as exc:  # pragma: no cover
@@ -233,7 +234,9 @@ def code_interpreter_tool(question: str, context: str = "") -> str:
 
     prompt_context = context.strip()
     input_text = (
-        f"Context:\n{prompt_context}\n\nQuestion:\n{question}" if prompt_context else question
+        f"Context:\n{prompt_context}\n\nQuestion:\n{question}"
+        if prompt_context
+        else question
     )
 
     instructions = (

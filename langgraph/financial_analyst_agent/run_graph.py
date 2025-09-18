@@ -9,18 +9,12 @@ async def main() -> None:
     client = get_client(url=base_url)
 
     input_payload = {
-        "messages": [],
-        "user_message": "Compare the 5-day percentage return for AAPL and MSFT and report which outperformed.",
-    }
-
-    try:
-        max_iters = int(os.getenv("FINANCIAL_AGENT_MAX_ITERS", "5"))
-    except ValueError:
-        max_iters = 5
-
-    context = {
-        "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
-        "max_iterations": max_iters,
+        "messages": [
+            {
+                "role": "human",
+                "content": "Compare the 5-day percentage return for AAPL and MSFT and report which outperformed.",
+            }
+        ],
     }
 
     print(f"Streaming run to {base_url}...\n")
@@ -28,7 +22,6 @@ async def main() -> None:
         None,
         "agent",
         input=input_payload,
-        config={"context": context},
         stream_mode="messages-tuple",
     ):
         print(f"Event: {chunk.event}")
