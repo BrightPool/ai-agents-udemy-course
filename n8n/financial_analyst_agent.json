@@ -1,0 +1,656 @@
+{
+  "name": "financial_analyst_agent",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "user_message",
+              "name": "user_message",
+              "type": "string",
+              "value": "Compare AAPL and MSFT 5-day performance and provide numeric returns"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1997fc64-9846-4e53-87eb-01fce3725ade",
+      "name": "Set Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -448,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "chatModel": "gpt-4.1-mini",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a financial analyst. Decide the best tool and extract structured inputs. Return ONLY valid JSON with keys: primary_action (one of: yf_get_price, yf_get_history, run_finance_analysis), tickers (array of 1-2 tickers), period (e.g., \"5d\"), interval (e.g., \"1d\"), question (string). No prose."
+            },
+            {
+              "content": "={{$json.user_message}}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 300,
+          "temperature": 0.1
+        },
+        "requestOptions": {}
+      },
+      "id": "703fa4a5-e50d-4462-a99d-6a920e9a7777",
+      "name": "OpenAI Decide",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.1,
+      "position": [
+        -224,
+        256
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse JSON from OpenAI Decide output\nconst text = $json.text || '';\nlet parsed = {};\ntry { parsed = JSON.parse(text); } catch (e) {}\nconst primary = parsed.primary_action || (text.includes('history') ? 'yf_get_history' : 'yf_get_price');\nlet tickers = Array.isArray(parsed.tickers) ? parsed.tickers : [];\nif (!tickers.length) {\n  const guessed = ($json.user_message || '').match(/\\b[A-Z]{2,5}\\b/g) || [];\n  tickers = guessed.slice(0, 2);\n}\nif (!tickers.length) tickers = ['AAPL'];\nconst period = parsed.period || '5d';\nconst interval = parsed.interval || '1d';\nconst question = parsed.question || ($json.user_message || '');\nreturn [{ json: { primary_action: primary, tickers, period, interval, question, needsHistory: primary !== 'yf_get_price' } }];"
+      },
+      "id": "2509b9d0-d986-4ad8-8882-e7ab32a54f59",
+      "name": "Parse Decision",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        0,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "tickers",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "ticker"
+        }
+      },
+      "id": "7d465dfd-30de-4211-9f4b-cc1cfd6bfacc",
+      "name": "Split Tickers",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3.1,
+      "position": [
+        192,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "type": "string",
+              "value1": "={{$json.primary_action}}",
+              "operation": "notEqual",
+              "value2": "yf_get_price",
+              "id": "164a74a5-66c1-43b1-8691-9b2c90c80194"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "100e9603-b426-4894-bb48-7853816380da",
+      "name": "Needs History?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{\"https://query1.finance.yahoo.com/v8/finance/chart/\" + $json.ticker + \"?range=\" + ($json.period || '5d') + \"&interval=\" + ($json.interval || '1d')}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "6dc2ba38-9b0f-4011-bf2e-f7df7c467773",
+      "name": "HTTP: Yahoo History",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        608,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{\"https://query1.finance.yahoo.com/v7/finance/quote?symbols=\" + $json.ticker}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "306ab579-e283-4eef-8107-78510b1bc81a",
+      "name": "HTTP: Yahoo Price",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        608,
+        352
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b64a9d76-ceae-489e-ac46-ca5e82ffa285",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        832,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "function percentReturn(startClose, endClose) {\n  if (startClose == null || endClose == null) return 0;\n  return Math.round(((endClose - startClose) / startClose) * 10000) / 100;\n}\n\nfunction analyzeHistory(ticker, hist) {\n  const closes = hist?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];\n  const start = closes.find(v => typeof v === 'number');\n  const end = [...closes].reverse().find(v => typeof v === 'number');\n  const pct = percentReturn(start, end);\n  return { ticker, start, end, percent: pct };\n}\n\nconst decision = ($items('Parse Decision')[0] || {}).json || {};\nconst primary = decision.primary_action || 'yf_get_price';\nconst tickers = decision.tickers || [];\nconst histories = $items('HTTP: Yahoo History').map((i, idx) => analyzeHistory(tickers[idx] || (i.json?.chart?.result?.[0]?.meta?.symbol || ('T'+idx)), i.json));\nconst prices = $items('HTTP: Yahoo Price').map((i, idx) => {\n  const row = i.json?.quoteResponse?.result?.[0] || {};\n  return { ticker: row.symbol || tickers[idx] || ('T'+idx), price: row.regularMarketPrice, currency: row.currency };\n});\n\nlet action = primary;\nlet tool_result = '';\nlet answer = '';\n\nif (primary === 'yf_get_price') {\n  tool_result = prices.map(p => `${p.ticker}: ${p.price} ${p.currency || ''}`.trim()).join('; ');\n  answer = `Latest prices — ${tool_result}.`;\n} else {\n  const valid = histories.filter(h => Number.isFinite(h.start) && Number.isFinite(h.end));\n  if (!valid.length) {\n    tool_result = 'No valid historical close data returned.';\n    answer = 'Could not compute returns due to missing data.';\n  } else if (valid.length === 1) {\n    const h = valid[0];\n    tool_result = `${h.ticker}: start=${h.start}, end=${h.end}, return=${h.percent}%`;\n    answer = `${h.ticker} ${decision.period || ''} return: ${h.percent}%.`.trim();\n  } else {\n    const a = valid[0];\n    const b = valid[1];\n    const outperformer = a.percent > b.percent ? a.ticker : (b.percent > a.percent ? b.ticker : 'tie');\n    tool_result = `${a.ticker}: ${a.percent}%; ${b.ticker}: ${b.percent}%`;\n    answer = `Returns — ${a.ticker}: ${a.percent}%, ${b.ticker}: ${b.percent}%. Outperformer: ${outperformer}.`;\n  }\n  action = 'run_finance_analysis';\n}\n\nreturn [{ json: { action, tool_result: String(tool_result), answer: String(answer) } }];"
+      },
+      "id": "56da5584-929f-497e-96b3-832fb44cd078",
+      "name": "Analyze",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Dependencies\\n- OpenAI credential (for Decide step)\\n- Yahoo Finance (no auth) via HTTP Request",
+        "height": 192,
+        "width": 300,
+        "color": 2
+      },
+      "id": "e63f2cb4-a84e-4922-9e62-dc53bef34b93",
+      "name": "Dependencies",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Setup\\n1) Set OpenAI credentials on 'OpenAI Decide'.\\n2) Run manually and edit the 'Set Input' message.\\n3) Example: \\\"Compare AAPL and MSFT 5-day performance\\\".",
+        "height": 240,
+        "width": 300,
+        "color": 3
+      },
+      "id": "0b599a54-20a4-4541-949e-d3d2cfa427a2",
+      "name": "Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Broken",
+        "height": 80,
+        "width": 150,
+        "color": 3
+      },
+      "id": "3f6e7bc2-5511-40e2-ae20-9870452eed34",
+      "name": "Setup1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        352,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Broken",
+        "height": 80,
+        "width": 150,
+        "color": 3
+      },
+      "id": "a49b2fca-7a51-4d38-a81b-f332e0ae26d0",
+      "name": "Setup2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_message }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a financial analyst. Choose the correct tool and return ONLY valid JSON. \nDo not add extra wrappers like \"query\". Always follow the schemas exactly.\n\nSchemas:\n- If primary_action = \"yf_get_price\":\n  {\n    \"primary_action\": \"yf_get_price\",\n    \"ticker\": \"AAPL\"\n  }\n\n- If primary_action = \"yf_get_history\":\n  {\n    \"primary_action\": \"yf_get_history\",\n    \"ticker\": \"MSFT\",\n    \"period\": \"5d\",\n    \"interval\": \"1d\"\n  }\n\n- If primary_action = \"run_finance_analysis\":\n  {\n    \"primary_action\": \"run_finance_analysis\",\n    \"question\": \"Compare AAPL and MSFT 5-day performance\"\n  }\n"
+        }
+      },
+      "id": "53479fdd-be0d-444d-8e32-83aeb7e06941",
+      "name": "Financial Analyst Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -304,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "e7dedd4b-f183-4fba-802d-2006f39994be",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -608,
+        880
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"action\": \"\",\n  \"tool_result\": \"\",\n  \"answer\": \"\"\n}",
+        "autoFix": true
+      },
+      "id": "bb28e42b-85d5-42f9-a3b7-bb040bb245aa",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        192,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Fetch the latest stock quote for a single ticker. Input: ticker (e.g., AAPL). Use when the user asks for current price, change, or simple quote summary.",
+        "url": "=https://query1.finance.yahoo.com/v6/finance/quote?symbols={{ticker}}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "ticker",
+              "description": "Stock ticker symbol (e.g., AAPL, MSFT)",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "00c3a916-ff89-4b75-a1d8-8beb2e91739c",
+      "name": "yf_get_price",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -272,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Get recent OHLCV time series for a ticker and timeframe. Inputs: ticker (e.g., AAPL), period (e.g., 5d, 1mo, 3mo), interval (e.g., 1d, 1h, 5m). Use for comparisons, percent returns, and short trend analysis.",
+        "url": "=https://query1.finance.yahoo.com/v8/finance/chart/{{full}}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "full",
+              "description": "<TICKER>?interval=<interval>&range=<period>\\\" e.g. AAPL?interval=1d&range=5d",
+              "type": "string"
+            },
+            {
+              "name": "ticker",
+              "description": "Stock ticker (e.g., AAPL)",
+              "type": "string"
+            },
+            {
+              "name": "period",
+              "description": "Range period (e.g., 5d, 1mo, 3mo)",
+              "type": "string"
+            },
+            {
+              "name": "interval",
+              "description": "Data interval (e.g., 1d, 1h, 5m)",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "f8c1552e-30fc-4f23-bc46-6cefe4c6b92c",
+      "name": "yf_get_history",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Perform deterministic financial calculations or comparisons from provided context. Input JSON via query with: question (string), context (string). Returns a concise numeric/text result (e.g., percent return or comparison outcome).",
+        "jsCode": "function percentReturn(startClose, endClose) { if (typeof startClose !== 'number' || typeof endClose !== 'number') return 0; return Math.round(((endClose - startClose) / startClose) * 10000) / 100; } try { const input = JSON.parse(query ?? '{}'); const question = input.question ?? ''; const context = input.context ?? ''; if (typeof context === 'string' && context) { const matches = Array.from(context.matchAll(/close[^0-9\\-\\.]*([0-9]+(?:\\.[0-9]+)?)/gi)).map(m => parseFloat(m[1])); if (matches.length >= 2) { const pct = percentReturn(matches[0], matches[matches.length - 1]); return `percent_return=${pct}%`; } } if (typeof question === 'string' && question) return question; return String(query ?? ''); } catch (e) { return String(query ?? ''); }"
+      },
+      "id": "c8b9eb26-9061-4031-b163-dcd5bdeec7a9",
+      "name": "run_finance_analysis",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        48,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "user_message",
+              "name": "user_message",
+              "type": "string",
+              "value": "Compare AAPL and MSFT 5-day performance and provide numeric returns"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "89bdab20-3828-401f-8617-aa0a6da2c901",
+      "name": "Set Input3",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $workflow.id }}{{ $now }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -432,
+        880
+      ],
+      "id": "4da2294d-696c-49b1-9776-44b20497103f",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "87c1565d-1bb3-4fc8-b648-6201cbe1262d",
+      "name": "OpenAI Chat Model4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        192,
+        1088
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        624
+      ],
+      "id": "fd799a30-bd46-4890-9118-361329223c7a",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Set Input": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Decide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Decide": {
+      "main": [
+        [
+          {
+            "node": "Parse Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Decision": {
+      "main": [
+        [
+          {
+            "node": "Split Tickers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Tickers": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Yahoo History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs History?": {
+      "main": [
+        [],
+        []
+      ]
+    },
+    "HTTP: Yahoo History": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Yahoo Price": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Analyze",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Financial Analyst Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Financial Analyst Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "yf_get_price": {
+      "ai_tool": [
+        [
+          {
+            "node": "Financial Analyst Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "yf_get_history": {
+      "ai_tool": [
+        [
+          {
+            "node": "Financial Analyst Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "run_finance_analysis": {
+      "ai_tool": [
+        [
+          {
+            "node": "Financial Analyst Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Input3": {
+      "main": [
+        [
+          {
+            "node": "Financial Analyst Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Financial Analyst Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set Input3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "134405bd-2a37-42be-a073-9bc1767a7f2b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "MRQjcXLduhAU8vkc",
+  "tags": []
+}
