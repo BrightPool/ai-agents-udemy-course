@@ -1,0 +1,526 @@
+{
+  "name": "blog_writer_agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1eb767ab-5662-4c2f-9700-c60137a902da",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        272,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# 🚀 Blog Writer Agent\n\n**What it does:**\n• Generates complete marketing blog posts from a topic\n• Uses native n8n nodes (no custom code)\n• Simulates vector search with mock context\n• Creates outline → writes sections → assembles final blog\n\n**Output:** \n• Complete blog post with word count & reading time\n• Practical, no-hype tone\n• 4-6 structured sections",
+        "height": 424,
+        "width": 320,
+        "color": 4
+      },
+      "id": "fab6ca52-3cac-4640-ab50-454c8de65086",
+      "name": "📝 Blog Writer Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# 🔧 Required Dependencies\n\n**External Services:**\n• OpenAI API (GPT-4 recommended)\n• API key required in n8n credentials\n\n**n8n Nodes Used:**\n• Manual Trigger (start)\n• Set (data manipulation) \n• OpenAI (text generation)\n• Item Lists (array operations)\n\n**No Code nodes** - Pure native n8n!",
+        "height": 372,
+        "width": 320,
+        "color": 2
+      },
+      "id": "a1cb3215-f780-4569-8260-5da27c5262ea",
+      "name": "⚙️ Dependencies",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# ⚡ 3-Step Setup Guide\n\n**1. Add OpenAI Credentials**\n• Go to Settings → Credentials → Add New\n• Select \"OpenAI API\" type\n• Enter your OpenAI API key\n\n**2. Configure OpenAI Nodes**\n• Edit \"Generate Outline\" & \"Write Sections\" nodes\n• Select your OpenAI credential\n• Model: GPT-4 (recommended) or GPT-3.5-turbo\n\n**3. Test & Run**\n• Click \"Test workflow\" on Manual Trigger\n• Default topic: \"AI and machine learning trends\"\n• Or pass custom topic via webhook/form\n\n**Ready to generate blogs!** 🎉",
+        "height": 516,
+        "width": 320,
+        "color": 3
+      },
+      "id": "b0db0209-045b-40eb-b056-231f4b25f4f9",
+      "name": "🔧 Setup Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a clear, multi-level outline for a marketing blog post about: {{ $json.topic }}\n\nGenerate 4-6 main sections that would make for a comprehensive blog post. Be specific and actionable with the section titles.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a marketing blog writer. Your task is to create structured outlines for blog posts. Always return data in the exact format specified by the output parser."
+        }
+      },
+      "id": "26e5fc05-8011-4c44-8003-e55dd75f5e4e",
+      "name": "AI Agent - Generate Outline",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "9c5d2f9b-89b6-4097-b22a-7019402ba2c4",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        624,
+        624
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"outline\": [\"Introduction\", \"Main Benefits\", \"Implementation Guide\", \"Best Practices\", \"Case Studies\", \"Conclusion\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        976,
+        624
+      ],
+      "id": "46b89d0d-7cc3-4769-a873-413b8151bc9f",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "topic_field",
+              "name": "topic",
+              "value": "={{ $json.topic || \"AI and machine learning trends\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "923e25ea-9461-4a3e-8f9d-c81b99f0d45b",
+      "name": "Set Topic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.outline",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "section_title"
+        }
+      },
+      "id": "3c127d5d-8ca3-4b78-8686-88b11a7cdcb6",
+      "name": "Split Outline to Items",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3.1,
+      "position": [
+        1120,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "context_field",
+              "name": "retrieved_context",
+              "value": "={{ [\"Previous company writing about \" + $('Set Topic').first().json.topic + \": This technology has shown significant impact in enterprise environments.\", \"From our research on \" + $json.section_title.toLowerCase() + \": Key considerations include scalability, user adoption, and ROI measurement.\", \"Company style guide: Use practical, no-hype tone. Focus on actionable insights and real-world applications.\", \"Related case study: Implementation typically takes 3-6 months with proper planning and stakeholder buy-in.\"] }}",
+              "type": "array"
+            },
+            {
+              "id": "section_index_field",
+              "name": "section_index",
+              "value": "={{ $itemIndex }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8e08e2a8-0208-4d00-bcf4-169da68363fe",
+      "name": "Add Vector Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1344,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a marketing blog writer. Write a focused section with context from prior company writing.\n\nTopic: {{ $('Set Topic').first().json.topic }}\nSection Title: {{ $('Split Outline to Items').item.json.section_title }}\n\nRetrieved Context:\n{{ $json.retrieved_context.join('\\n- ') }}\n\nWrite a focused section (3-6 paragraphs, concise) for this blog post. Use the retrieved context for facts and maintain a practical, no-hype tone. Make it actionable and specific to the topic.\n\nReturn only the section content, no title or extra formatting."
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 800,
+          "temperature": 0.8
+        }
+      },
+      "id": "c2ab9d50-3572-4a7c-a57c-a75daf408998",
+      "name": "Write Sections",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1568,
+        368
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "section_content_field",
+              "name": "section_content",
+              "value": "={{ $json.message.content || $json.content || 'Section content not available' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1e4ab7b1-8952-48a6-9675-249d398b0d01",
+      "name": "Format Section",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1920,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "concatenateItems",
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "section_title"
+            },
+            {
+              "fieldToAggregate": "section_content"
+            },
+            {
+              "fieldToAggregate": "section_index"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4674798a-1c63-42a3-acec-d8842cb87419",
+      "name": "Combine Sections",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3.1,
+      "position": [
+        2144,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "final_blog_field",
+              "name": "final_blog",
+              "value": "={{ $('Set Topic').first().json.topic + '\\n\\n' + $json.section_title.map((title, index) => '# ' + title + '\\n\\n' + $json.section_content[index]).join('\\n\\n') }}",
+              "type": "string"
+            },
+            {
+              "id": "sections_count_field",
+              "name": "sections_count",
+              "value": "={{ $json.section_title.length }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "95fff89f-f149-4d89-8313-1a57ec86df89",
+      "name": "Assemble Blog",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2368,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "final_blog_post_field",
+              "name": "final_blog_post",
+              "value": "={{ $json.message.content || $json.content || $('Assemble Blog').first().json.final_blog }}",
+              "type": "string"
+            },
+            {
+              "id": "word_count_field",
+              "name": "word_count",
+              "value": "={{ ($json.message.content || $json.content || $('Assemble Blog').first().json.final_blog).split(' ').length }}",
+              "type": "number"
+            },
+            {
+              "id": "reading_time_field",
+              "name": "estimated_reading_time",
+              "value": "={{ Math.ceil(($json.message.content || $json.content || $('Assemble Blog').first().json.final_blog).split(' ').length / 200) + ' minutes' }}",
+              "type": "string"
+            },
+            {
+              "id": "generated_at_field",
+              "name": "generated_at",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "success_field",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bd2ea967-b78c-4392-9b3f-7e256adb1df3",
+      "name": "Final Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2944,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "mode": "list",
+          "value": "gpt-4"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a blog editor. Review and optionally edit this blog post for continuity, flow, and consistency.\n\nBlog Post:\n{{ $json.final_blog }}\n\nProvide an edited version that:\n1. Ensures smooth transitions between sections\n2. Maintains consistent tone throughout\n3. Fixes any repetitive content\n4. Enhances readability and flow\n5. Keeps the practical, no-hype voice\n\nReturn the complete edited blog post."
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.3
+        }
+      },
+      "id": "ab4147a9-902d-49ae-904f-6342800b2a81",
+      "name": "Optional Edit",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2592,
+        368
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Generate Outline": {
+      "main": [
+        [
+          {
+            "node": "Split Outline to Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Generate Outline",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent - Generate Outline",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Topic": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Generate Outline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Outline to Items": {
+      "main": [
+        [
+          {
+            "node": "Add Vector Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Vector Context": {
+      "main": [
+        [
+          {
+            "node": "Write Sections",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Sections": {
+      "main": [
+        [
+          {
+            "node": "Format Section",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Section": {
+      "main": [
+        [
+          {
+            "node": "Combine Sections",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Sections": {
+      "main": [
+        [
+          {
+            "node": "Assemble Blog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Blog": {
+      "main": [
+        [
+          {
+            "node": "Optional Edit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Optional Edit": {
+      "main": [
+        [
+          {
+            "node": "Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4a84b7d0-413f-47a8-abec-923871689c46",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "LXJQbQ5Ze83rwOLM",
+  "tags": []
+}
