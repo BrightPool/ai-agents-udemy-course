@@ -153,6 +153,67 @@
           "name": "OpenAi account"
         }
       }
+    },
+    {
+      "parameters": {
+        "content": "### Tools",
+        "height": 192,
+        "width": 368
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        848
+      ],
+      "id": "35cdd274-d24f-4294-acbf-0c69331cf5b2",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# financial_analyst_agent\n",
+        "height": 544,
+        "width": 1184,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        512
+      ],
+      "id": "6cd311d6-b813-4560-ad5d-d8d078e4550c",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "### Intelligence",
+        "height": 192,
+        "width": 368
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        848
+      ],
+      "id": "252ef2b0-dae0-412c-8f0c-24af399e701e",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "### Data Schema",
+        "height": 192,
+        "width": 272
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        96,
+        848
+      ],
+      "id": "cace19cd-a7dd-421c-8f33-75059036ce80",
+      "name": "Sticky Note3"
     }
   ],
   "pinData": {},
@@ -239,7 +300,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "d2c76ab8-4346-436c-8014-dc0d3923e154",
+  "versionId": "cc5276d5-fb5f-4318-99c4-c02e924f20d4",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
