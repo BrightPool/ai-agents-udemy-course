@@ -2,17 +2,6 @@
   "name": "blog_writer_agent",
   "nodes": [
     {
-      "parameters": {},
-      "id": "1eb767ab-5662-4c2f-9700-c60137a902da",
-      "name": "Manual Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        272,
-        368
-      ]
-    },
-    {
       "parameters": {
         "content": "# 🚀 Blog Writer Agent\n\n**What it does:**\n• Generates complete marketing blog posts from a topic\n• Uses native n8n nodes (no custom code)\n• Simulates vector search with mock context\n• Creates outline → writes sections → assembles final blog\n\n**Output:** \n• Complete blog post with word count & reading time\n• Practical, no-hype tone\n• 4-6 structured sections",
         "height": 424,
@@ -24,8 +13,8 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -240,
-        304
+        -16,
+        352
       ]
     },
     {
@@ -40,8 +29,8 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -240,
-        752
+        -16,
+        800
       ]
     },
     {
@@ -56,8 +45,8 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -240,
-        1136
+        -16,
+        1184
       ]
     },
     {
@@ -107,7 +96,7 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        976,
+        912,
         624
       ],
       "id": "46b89d0d-7cc3-4769-a873-413b8151bc9f",
@@ -120,7 +109,7 @@
             {
               "id": "topic_field",
               "name": "topic",
-              "value": "={{ $json.topic || \"AI and machine learning trends\" }}",
+              "value": "={{ $json.Topic }}",
               "type": "string"
             }
           ]
@@ -132,7 +121,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        544,
+        576,
         368
       ]
     },
@@ -155,35 +144,6 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "context_field",
-              "name": "retrieved_context",
-              "value": "={{ [\"Previous company writing about \" + $('Set Topic').first().json.topic + \": This technology has shown significant impact in enterprise environments.\", \"From our research on \" + $json.section_title.toLowerCase() + \": Key considerations include scalability, user adoption, and ROI measurement.\", \"Company style guide: Use practical, no-hype tone. Focus on actionable insights and real-world applications.\", \"Related case study: Implementation typically takes 3-6 months with proper planning and stakeholder buy-in.\"] }}",
-              "type": "array"
-            },
-            {
-              "id": "section_index_field",
-              "name": "section_index",
-              "value": "={{ $itemIndex }}",
-              "type": "number"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "8e08e2a8-0208-4d00-bcf4-169da68363fe",
-      "name": "Add Vector Context",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1344,
-        368
-      ]
-    },
-    {
-      "parameters": {
         "modelId": {
           "__rl": true,
           "value": "gpt-4.1-mini",
@@ -193,7 +153,7 @@
         "messages": {
           "values": [
             {
-              "content": "=You are a marketing blog writer. Write a focused section with context from prior company writing.\n\nTopic: {{ $('Set Topic').first().json.topic }}\nSection Title: {{ $('Split Outline to Items').item.json.section_title }}\n\nRetrieved Context:\n{{ $json.retrieved_context.join('\\n- ') }}\n\nWrite a focused section (3-6 paragraphs, concise) for this blog post. Use the retrieved context for facts and maintain a practical, no-hype tone. Make it actionable and specific to the topic.\n\nReturn only the section content, no title or extra formatting."
+              "content": "=You are a marketing blog writer. Write a focused section with context from prior company writing.\n\nTopic: {{ $('Set Topic').first().json.topic }}\nSection Title: {{ $('Split Outline to Items').item.json.section_title }}\n\nUser's original query:\n{{ $('On form submission').item.json.Topic }}\n\nWrite a focused section (3-6 paragraphs, concise) for this blog post. Use the retrieved context for facts and maintain a practical, no-hype tone. Make it actionable and specific to the topic.\n\nReturn only the section content, no title or extra formatting."
             }
           ]
         },
@@ -207,7 +167,7 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.8,
       "position": [
-        1568,
+        1328,
         368
       ],
       "credentials": {
@@ -236,7 +196,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1920,
+        1680,
         368
       ]
     },
@@ -263,7 +223,7 @@
       "type": "n8n-nodes-base.itemLists",
       "typeVersion": 3.1,
       "position": [
-        2144,
+        1904,
         368
       ]
     },
@@ -292,7 +252,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2368,
+        2128,
         368
       ]
     },
@@ -339,7 +299,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2944,
+        2704,
         368
       ]
     },
@@ -366,7 +326,7 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.8,
       "position": [
-        2592,
+        2352,
         368
       ],
       "credentials": {
@@ -375,21 +335,50 @@
           "name": "OpenAi account"
         }
       }
+    },
+    {
+      "parameters": {
+        "formTitle": "Blog generator",
+        "formDescription": "Give a topic and get a blog.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Topic"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        384,
+        368
+      ],
+      "id": "ec21191f-7c3d-4936-b73d-46f969147778",
+      "name": "On form submission",
+      "webhookId": "419953c0-81bb-4248-be2b-084e7eae5369"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "=Here is your finished blog. (Word count: {{ $json.word_count }} | Estimated Reading Time: {{ $json.estimated_reading_time }})",
+        "completionMessage": "={{ $json.final_blog_post }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        2912,
+        368
+      ],
+      "id": "8eb61a27-d30c-4718-8b17-52abcea4f9f0",
+      "name": "Form",
+      "webhookId": "b2264175-6015-4ff2-b1d6-37dae0817d72"
     }
   ],
   "pinData": {},
   "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Set Topic",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "AI Agent - Generate Outline": {
       "main": [
         [
@@ -435,17 +424,6 @@
       ]
     },
     "Split Outline to Items": {
-      "main": [
-        [
-          {
-            "node": "Add Vector Context",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Add Vector Context": {
       "main": [
         [
           {
@@ -510,13 +488,35 @@
           }
         ]
       ]
+    },
+    "Final Output": {
+      "main": [
+        [
+          {
+            "node": "Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Set Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "4a84b7d0-413f-47a8-abec-923871689c46",
+  "versionId": "205b8b2b-1d9d-42ea-aab4-5ccebdc79d22",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
