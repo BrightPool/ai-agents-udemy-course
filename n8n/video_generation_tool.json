@@ -1,0 +1,655 @@
+{
+  "name": "video_generation_tool",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -48,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/veo3/requests/{{ $json.request_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "5f99c246-31f1-49a2-a0a1-8331ff98445d",
+      "name": "Get Url Video1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1952,
+        400
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SHt2E8uTCgUUOC7t",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "name": "Wait 30 sec1",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        336
+      ],
+      "id": "1b34c230-730a-4685-8460-5df2af7e524c",
+      "webhookId": "6f98bd43-afc5-4213-8705-700df322af9e"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "96b7fa7b-d175-4098-bec0-1063bf8cba60",
+              "leftValue": "={{ $json.allComplete }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF ALL Completed?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        336
+      ],
+      "id": "26b33767-88f9-462f-a1f3-f998437fca59"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/veo3",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{$json.prompt}}"
+            },
+            {
+              "name": "image_url",
+              "value": "={{ $json.url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3877a621-d359-4c87-8be5-7e9467747f54",
+      "name": "Create Video1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        864,
+        336
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SHt2E8uTCgUUOC7t",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json[\"status_url\"] }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "6498bb12-c584-4224-8183-647018a1ca63",
+      "name": "Get video status1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1328,
+        336
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SHt2E8uTCgUUOC7t",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allComplete = items.every(item => item.json.status === \"COMPLETED\");\n\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    allComplete\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        336
+      ],
+      "id": "3e91c835-704d-458c-969c-7a3d4ac30545",
+      "name": "Count completed1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Grab query from the first node explicitly\nconst queryString = $('When Executed by Another Workflow').first().json.query;\n\n// Parse the JSON string\nconst parsed = JSON.parse(queryString);\n\n// Extract storyboard array, filter for pub- URLs, and return as items\nreturn parsed.storyboard\n  .filter(item => item.url.includes(\"pub-\"))\n  .map(item => ({\n    json: {\n      url: item.url,\n      stage: item.stage,\n      prompt: item.prompt\n    }\n  }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        272
+      ],
+      "id": "1056a627-d4e1-4b3d-b44b-3eff83a2f23b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "batchSize": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        560,
+        240
+      ],
+      "id": "aa5560d0-da0a-470f-acc1-c2de94bd6a6e",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "video.url"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        864,
+        144
+      ],
+      "id": "8e06dfff-2686-40dc-9ac4-32929b40588f",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        112
+      ],
+      "id": "175d3b8b-1ef5-4506-8985-8c6100e71ba4",
+      "name": "Get File Video1"
+    },
+    {
+      "parameters": {
+        "command": "=ffmpeg -f concat -safe 0 -i /tmp/n8n/{{$execution.id}}/concat_list.txt -c copy /tmp/n8n/{{$execution.id}}/output.mp4"
+      },
+      "id": "f74eb2eb-fc1c-4854-a5c3-c59c3705a74b",
+      "name": "Merge Videos with FFmpeg1",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2784,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/tmp/n8n/{{$execution.id}}/{{$binary.data.fileName}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        112
+      ],
+      "id": "79844688-068a-4c07-94d1-d85896c952ef",
+      "name": "Write Files To Disk For FFmpeg1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "url",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        112
+      ],
+      "id": "a91d1486-bb05-467a-a706-fe510536f238",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the execution ID from n8n\nconst executionId = $execution.id;\n\n// Build concat list with absolute paths in /tmp/n8n/{executionId}\nconst concatLines = items.map(item => {\n  const fileName = item.binary.data.fileName;\n  return `file '/tmp/n8n/${executionId}/${fileName}'`;\n});\n\n// Join with newlines\nconst concatFile = concatLines.join('\\n');\n\n// Return as JSON so \"Convert to File\" can use it\nreturn [{\n  json: {\n    concatFile\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        112
+      ],
+      "id": "e02d89d3-3088-4589-b7d8-d52ef61443d4",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/tmp/n8n/{{$execution.id}}/concat_list.txt",
+        "options": {
+          "append": false
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        112
+      ],
+      "id": "15312250-38bb-4ffc-a55e-0191f095a0e7",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "concatFile",
+        "options": {
+          "fileName": "=/tmp/n8n/{{$execution.id}}/concat_list.txt"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2112,
+        112
+      ],
+      "id": "c06abb8d-9b85-4b0f-bdf7-19c2fa5376b3",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "command": "=ls -l /tmp/n8n/{{$execution.id}}/concat_list.txt || echo \"NOT_FOUND\"\necho \"-----\"\ncat /tmp/n8n/{{$execution.id}}/concat_list.txt || echo \"CANT_CAT\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2544,
+        112
+      ],
+      "id": "22e4a4c5-5efa-4739-94c8-ac6f0ed307cc",
+      "name": "Verify the file really exist"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item;\n\n// Pull bucket + fileName directly from Save Image node JSON\nconst bucket = item.json.bucket || \"n8n-images\";\nconst filename = item.json.fileName || `${$execution.id}`;\n\n// Make it URL-safe\nconst urlSafeFilename = encodeURIComponent(filename);\n\n// Build the public R2 URL\nconst baseUrl = \"https://pub-4d0fa4dcae024134a92f78452a920d99.r2.dev\";\nconst fullUrl = `${baseUrl}/${urlSafeFilename}`;\n\nreturn {\n  bucket,\n  filename,\n  url: fullUrl\n};\n"
+      },
+      "id": "70e63d57-2759-41ab-8255-2fd8557013f0",
+      "name": "Get URL",
+      "position": [
+        3552,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "n8n-images",
+        "fileName": "={{ $execution.id }}",
+        "additionalFields": {}
+      },
+      "id": "cf6c25aa-f1fa-4fb6-82bf-7d9a75b77116",
+      "name": "Save video",
+      "position": [
+        3312,
+        112
+      ],
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "credentials": {
+        "s3": {
+          "id": "HTSXiGZxjjSKcfcw",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "=mkdir -p /tmp/n8n/{{$execution.id}}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        128,
+        272
+      ],
+      "id": "6140f28b-d778-4c86-b3fd-b30e649dd2eb",
+      "name": "create directory"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=/tmp/n8n/{{$execution.id}}/output.mp4",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        3040,
+        112
+      ],
+      "id": "197854a8-2d74-4b8f-907c-780ac805ac21",
+      "name": "Read/Write Files from Disk2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "create directory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30 sec1": {
+      "main": [
+        [
+          {
+            "node": "Get video status1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF ALL Completed?1": {
+      "main": [
+        [
+          {
+            "node": "Get Url Video1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 30 sec1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Video1": {
+      "main": [
+        [
+          {
+            "node": "Wait 30 sec1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get video status1": {
+      "main": [
+        [
+          {
+            "node": "Count completed1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count completed1": {
+      "main": [
+        [
+          {
+            "node": "IF ALL Completed?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Video1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Url Video1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File Video1": {
+      "main": [
+        [
+          {
+            "node": "Write Files To Disk For FFmpeg1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Videos with FFmpeg1": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Files To Disk For FFmpeg1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Get File Video1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Verify the file really exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify the file really exist": {
+      "main": [
+        [
+          {
+            "node": "Merge Videos with FFmpeg1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save video": {
+      "main": [
+        [
+          {
+            "node": "Get URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create directory": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk2": {
+      "main": [
+        [
+          {
+            "node": "Save video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1fbb4e2e-ae20-472a-9461-784402a06e67",
+  "meta": {
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "laxRJaX9I8yjzNuH",
+  "tags": []
+}

@@ -1,0 +1,496 @@
+{
+  "name": "video_generation_agent",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "# creative",
+        "height": 796,
+        "width": 1456,
+        "color": 5
+      },
+      "id": "a1e60551-4186-4b82-b8ef-46744bddc7e0",
+      "name": "Sticky Note11",
+      "position": [
+        -272,
+        -144
+      ],
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "command": "=mkdir -p /tmp/n8n/{{ $execution.id }}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -16
+      ],
+      "id": "84787f26-5731-4b43-88c4-39215b8466c4",
+      "name": "Create directory"
+    },
+    {
+      "parameters": {
+        "formTitle": "Video Concept",
+        "formDescription": "Give a concept, get a video.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Concept",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Product",
+              "placeholder": "Describe the product. ",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        -16
+      ],
+      "id": "5fd9a369-f468-4229-95ac-7370783be767",
+      "name": "On form submission",
+      "webhookId": "5cb251e8-a5f7-4540-b89b-3ebcf81606e9"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"video\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"stage\": {\n          \"type\": \"string\",\n          \"enum\": [\"final\"],\n          \"description\": \"Indicates this is the final stitched video\"\n        },\n        \"url\": {\n          \"type\": \"string\",\n          \"format\": \"uri\",\n          \"description\": \"The URL of the final stitched video\"\n        },\n        \"description\": {\n          \"type\": \"string\",\n          \"description\": \"Optional description of the video content\"\n        }\n      },\n      \"required\": [\"url\"]\n    }\n  },\n  \"required\": [\"video\"]\n}\n",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        912,
+        272
+      ],
+      "id": "8d99da4c-3784-4bf5-bf90-e349c6739dd2",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=concept: {{ $('On form submission').item.json.Concept }}\nproduct: {{ $('On form submission').item.json.Product }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a product advertisement creative director. Use the following tools to generate 3 videos to be joined together downstream. \n\nTools:\n- story_board_gen\n- image_gen\n- video_gen\n\nWorkflow: \nCome up with a creative brief → Create storyboard → generate image → generate video → send final video url downstream for display in form ending\n\nOutputs:\n- action: {generate_creative_brief, create_story_board, generate_image, generate video}\n- tool_result: JSON string from the tool call (may be empty for answer_direct)\n\nImportant:\n- When generating images, you must generate one at a time. By sending one unique storyboard image prompt at a time.  \n- When calling the video gen tool, you must send it the 3 urls as a JSON object, along with the prompts we used to generate them. (see below example for the format)\n{\n  \"storyboard\": [\n    {\n      \"stage\": \"beginning\",\n      \"url\": \"https://...\",\n      \"prompt\": \"image of .....\"\n    },\n    {\n      \"stage\": \"middle\",\n      \"url\": \"https://...\",\n      \"prompt\": \"image of .....\"\n    },\n    {\n      \"stage\": \"end\",\n      \"url\": \"https://...\",\n      \"prompt\": \"image of .....\"\n    }\n  ]\n}\n- When you receive the final video URL, wrap it in a JSON object and send it downstream.\nThe JSON must include the field url, which contains the video URL.\nExample format:\n{\n  \"video\": {\n    \"stage\": \"final\",\n    \"url\": \"https://my-bucket.s3.amazonaws.com/output/final_video.mp4\",\n    \"description\": \"The stitched video created from the storyboard images\"\n  }\n}\n\n "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        -16
+      ],
+      "id": "1afc4ecc-8e8f-4dfc-b992-acfde7d213af",
+      "name": "AI Agent: Buying Situation"
+    },
+    {
+      "parameters": {
+        "content": "### Image Gen",
+        "height": 192,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        384,
+        240
+      ],
+      "id": "fc748d5f-3aa4-45e9-8e29-a19c8643c543",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "### Video Gen",
+        "height": 176,
+        "width": 208,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        640,
+        240
+      ],
+      "id": "9049f291-b2b7-4f98-9b11-dcf5e6a8bf8a",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Tools",
+        "height": 448,
+        "width": 864
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        192
+      ],
+      "id": "6cfc6cb3-8350-44f7-b187-72480e560207",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Intelligence",
+        "height": 224,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        192
+      ],
+      "id": "32c675c3-c2e5-4bb3-be5c-8ae7d3251815",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Data Schema",
+        "height": 352,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        896,
+        192
+      ],
+      "id": "f26070e7-1741-438b-bcef-9c7e55bee309",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "description": "You are a image generation tool. You take incoming advertisement image prompts and turn them into images using Nano Banana. ",
+        "workflowId": {
+          "__rl": true,
+          "value": "WbojFEc16TZdvABm",
+          "mode": "list",
+          "cachedResultName": "image_generation_tool"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        304
+      ],
+      "id": "7172dc89-2550-44ff-b155-c69cdf007d9d",
+      "name": "image_generation"
+    },
+    {
+      "parameters": {
+        "description": "You are a video generation tool. You take incoming advertisement images and their prompts and turn them into images using video 3. ",
+        "workflowId": {
+          "__rl": true,
+          "value": "laxRJaX9I8yjzNuH",
+          "mode": "list",
+          "cachedResultName": "video_generation_tool"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        288
+      ],
+      "id": "b8d060ea-f25c-47e8-83c9-fa50ec281f6d",
+      "name": "video_generation"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}{{ $now }}",
+        "contextWindowLength": 50
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -112,
+        272
+      ],
+      "id": "5d98ba91-66a0-44f3-a22d-ebdc89614f9b",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -224,
+        272
+      ],
+      "id": "6bad0189-378c-4f2d-ad4a-d44a4c0d029d",
+      "name": "gpt-5-mini",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### Story Board",
+        "height": 368,
+        "width": 336,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        32,
+        240
+      ],
+      "id": "ad2399ba-e6e4-43ac-beee-1c1c8478eb04",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        64,
+        464
+      ],
+      "id": "501fd341-72a1-4db3-9ad6-a08ec4f6b6eb",
+      "name": "gemini-2.5-flash",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "V6o4bVqjUJirOGZu",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "You are a storyboard tool. You take incoming advertisement briefs and turn them into 3 image prompts. ",
+        "text": "={{ $fromAI(\"advertisement_brief\") }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a product advertisement creative agent. You take incoming advertisement brief and turn them into a storyboard containing 3 image prompts (beginning, middle, end).\n\nYou must respond only with a valid JSON object in the following format, with no additional text outside the JSON:\n\nExample\n{\n  \"storyboard\": [\n    {\n      \"stage\": \"beginning\",\n      \"prompt\": \"...\"\n    },\n    {\n      \"stage\": \"middle\",\n      \"prompt\": \"...\"\n    },\n    {\n      \"stage\": \"end\",\n      \"prompt\": \"...\"\n    }\n  ]\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        288
+      ],
+      "id": "8ee1962a-e9f6-436c-a5fe-3420a33dcd99",
+      "name": "story_board_gen"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Here is your video concept",
+        "completionMessage": "={{ $json.output.video.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        560,
+        -16
+      ],
+      "id": "592ff473-e56f-4fb8-8f02-337ca93720db",
+      "name": "Form",
+      "webhookId": "7910d961-f62f-4db9-a965-9ae98de73e1a"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        912,
+        416
+      ],
+      "id": "7a44b35c-5d8c-4895-8ba7-9da17004af94",
+      "name": "gpt-4.1-mini",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Create directory": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Buying Situation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Create directory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent: Buying Situation",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Buying Situation": {
+      "main": [
+        [
+          {
+            "node": "Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "image_generation": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Buying Situation",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "video_generation": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Buying Situation",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent: Buying Situation",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gpt-5-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Buying Situation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gemini-2.5-flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "story_board_gen",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "story_board_gen": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Buying Situation",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gpt-4.1-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b67101f5-71f3-4140-9b1b-ac6ef3a04620",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "U06ZYLO2ZuAgTRWI",
+  "tags": []
+}
