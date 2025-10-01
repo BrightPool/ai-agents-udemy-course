@@ -151,7 +151,7 @@ STYLE:
     # Derive the user's textual request for relevance filtering
     user_request: str | None = None
     # Try to extract from the latest HumanMessage
-    for msg in reversed(state["messages"]):
+    for msg in reversed(state.get("messages", [])):
         if isinstance(msg, HumanMessage):
             user_request = msg.content if isinstance(msg.content, str) else None
             break
@@ -167,7 +167,7 @@ STYLE:
         }
 
     # Invoke LLM with tools
-    response = llm_with_tools.invoke([system_message] + state["messages"])
+    response = llm_with_tools.invoke([system_message] + state.get("messages", []))
 
     return {"messages": [response]}
 
@@ -207,7 +207,7 @@ def assemble_node(state: BlogAgentState) -> Dict[str, Any]:
 
 def route_after_tools(state: BlogAgentState) -> Literal["assemble_node", "llm_call"]:
     """Route to assembly node if assemble_blog tool was called, otherwise back to LLM."""
-    messages = state["messages"]
+    messages = state.get("messages", [])
     last_message = messages[-1]
 
     # Check if the last message is a tool message from assemble_blog
@@ -243,7 +243,7 @@ def should_continue(state: BlogAgentState) -> Literal["tool_node", END]:  # type
     The decision is based on whether the last AIMessage contains tool_calls,
     which indicates the LLM wants to perform an action rather than respond directly.
     """
-    messages = state["messages"]
+    messages = state.get("messages", [])
     last_message = messages[-1]
 
     # If the LLM (AIMessage) makes a tool call, then perform an action
