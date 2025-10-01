@@ -9,11 +9,10 @@ A ReAct-style marketing blog writer that:
 
 from __future__ import annotations
 
+import json
 import os
-from pathlib import Path
 from typing import Any, Dict, Literal, TypedDict
 
-from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.utils import convert_to_secret_str
 from langchain_openai import ChatOpenAI
@@ -21,7 +20,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.runtime import Runtime
 
-from agent.state import BlogAgentState
+from agent.models import BlogAgentState
 from agent.tools import (
     assemble_blog,
     change_outline,
@@ -29,22 +28,6 @@ from agent.tools import (
     search_context,
     write_section,
 )
-
-# Load environment variables from .env file if it exists
-# This allows developers to run the graph directly with python-dotenv support
-_current_file = Path(__file__)
-_project_root = _current_file.parent.parent.parent  # Navigate to project root
-_env_file = _project_root / ".env"
-
-if _env_file.exists():
-    load_dotenv(_env_file)
-    # Note: Using print here for initialization feedback - consider using logging in production
-    print(f"✅ Loaded environment variables from {_env_file}")  # noqa: T201
-else:
-    print(f"ℹ️  No .env file found at {_env_file}")  # noqa: T201
-    print(  # noqa: T201
-        "   Environment variables will be loaded from system environment or runtime context"
-    )
 
 
 class Context(TypedDict):
@@ -189,6 +172,8 @@ STYLE:
     return {"messages": [response]}
 
 
+# Create the tool node using LangGraph's prebuilt ToolNode
+# This automatically handles Command objects from tools
 tool_node = ToolNode(
     tools=[
         search_context,
@@ -198,6 +183,47 @@ tool_node = ToolNode(
         assemble_blog,
     ]
 )
+
+
+def assemble_node(state: BlogAgentState) -> Dict[str, Any]:
+    """Assemble the final blog from outline and sections.
+
+    This node is triggered after the assemble_blog tool is called.
+    It has access to the full state to compile the blog.
+    """
+    outline = state.get("outline", [])
+    sections = state.get("sections", {})
+
+    parts: list[str] = []
+    for title in outline:
+        body = sections.get(title, "")
+        if body:
+            parts.append(f"# {title}\n\n{body}".strip())
+
+    final_blog = "\n\n".join([p for p in parts if p])
+
+    return {"final_blog": final_blog}
+
+
+def route_after_tools(state: BlogAgentState) -> Literal["assemble_node", "llm_call"]:
+    """Route to assembly node if assemble_blog tool was called, otherwise back to LLM."""
+    messages = state["messages"]
+    last_message = messages[-1]
+
+    # Check if the last message is a tool message from assemble_blog
+    if hasattr(last_message, "content"):
+        try:
+            content = (
+                json.loads(last_message.content)
+                if isinstance(last_message.content, str)
+                else last_message.content
+            )
+            if isinstance(content, dict) and content.get("tool") == "assemble_blog":
+                return "assemble_node"
+        except (json.JSONDecodeError, AttributeError):
+            pass
+
+    return "llm_call"
 
 
 def should_continue(state: BlogAgentState) -> Literal["tool_node", END]:  # type: ignore
@@ -235,9 +261,13 @@ graph = (
     StateGraph(BlogAgentState, context_schema=Context)
     .add_node("llm_call", llm_call)
     .add_node("tool_node", tool_node)
+    .add_node("assemble_node", assemble_node)
     # Add edges to connect nodes
     .add_edge(START, "llm_call")
     .add_conditional_edges("llm_call", should_continue, ["tool_node", END])
-    .add_edge("tool_node", "llm_call")
+    .add_conditional_edges(
+        "tool_node", route_after_tools, ["assemble_node", "llm_call"]
+    )
+    .add_edge("assemble_node", "llm_call")
     .compile(name="Marketing Blog Agent")
 )

@@ -8,8 +8,7 @@ from __future__ import annotations
 
 import os
 import random
-from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 
@@ -200,23 +199,3 @@ def _search(query: str, k: int = 3) -> list[dict]:
             }
         )
     return results
-
-
-# --- In-memory working state ---
-@dataclass
-class BlogStateMemory:
-    """In-memory storage for blog writing state."""
-
-    topic: Optional[str] = None
-    outline: List[str] = None  # type: ignore[assignment]
-    sections: dict[str, str] = None  # type: ignore[assignment]
-
-    def __post_init__(self) -> None:  # noqa: D401
-        """Initialize empty lists if None."""
-        if self.outline is None:
-            self.outline = []
-        if self.sections is None:
-            self.sections = {}
-
-
-_BLOG_STATE = BlogStateMemory()
