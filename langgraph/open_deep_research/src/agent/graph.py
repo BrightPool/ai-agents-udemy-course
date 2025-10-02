@@ -25,16 +25,16 @@ from langgraph.types import Command
 from agent.configuration import (
     Configuration,
 )
+from agent.models import (
+    AgentState,
+    ClarifyWithUser,
+    ResearchQuestion,
+)
 from agent.prompts import (
     clarify_with_user_instructions,
     final_report_generation_prompt,
     generate_research_queries_prompt,
     transform_messages_into_research_topic_prompt,
-)
-from agent.state import (
-    AgentState,
-    ClarifyWithUser,
-    ResearchQuestion,
 )
 from agent.utils import (
     get_api_key_for_model,
@@ -433,36 +433,34 @@ Key Design Principles:
 """
 
 # Create the main research workflow with efficient state management
-deep_researcher_builder = StateGraph(AgentState)
+graph = StateGraph(AgentState)
 
 # Add core workflow nodes - simplified DAG phases
-deep_researcher_builder.add_node(
+graph.add_node(
     "clarify_with_user", clarify_with_user
 )  # PHASE 1: Query analysis and clarification
-deep_researcher_builder.add_node(
+graph.add_node(
     "write_research_brief", write_research_brief
 )  # PHASE 2: Research planning and brief generation
-deep_researcher_builder.add_node(
+graph.add_node(
     "generate_research_queries", generate_research_queries
 )  # PHASE 3: Generate concrete queries
-deep_researcher_builder.add_node("run_queries", run_queries)  # PHASE 4: Execute queries
-deep_researcher_builder.add_node(
+graph.add_node("run_queries", run_queries)  # PHASE 4: Execute queries
+graph.add_node(
     "final_report_generation", final_report_generation
 )  # PHASE 5: Final report synthesis and formatting
 
 # Define the main workflow sequence - linear progression through research phases
-deep_researcher_builder.add_edge(
-    START, "clarify_with_user"
-)  # Begin with user query analysis
-deep_researcher_builder.add_edge("clarify_with_user", END)
-deep_researcher_builder.add_edge("write_research_brief", "generate_research_queries")
-deep_researcher_builder.add_edge("generate_research_queries", "run_queries")
-deep_researcher_builder.add_edge(
+graph.add_edge(START, "clarify_with_user")  # Begin with user query analysis
+graph.add_edge("clarify_with_user", END)
+graph.add_edge("write_research_brief", "generate_research_queries")
+graph.add_edge("generate_research_queries", "run_queries")
+graph.add_edge(
     "run_queries", "final_report_generation"
 )  # Query execution triggers report generation
-deep_researcher_builder.add_edge(
-    "final_report_generation", END
-)  # Final report ends the workflow
+graph.add_edge("final_report_generation", END)  # Final report ends the workflow
 
 # Compile the complete research orchestration system
-deep_researcher = deep_researcher_builder.compile()
+deep_researcher = graph.compile()
+
+__all__ = ["graph"]
