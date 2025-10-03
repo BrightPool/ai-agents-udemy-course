@@ -147,11 +147,27 @@ async def agentic_step(
         analyze_video_quality_tool,
     ]
 
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        google_api_key=runtime.context.google_api_key,
-        temperature=0.6,
-    ).bind_tools(tools)
+    llm = (
+        ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=runtime.context.google_api_key,
+            temperature=0.6,
+            max_retries=3,  # Built-in retry for API calls
+        )
+        .bind_tools(tools)
+        .with_retry(
+            retry_if_exception_type=(
+                Exception,  # Retry on all exceptions (network, rate limit, etc.)
+            ),
+            wait_exponential_jitter=True,  # Add jitter to avoid thundering herd
+            stop_after_attempt=3,  # Try up to 3 times total
+            exponential_jitter_params={
+                "initial": 1,  # Start with 1 second delay
+                "max": 10,  # Max 10 seconds between retries
+                "exp_base": 2,  # Exponential backoff base
+            },
+        )
+    )
 
     # Continue the conversation based on state.messages
     prior = list(state.messages or [])
@@ -180,20 +196,18 @@ async def agentic_step(
 
     ai_msg = await llm.ainvoke(prior)
 
+    # Increment iteration counter
     next_iter = (state.current_iteration or 0) + 1
-    max_reached = next_iter >= (runtime.context.max_iterations or 1)
 
     return {
         "messages": [ai_msg],
         "current_iteration": next_iter,
-        "max_iterations_reached": max_reached,
+        "max_iterations_reached": False,  # Never stop iterations automatically
     }
 
 
 def route_after_agent(state: VideoGenerationState) -> str:
-    """Route to tools if AI requested tool calls, or finalize on stopping conditions."""
-    if getattr(state, "max_iterations_reached", False):
-        return "end"
+    """Route to tools if AI requested tool calls, or end when agent has no more actions."""
     if not state.messages:
         return "tools"
     last = state.messages[-1]
