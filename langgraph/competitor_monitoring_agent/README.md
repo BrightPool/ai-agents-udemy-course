@@ -77,6 +77,7 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/competitors
 ### Authentication Strategy
 
 The agent prioritizes **public access** for Google Sheets:
+
 1. **First**: Attempts CSV export URL (no authentication required)
 2. **Fallback**: Uses pygsheets with service account credentials
 
@@ -139,8 +140,34 @@ This approach allows the agent to work with public sheets without requiring Goog
 
 7. **Execute the agent**
 
-   - **Via LangGraph Studio**: Use the “competitor_monitoring” graph, provide optional overrides (e.g., alternative CSV URL), and click *Execute*.
+   - **Via LangGraph Studio**: Use the “competitor*monitoring” graph, provide optional overrides (e.g., alternative CSV URL), and click \_Execute*.
    - **Via script**: `uv run python run_graph.py` streams the run and prints state transitions.
+
+## Database Management
+
+### Reset the Database
+
+To clear all stored competitor URLs (useful for testing or starting fresh):
+
+```bash
+# One-line command to truncate the table
+PGPASSWORD=postgres psql -h localhost -U postgres -d competitors -c "TRUNCATE TABLE competitor_urls;"
+```
+
+### Interactive Database Access
+
+To explore the database interactively:
+
+```bash
+# Connect to the database
+PGPASSWORD=postgres psql -h localhost -U postgres -d competitors
+
+# Once connected, you can run SQL commands:
+# \dt                           -- List all tables
+# SELECT * FROM competitor_urls; -- View all stored URLs
+# TRUNCATE TABLE competitor_urls; -- Delete all rows
+# \q                            -- Exit
+```
 
 ## Architecture & Key Decisions
 
@@ -159,28 +186,33 @@ The agent follows a **LangGraph state machine** pattern with 7 sequential nodes:
 ### 🔧 **Key Implementation Decisions**
 
 #### **Parallel Processing Strategy**
+
 - **SPR Generation**: Uses `llm.with_structured_output(SPRDocument)` + `.batch()` for parallel processing
 - **Summary Generation**: Uses `llm.with_structured_output(SummaryText)` + `.batch()` for parallel processing
 - **Benefit**: Dramatically faster execution, especially with multiple articles
 - **Configurable Limit**: `MAX_LINKS_TO_PROCESS` prevents excessive API costs
 
 #### **Authentication Hierarchy**
+
 - **Primary**: CSV export URLs (no auth required) for public sheets
 - **Fallback**: pygsheets with service account credentials
 - **Benefit**: Works with public sheets without Google Cloud setup
 - **Flexibility**: Still supports private sheets when needed
 
 #### **Data Persistence Strategy**
+
 - **Postgres**: `competitor_urls` table with `ON CONFLICT DO NOTHING`
 - **Deduping**: Only processes newly discovered URLs
 - **Benefit**: Efficient diffing prevents reprocessing existing content
 
 #### **Error Handling & Resilience**
+
 - **Structured Outputs**: Pydantic models ensure type safety and validation
 - **Graceful Degradation**: Failed individual articles don't stop the pipeline
 - **Warnings Collection**: All issues logged in final report for debugging
 
 #### **Configuration Philosophy**
+
 - **Environment-Driven**: All settings via `.env` file
 - **Sensible Defaults**: Works out-of-the-box with minimal setup
 - **KISS Principle**: Removed complex n8n-specific configurations
@@ -209,17 +241,20 @@ The agent follows a **LangGraph state machine** pattern with 7 sequential nodes:
 ## Extending the Agent
 
 ### 🚀 **Performance Tuning**
+
 - **Scale Processing**: Increase `MAX_LINKS_TO_PROCESS` for larger batches (monitor API costs)
 - **Model Selection**: Upgrade to `gpt-4o` for higher quality outputs at increased cost
 - **Batch Optimization**: Adjust batch sizes in `utils.batch()` calls for your infrastructure
 
 ### 🔧 **Customization Options**
+
 - **Alternative Data Sources**: Replace Google Sheets with Airtable, Notion, or custom APIs
 - **Database Flexibility**: Point `DATABASE_URL` at production databases or cloud services
 - **Email Integration**: Replace `write_email_to_outbox()` with SMTP, SendGrid, or other services
 - **Model Customization**: Modify prompts in `graph.py` or extend Pydantic models in `models.py`
 
 ### 📈 **Production Deployment**
+
 - **Monitoring**: Add logging/metrics for production observability
 - **Caching**: Implement Redis for faster duplicate detection
 - **Rate Limiting**: Add delays between requests to respect site policies
