@@ -1,0 +1,10 @@
+# Use the official Postgres 16 image
+FROM postgres:16
+
+# Environment variables for automatic database setup
+ENV POSTGRES_DB=agentic_mastery
+ENV POSTGRES_USER=agent3
+ENV POSTGRES_PASSWORD=IsThisRealLife?
+
+# Copy initialization SQL script into the container
+COPY init.sql /docker-entrypoint-initdb.d/

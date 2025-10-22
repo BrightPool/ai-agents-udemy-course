@@ -1,0 +1,543 @@
+{
+  "name": "expressions",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a66b9688-2a93-4923-aecd-6293d8ef69da",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "760b2ee1-c89d-4d1b-b340-bc7f490d3583",
+              "name": "first_name",
+              "value": "=rhys",
+              "type": "string"
+            },
+            {
+              "id": "b42af0d9-fce7-4133-860b-5da5bc273490",
+              "name": "sir_name",
+              "value": "fisher",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "e73e4bbb-39cb-4f5f-b62f-b8b174fda180",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ea863182-233b-46d7-afca-e70d28f85ebe",
+              "name": "full_name",
+              "value": "={{ $json.first_name }} {{ $json.sir_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "f1a46a2d-ca13-4e65-b80a-3ac32bb177af",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "content": "## Basic reference\n\n**Pull values from earlier nodes**",
+        "height": 128
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        0
+      ],
+      "id": "3fe81d61-8740-43c9-8b9d-4a335dbfbeb1",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## String concatenation:\n\n**Build dynamic messages**",
+        "height": 128
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        192
+      ],
+      "id": "08d2564c-6ea2-4c80-a2b2-3e69716bd1fa",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Accessing Nested or Array Data:\n\n**Work with deeper structures.**",
+        "height": 128
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        400
+      ],
+      "id": "932e587b-75e2-4554-8b7d-07a8bc1090b7",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"user\": {\n    \"id\": 123,\n    \"profile\": {\n      \"first_name\": \"Aisha\",\n      \"last_name\": \"Kumar\",\n      \"email\": \"aisha.kumar@example.com\",\n      \"location\": {\n        \"city\": \"Bangalore\",\n        \"country\": \"India\"\n      }\n    },\n    \"roles\": [\n      {\n        \"name\": \"admin\",\n        \"active\": true\n      },\n      {\n        \"name\": \"editor\",\n        \"active\": false\n      }\n    ]\n  },\n  \"order\": {\n    \"id\": \"ORD-9087\",\n    \"items\": [\n      { \"name\": \"Keyboard\", \"price\": 49.99 },\n      { \"name\": \"Mouse\", \"price\": 19.99 }\n    ]\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        416
+      ],
+      "id": "117cbe69-a2ef-46c0-ba79-43f4eb2a200b",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f6489bc6-ebb4-4748-aae9-2df56e087418",
+              "name": "Get email",
+              "value": "={{$json[\"user\"][\"profile\"][\"email\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "2e47cc39-42ed-405d-8e75-ddea1ac0f911",
+              "name": "Get city",
+              "value": "={{$json.user.profile.location.city}}",
+              "type": "string"
+            },
+            {
+              "id": "51cec008-0d14-4bec-a754-0bd9445347f6",
+              "name": "Get first item name",
+              "value": "={{$json.order.items[0].name}}",
+              "type": "string"
+            },
+            {
+              "id": "94be4db3-b706-4893-9a88-42e9731389aa",
+              "name": "Get second item price",
+              "value": "={{$json.order.items[1].price}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        416
+      ],
+      "id": "159a696d-99a5-4ac8-803f-0a33bf112666",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "content": "## Doing Calculations or Logic:\n\n**A Set node calculating totals.**",
+        "height": 128
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        608
+      ],
+      "id": "0efeced9-e0c8-4b7e-a21f-c1e8e3f5a5d3",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"item\": \"Keyboard\",\n  \"price\": 49.99,\n  \"quantity\": 2,\n  \"status\": \"paid\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        624
+      ],
+      "id": "7a938288-5ea9-4c9d-8d6d-0b04d3c95f8a",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5c6a6c02-267c-4d79-bdd4-330e9a7d20bb",
+              "name": "Total",
+              "value": "={{ $json.price * $json.quantity }}",
+              "type": "string"
+            },
+            {
+              "id": "62c426dd-4c4d-4900-affc-e7f4700e85a4",
+              "name": "Discounted total (10% off)",
+              "value": "={{ $json.price * $json.quantity * 0.9 }}",
+              "type": "string"
+            },
+            {
+              "id": "083feb08-532b-4d84-a6d8-42ac12d6be12",
+              "name": "Payment label",
+              "value": "={{ $json.status === \"paid\" ? \"✅ Paid\" : \"❌ Unpaid\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        624
+      ],
+      "id": "e499a759-421d-4d7a-8d5d-67e44bd7f809",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "content": "## Working with Dates:\n\n**Transform and compute dates.**"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        816
+      ],
+      "id": "32a6f05e-fb27-4dd3-9077-a43fc1eda93c",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5eb5511d-ddd8-4cae-8428-48065807e7e0",
+              "name": "Current Timestamp",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "96607c17-1a17-4d2b-b702-303f4289ce93",
+              "name": "Readable Date",
+              "value": "={{ new Date().toLocaleString() }}",
+              "type": "string"
+            },
+            {
+              "id": "e551b159-7dc1-472d-863e-3e50a4f48323",
+              "name": "Due Date (3 days from now)",
+              "value": "={{ $now.plus({ days: 3 }).toISODate() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        848
+      ],
+      "id": "c4f6a9db-cdd2-4384-bb5e-e89113d01c25",
+      "name": "Edit Fields6"
+    },
+    {
+      "parameters": {
+        "content": "## Functions\n\n**Use JavaScript functions right inside expressions for custom logic.**"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        1024
+      ],
+      "id": "2e91616a-bfa0-4eff-800d-6e81be45be48",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"product\": \"Keyboard\",\n  \"price\": 49.99,\n  \"taxRate\": 0.2\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        1056
+      ],
+      "id": "c747f050-ac19-4ba8-839f-b1ed9f8db573",
+      "name": "Edit Fields7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "56a9e97a-054f-4a39-bc4d-3bf9568fdd36",
+              "name": "Price with tax (multi-line)",
+              "value": "={{ (() => { const price = $json.price; const tax = $json.taxRate; const total = price + (price * tax); return total.toFixed(2); })() }}",
+              "type": "string"
+            },
+            {
+              "id": "13f3f1d7-452d-4bcc-ae00-d8c7cdcfe5dd",
+              "name": "Category label",
+              "value": "={{ (() => { return $json.price > 100 ? \"💎 Premium\" : \"💡 Standard\"; })() }}",
+              "type": "string"
+            },
+            {
+              "id": "2a4e6e12-7009-40c5-a73e-eb9004b4b3c0",
+              "name": "Price Category with Ranges",
+              "value": "={{ (() => {\n  const price = $json.price;\n  if (price > 100) return \"💎 Premium\";\n  if (price > 50) return \"✨ Mid-range\";\n  return \"💡 Budget\";\n})() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        1056
+      ],
+      "id": "4ad71896-e9c9-4add-88af-f4707c4ec32e",
+      "name": "Edit Fields8"
+    },
+    {
+      "parameters": {
+        "content": "## Combine Everything\n\n**Mix multiple techniques to create powerful expressions.**"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        1248
+      ],
+      "id": "9d54b019-95d2-466b-ae5e-f9e5e93c737e",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"name\": \"Aisha\",\n  \"price\": 49.99,\n  \"qty\": 2\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        1264
+      ],
+      "id": "498bdc36-913f-4adf-88b6-ea8a14cadf0a",
+      "name": "Edit Fields9"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2f55ea86-758d-440d-bd72-7235aab2d1eb",
+              "name": "message",
+              "value": "={{ `Hi ${$json.name}, your total is $${($json.price * $json.qty).toFixed(2)} due by ${$now.plus({ days: 2 }).toISODate()}.` }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        1264
+      ],
+      "id": "d133fe93-ece0-40de-80a7-3f6e22006ff7",
+      "name": "Edit Fields10"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b533aab2-a60e-4b4b-8aa5-ad6da17c2fdc",
+              "name": "email_header",
+              "value": "=Hi {{ `${$json[\"first_name\"]} ${$json[\"sir_name\"]}` }}",
+              "type": "string"
+            },
+            {
+              "id": "af97de74-b23d-424b-b806-2fcee678cd14",
+              "name": "email_body",
+              "value": "=If you want to handle missing data safely, add trim like this. \n\n{{ `${$json?.first_name ?? \"\"} ${$json?.sir_name ?? \"\"}`.trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        192
+      ],
+      "id": "70d9d91f-871f-461b-8ec1-6d7ffd2bd9a2",
+      "name": "Edit Fields11"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields6",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields7",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields7": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields9": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields11": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a3d931f4-6a5f-4f99-a129-0e89de7ce0b4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "x8XH2zwfr1sUa28d",
+  "tags": [
+    {
+      "createdAt": "2025-10-22T10:08:08.425Z",
+      "updatedAt": "2025-10-22T10:08:08.425Z",
+      "id": "OUeFbF4k1iaJ8GZr",
+      "name": "ready"
+    }
+  ]
+}
