@@ -1,0 +1,36 @@
+Expression Name,Expression,Detailed Explanation
+Get Url Video1: parameters.url,{{ $json.request_id }},Retrieves the 'request_id' field from the JSON data of the previous node
+Get Url Video1: parameters.url,=https://queue.fal.run/fal-ai/veo3/requests/{{ $json.request_id }},Retrieves the 'request_id }}' field from the JSON data of the previous node
+IF ALL Completed?1: parameters.conditions.conditions[0].leftValue,{{ $json.allComplete }},Retrieves the 'allComplete' field from the JSON data of the previous node
+IF ALL Completed?1: parameters.conditions.conditions[0].leftValue,={{ $json.allComplete }},Retrieves the 'allComplete }}' field from the JSON data of the previous node
+Create Video1: parameters.bodyParameters.parameters[0].value,{{ $json.prompt }},Retrieves the 'prompt' field from the JSON data of the previous node
+Create Video1: parameters.bodyParameters.parameters[0].value,={{$json.prompt}},Retrieves the 'prompt}}' field from the JSON data of the previous node
+Create Video1: parameters.bodyParameters.parameters[1].value,{{ $json.url }},Retrieves the 'url' field from the JSON data of the previous node
+Create Video1: parameters.bodyParameters.parameters[1].value,={{ $json.url }},Retrieves the 'url }}' field from the JSON data of the previous node
+Get video status1: parameters.url,"{{ $json[""status_url""] }}","Accesses JSON data from the previous node: $json[""status_url""]"
+Get video status1: parameters.url,"={{ $json[""status_url""] }}","Accesses JSON data from the previous node: {{ $json[""status_url""] }}"
+Get File Video1: parameters.url,{{ $json.url }},Retrieves the 'url' field from the JSON data of the previous node
+Get File Video1: parameters.url,={{ $json.url }},Retrieves the 'url }}' field from the JSON data of the previous node
+Merge Videos with FFmpeg1: parameters.command,{{ $execution.id }},Dynamic expression in executeCommand node: $execution.id
+Merge Videos with FFmpeg1: parameters.command,{{ $execution.id }},Dynamic expression in executeCommand node: $execution.id
+Merge Videos with FFmpeg1: parameters.command,=ffmpeg -f concat -safe 0 -i /tmp/n8n/{{$execution.id}}/concat_list.txt -c copy /tmp/n8n/{{$execution.id}}/output.mp4,Dynamic expression in executeCommand node: ffmpeg -f concat -safe 0 -i /tmp/n8n/{{$execution.id}}/concat_list.txt -c copy /tmp/n8n/{{$execution.id}}/output.mp4
+Write Files To Disk For FFmpeg1: parameters.fileName,{{ $execution.id }},Dynamic expression in readWriteFile node: $execution.id
+Write Files To Disk For FFmpeg1: parameters.fileName,{{ $binary.data.fileName }},Dynamic expression in readWriteFile node: $binary.data.fileName
+Write Files To Disk For FFmpeg1: parameters.fileName,=/tmp/n8n/{{$execution.id}}/{{$binary.data.fileName}},Dynamic expression in readWriteFile node: /tmp/n8n/{{$execution.id}}/{{$binary.data.fileName}}
+Read/Write Files from Disk: parameters.fileName,{{ $execution.id }},Dynamic expression in readWriteFile node: $execution.id
+Read/Write Files from Disk: parameters.fileName,=/tmp/n8n/{{$execution.id}}/concat_list.txt,Dynamic expression in readWriteFile node: /tmp/n8n/{{$execution.id}}/concat_list.txt
+Convert to File: parameters.options.fileName,{{ $execution.id }},Dynamic expression in convertToFile node: $execution.id
+Convert to File: parameters.options.fileName,=/tmp/n8n/{{$execution.id}}/concat_list.txt,Dynamic expression in convertToFile node: /tmp/n8n/{{$execution.id}}/concat_list.txt
+Verify the file really exist: parameters.command,{{ $execution.id }},Dynamic expression in executeCommand node: $execution.id
+Verify the file really exist: parameters.command,{{ $execution.id }},Dynamic expression in executeCommand node: $execution.id
+Verify the file really exist: parameters.command,"=ls -l /tmp/n8n/{{$execution.id}}/concat_list.txt || echo ""NOT_FOUND""
+echo ""-----""
+cat /tmp/n8n/{{$execution.id}}/concat_list.txt || echo ""CANT_CAT""","Uses fallback logic - tries multiple data sources in order: ls -l /tmp/n8n/{{$execution.id}}/concat_list.txt || echo ""NOT_FOUND""
+echo ""-----""
+cat /tmp/n8n/{{$execution.id}}/concat_list.txt || echo ""CANT_CAT"""
+Save video: parameters.fileName,{{ $execution.id }},Dynamic expression in s3 node: $execution.id
+Save video: parameters.fileName,={{ $execution.id }},Dynamic expression in s3 node: {{ $execution.id }}
+create directory: parameters.command,{{ $execution.id }},Dynamic expression in executeCommand node: $execution.id
+create directory: parameters.command,=mkdir -p /tmp/n8n/{{$execution.id}},Dynamic expression in executeCommand node: mkdir -p /tmp/n8n/{{$execution.id}}
+Read/Write Files from Disk2: parameters.fileSelector,{{ $execution.id }},Dynamic expression in readWriteFile node: $execution.id
+Read/Write Files from Disk2: parameters.fileSelector,=/tmp/n8n/{{$execution.id}}/output.mp4,Dynamic expression in readWriteFile node: /tmp/n8n/{{$execution.id}}/output.mp4

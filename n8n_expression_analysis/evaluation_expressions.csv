@@ -1,0 +1,15 @@
+Expression Name,Expression,Detailed Explanation
+Set joke_topic: parameters.assignments.assignments[0].value,{{ $json['What is the joke?'] }},Accesses JSON data from the previous node: $json['What is the joke?']
+Set joke_topic: parameters.assignments.assignments[0].value,={{ $json['What is the joke?'] }},Accesses JSON data from the previous node: {{ $json['What is the joke?'] }}
+Funny Joke Tagging1: parameters.text,{{ $json.output }},Retrieves the 'output' field from the JSON data of the previous node
+Funny Joke Tagging1: parameters.text,=Joke: {{ $json.output }},Retrieves the 'output }}' field from the JSON data of the previous node
+Form: parameters.completionMessage,{{ $json.output }},Retrieves the 'output' field from the JSON data of the previous node
+Form: parameters.completionMessage,={{ $json.output }},Retrieves the 'output }}' field from the JSON data of the previous node
+Funny Joke Judge: parameters.text,{{ $json.Joke }},Retrieves the 'Joke' field from the JSON data of the previous node
+Funny Joke Judge: parameters.text,=Joke: {{ $json.Joke }},Retrieves the 'Joke }}' field from the JSON data of the previous node
+Set Eval Output: parameters.outputs.values[0].outputValue,{{ $json.output }},Retrieves the 'output' field from the JSON data of the previous node
+Set Eval Output: parameters.outputs.values[0].outputValue,={{ $json.output }},Retrieves the 'output }}' field from the JSON data of the previous node
+Measure Eval: parameters.expectedAnswer,{{ $('Get Eval Data').item.json['Expected Category'] }},"Fetches data from the 'Get Eval Data' node, specifically accessing the entire object field"
+Measure Eval: parameters.expectedAnswer,={{ $('Get Eval Data').item.json['Expected Category'] }},Dynamic expression in evaluation node: {{ $('Get Eval Data').item.json['Expected Category'] }}
+Measure Eval: parameters.actualAnswer,{{ $json.output }},Retrieves the 'output' field from the JSON data of the previous node
+Measure Eval: parameters.actualAnswer,={{ $json.output }},Retrieves the 'output }}' field from the JSON data of the previous node

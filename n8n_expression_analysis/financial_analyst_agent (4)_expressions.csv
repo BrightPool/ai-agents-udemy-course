@@ -1,0 +1,36 @@
+Expression Name,Expression,Detailed Explanation
+AI Agent: parameters.text,{{ $json.user_message }},Retrieves the 'user_message' field from the JSON data of the previous node
+AI Agent: parameters.text,={{ $json.user_message }},Retrieves the 'user_message }}' field from the JSON data of the previous node
+Simple Memory: parameters.sessionKey,{{ $workflow.id }},Dynamic expression in memoryBufferWindow node: $workflow.id
+Simple Memory: parameters.sessionKey,{{ $now }},Dynamic expression in memoryBufferWindow node: $now
+Simple Memory: parameters.sessionKey,={{ $workflow.id }}{{ $now }},Dynamic expression in memoryBufferWindow node: {{ $workflow.id }}{{ $now }}
+yr_get_history: parameters.url,"{{ $fromAI(""ticker"") }}","Dynamic expression in httpRequestTool node: $fromAI(""ticker"")"
+yr_get_history: parameters.url,"{{ $fromAI(""period"") }}","Dynamic expression in httpRequestTool node: $fromAI(""period"")"
+yr_get_history: parameters.url,"{{ $fromAI(""interval"") }}","Dynamic expression in httpRequestTool node: $fromAI(""interval"")"
+yr_get_history: parameters.url,"=https://query1.finance.yahoo.com/v8/finance/chart/{{ $fromAI(""ticker"") }}?range={{ $fromAI(""period"") }}${{ $fromAI(""interval"") }}","Dynamic expression in httpRequestTool node: https://query1.finance.yahoo.com/v8/finance/chart/{{ $fromAI(""ticker"") }}?range={{ $fromAI(""period"") }}${{ $fromAI(""interval"") }}"
+run_finance_analysis: parameters.jsonBody,{{ $fromAI('financial_analyst_brief') }},Dynamic expression in httpRequestTool node: $fromAI('financial_analyst_brief')
+run_finance_analysis: parameters.jsonBody,"={
+  ""model"": ""gpt-4.1"",
+  ""tools"": [
+    {
+      ""type"": ""code_interpreter"",
+      ""container"": {
+        ""type"": ""auto""
+      }
+    }
+  ],
+  ""instructions"": ""You are a financial analyst. Please take the brief and create and run code needed to satisfy the request."",
+  ""input"": ""{{ $fromAI('financial_analyst_brief') }}""
+}","Dynamic expression in httpRequestTool node: {
+  ""model"": ""gpt-4.1"",
+  ""tools"": [
+    {
+      ""type"": ""code_interpreter"",
+      ""container"": {
+        ""type"": ""auto""
+      }
+    }
+  ],
+  ""instructions"": ""You are a financial analyst. Please take the brief and create and run code needed to satisfy the request."",
+  ""input"": ""{{ $fromAI('financial_analyst_brief') }}""
+}"
