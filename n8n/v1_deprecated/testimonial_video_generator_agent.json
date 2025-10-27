@@ -1,0 +1,899 @@
+{
+  "name": "testimonial video generator agent",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=https://queue.fal.run/fal-ai/veo3/requests/{{ $json.request_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "78dbd4e9-1958-4cce-a151-ad4692135c94",
+      "name": "Get Url Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        4144,
+        528
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SHt2E8uTCgUUOC7t",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $node[\"Get Url Video\"].json.video.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3120,
+        96
+      ],
+      "id": "cf5d7422-0015-404e-941b-9345ca56ff42",
+      "name": "Get File Video"
+    },
+    {
+      "parameters": {
+        "content": "# Phase 1: Generate Buying Situations",
+        "height": 748,
+        "width": 1536,
+        "color": 5
+      },
+      "id": "520da022-3385-49fe-89ad-e994e6ad66b5",
+      "name": "Sticky Note11",
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "command": "=cd /tmp/n8n/{{ $execution.id }} && \\\nffmpeg -f concat -safe 0 -i videos.txt -c copy -y final_output.mp4"
+      },
+      "id": "9622ab83-ee7a-4b62-a198-36c5a6021192",
+      "name": "Merge Videos with FFmpeg",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3712,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=cd /tmp/n8n/{{ $execution.id }}\nls *.mp4 | sort | awk '{print \"file \\x27\" $0 \"\\x27\"}' > videos.txt"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3520,
+        96
+      ],
+      "id": "289abcf4-373e-4962-8d15-39a9ce14e822",
+      "name": "Prep File Concatenate"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/tmp/n8n/{{ $execution.id }}/{{ $binary.data.fileName }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        3328,
+        96
+      ],
+      "id": "54d084e4-66b7-461d-85f6-b188fee7d3d7",
+      "name": "Write Files To Disk For FFmpeg"
+    },
+    {
+      "parameters": {
+        "fileSelector": "=/tmp/n8n/{{ $execution.id }}/final_output.mp4",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        3904,
+        96
+      ],
+      "id": "b37c4a64-af2a-44df-8bba-846ace4221ee",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "name": "Wait 30 sec",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        3328,
+        464
+      ],
+      "id": "0f09e8eb-abfe-491e-98de-56c9d5ee81a2",
+      "webhookId": "6f98bd43-afc5-4213-8705-700df322af9e"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "96b7fa7b-d175-4098-bec0-1063bf8cba60",
+              "leftValue": "={{ $json.allComplete }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "IF ALL Completed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3904,
+        464
+      ],
+      "id": "8a409cf0-d7e5-4d65-a30c-1b1fa01b3023"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.buying_situations",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        128
+      ],
+      "id": "06cee7fc-4d99-4940-b664-6f9393531df0",
+      "name": "Split Reactions"
+    },
+    {
+      "parameters": {
+        "batchSize": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2864,
+        112
+      ],
+      "id": "af529bdf-dd2e-452d-adbb-07fe71a4920b",
+      "name": "Loop: Video Gen"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/veo3",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{$json.prompt}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c8fa305a-595e-4e28-9cad-dd3a0162cfd9",
+      "name": "Create Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        3120,
+        272
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SHt2E8uTCgUUOC7t",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json[\"status_url\"] }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "96f72cff-2f6e-4f90-b522-d18c588197c6",
+      "name": "Get video status",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        3520,
+        464
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SHt2E8uTCgUUOC7t",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allComplete = items.every(item => item.json.status === \"COMPLETED\");\n\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    allComplete\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3712,
+        464
+      ],
+      "id": "8053f26b-740c-4505-9202-143ca0c06d0d",
+      "name": "Count completed"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the workflow ID from n8n's global variable\nconst executionId = $execution.id;\n\n// Create the local video URL that our video server will serve\nconst videoUrl = `http://localhost:3001/video/${executionId}/final_output.mp4`;\n\n// Return the video URL directly to the React app\nreturn [{\n  json: {\n    videoUrl: videoUrl,\n    executionId: executionId,\n    message: \"Video processing complete\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4144,
+        96
+      ],
+      "id": "ee17537d-2113-4472-8ccc-d4d2736a6a1e",
+      "name": "complete"
+    },
+    {
+      "parameters": {
+        "command": "=mkdir -p /tmp/n8n/{{ $execution.id }}"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        400,
+        128
+      ],
+      "id": "f0e674b2-41cf-4b67-8b07-0f2bfe31f9bb",
+      "name": "Create directory"
+    },
+    {
+      "parameters": {
+        "formTitle": "Testimonial Simulator",
+        "formDescription": "Select a persona get 3 simulated video testimonials for different buying situations.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Image",
+              "fieldType": "file",
+              "acceptFileTypes": "jpeg, png, gif",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Persona Selection",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Omar US Developer"
+                  },
+                  {
+                    "option": "Sarah UK Nurse"
+                  },
+                  {
+                    "option": "Emily US Foodie"
+                  },
+                  {
+                    "option": "Clara US Health Coach"
+                  },
+                  {
+                    "option": "Jordan US Tattoo Artist"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        128
+      ],
+      "id": "32b4e20e-9283-4c1a-be82-d8a5d4975d37",
+      "name": "On form submission",
+      "webhookId": "5cb251e8-a5f7-4540-b89b-3ebcf81606e9"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1888,
+        128
+      ],
+      "id": "c5fe2d47-db2f-49dc-bb24-b8248d67620e",
+      "name": "loop: generate video prompts"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Define personas manually here.\n// Replace the placeholder text with real values.\n\nconst personas = {\n  \"Omar US Developer\": {\n    name: \"Omar Ali\",\n    age: \"32\",\n    gender: \"Male\",\n    location: \"San Francisco\",\n    occupation: \"Software Engineer\",\n    income: \"$200,000\",\n    background: \"This individual's life revolves around exploration and understanding. They are deeply curious about the world, people, and how things work, often delving into complex topics such as philosophy, history, and the human psyche. Their online presence is a reflection of their inner world - an active, thoughtful space where they seek to make connections, exchange ideas, and learn from others. They love the act of learning and self-improvement. They have a strong desire to make things better for themselves and the world around them, expressed through their writing and interactions. This person is committed to their craft, valuing beauty and truth, and finds joy in the small, everyday aspects of life. They are fascinated by the power of human connection and the potential for growth within communities. They are known for their inquisitive nature, often posing questions and seeking different perspectives to broaden their understanding of the world. They have an open mind and are constantly seeking a deeper understanding of complex concepts and human behavior. Their curiosity is a constant source of inspiration, driving them to explore new ideas, challenge their beliefs, and make meaningful connections with others.\"\n  },\n  \"Sarah UK Nurse\": {\n    name: \"Sarah Thomspon\",\n    age: \"55\",\n    gender: \"Woman\",\n    location: \"Manchester, UK\",\n    occupation: \"Nurse\",\n    income: \"GBP 55k\",\n    background: \"Sarah is a dedicated Registered Nurse with over thirty years of experience in the NHS. Raised in a working-class family, she was inspired to pursue nursing by her strong desire to help others and provide compassionate care. She is married, owns her home, and is a devout Christian, finding strength in her faith and family. Sarah is a strong advocate for her patients and believes healthcare is a fundamental right. She enjoys reading, gardening, and spending time outdoors, which helps her manage the stress that comes with her demanding job. Throughout her career, she has consistently strived to improve her skills and provide the best possible care to her patients.\"\n  },\n  \"Emily US Foodie\": {\n    name: \"Emily Carter\",\n    age: \"21\",\n    gender: \"Female\",\n    location: \"Los Angeles, CA\",\n    occupation: \"Student\",\n    income: \"NA\",\n    background: \"Emily Carter is a 21-year-old college student at UCLA, majoring in Digital Marketing. Originally from a small town in Oregon, she moved to Los Angeles to pursue her passion for marketing and content creation. She's an avid foodie, constantly exploring LA's diverse culinary landscape and documenting her experiences on TikTok and Instagram. Her content focuses on restaurant reviews, food trends, and lifestyle content, and she hopes to work in social media marketing after graduation.\"\n  },\n  \"Clara US Health Coach\": {\n    name: \"Clara Johnson\",\n    age: \"35\",\n    gender: \"Female\",\n    location: \"New York City, NY\",\n    occupation: \"Health Coach\",\n    income: \"$70k\",\n    background: \"Clara, a certified holistic health coach, was raised in a culturally diverse household where natural wellness was a way of life. Inspired by her family's practices, she pursued a certification in holistic health and launched her coaching business in NYC. Through her work at NaturalHealth Inc., Clara focuses on promoting holistic beauty methods, integrating wellness with skincare, and educating others on the benefits of natural products. She is passionate about community workshops and uses her platform to share DIY beauty techniques, encouraging others to embrace natural wellness. She is a Buddhist who believes beauty comes from within and enjoys meditation, nature walks, and creating healthy meals.\"\n  },\n  \"Jordan US Tattoo Artist\": {\n    name: \"Jordan McCulloch\",\n    age: \"Age 5\",\n    gender: \"Male\",\n    location: \"Portland, OR, USA\",\n    occupation: \"Tattoo Artist\",\n    income: \"$48k\",\n    background: \"Jordan grew up in a small coastal town in Oregon before moving to Portland to embrace the city’s alternative scene and vibrant art community. With a talent for visual storytelling and a welcoming demeanor, Jordan found a calling in tattoo artistry, channeling creativity into meaningful body art for friends and clients. Passionate about authentic self-expression and forging real connections, Jordan has built a loyal client base and a network of close friends who share a love of indie music, art shows, and late-night philosophical discussions. Jordan values openness in relationships and tends to express themselves candidly, both in art and conversation. When not at the tattoo studio, Jordan spends time volunteering for LGBTQ+ causes, making zines, and exploring the city’s eclectic food scene.\"\n  }\n};\n\n// Grab the binary from the original form submission\nconst binary = $items(\"On form submission\")[0].binary;\n\n// Return both JSON and binary\nreturn [\n  {\n    json: {\n      personas\n    },\n    binary // 🔥 carry the file forward\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        128
+      ],
+      "id": "506f7e9e-86f7-4c99-8ab9-aa706ee154c5",
+      "name": "Define personas"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull data directly from the form trigger node\nconst formNode = \"On form submission\";  \nconst formData = $items(formNode)[0].json;\n\n// 1. Persona Selection\nconst personaKey = formData[\"Persona Selection\"];\nif (!personaKey) {\n  throw new Error(\"No 'Persona' provided in form submission\");\n}\n\n// 2. Get personas directly from previous node (define personas)\nconst personas = $json.personas;\n\n// Look up the full persona details\nconst personaDetails = personas[personaKey];\nif (!personaDetails) {\n  throw new Error(`Persona '${personaKey}' not found in personas object`);\n}\n\n// 3. Get binary data from the form submission\nconst binary = $items(formNode)[0].binary;\n\n// 4. Return persona details + binary\nreturn [\n  {\n    json: {\n      persona: personaDetails\n    },\n    binary\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        128
+      ],
+      "id": "0a7143b8-b24f-40f4-8d21-0f229d9548e6",
+      "name": "Set personas"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Persona Buying Situations\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"persona\": {\n      \"type\": \"string\",\n      \"description\": \"Name or identifier for the persona\"\n    },\n    \"buying_situations\": {\n      \"type\": \"object\",\n      \"description\": \"Three buying situations with details\",\n      \"patternProperties\": {\n        \"^[a-zA-Z0-9_]+$\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"situation\": {\n              \"type\": \"string\",\n              \"description\": \"Short description of the situation\"\n            },\n            \"location\": {\n              \"type\": \"string\",\n              \"description\": \"Where the situation takes place\"\n            },\n            \"trigger\": {\n              \"type\": \"string\",\n              \"description\": \"Event or reason that triggered the buying moment\"\n            },\n            \"evaluation\": {\n              \"type\": \"string\",\n              \"description\": \"Considerations or alternatives evaluated\"\n            },\n            \"conclusion\": {\n              \"type\": \"string\",\n              \"description\": \"The ultimate buying decision and reasoning\"\n            }\n          },\n          \"required\": [\n            \"situation\",\n            \"location\",\n            \"trigger\",\n            \"evaluation\",\n            \"conclusion\"\n          ],\n          \"additionalProperties\": false\n        }\n      },\n      \"minProperties\": 3,\n      \"maxProperties\": 3\n    }\n  },\n  \"required\": [\"persona\", \"buying_situations\"],\n  \"additionalProperties\": false\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1392,
+        336
+      ],
+      "id": "62628e18-f2ed-421e-bead-94da6534f51a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        336
+      ],
+      "id": "141f96bc-2faf-473c-a0ab-be7b48680839",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2064,
+        448
+      ],
+      "id": "b1ec1910-6e43-4dac-8339-eb0d89ae4cd5",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"title\": \"Persona Testimonial Prompt\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"prompt\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"scene_description\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"persona\": { \"type\": \"string\" },\n            \"appearance\": { \"type\": \"string\" }\n          },\n          \"required\": [\"persona\", \"appearance\"]\n        },\n        \"quote\": { \"type\": \"string\" },\n        \"prompt_string\": { \"type\": \"string\" }\n      },\n      \"required\": [\"scene_description\", \"quote\", \"prompt_string\"]\n    }\n  },\n  \"required\": [\"prompt\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2352,
+        448
+      ],
+      "id": "65ef1bbf-2346-4955-86d4-68fb80037d06",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Role play as {{ $json.persona.name }}, a {{$json.persona.age}} {{$json.persona.gender}} from {{$json.persona.location}}, works as a {{$json.persona.occupation}} earning {{$json.persona.income}}. {{$json.persona.background}}. You have been invited to review a new product concept and reveal some deep, personal, and meaningful insights into when you would buy this offer. Your responses should be great examples of initial reactions to the concept, but also reveal what moments triggered you to search for this product, how you considered competing alternatives, and why ultimately you chose to buy this specific offer.\n\nRespond only with a valid JSON object. No markdown, code blocks, explanation, or escape characters — just raw JSON.\n\nExample output format:\n{\n  \"persona\": \"Rhys UK Entrepreneur\",\n  \"buying_situations\": {\n    \"celebrating_milestone\": {\n      \"situation\": \"Celebrating a business milestone\",\n      \"location\": \"Private members' club in London\",\n      \"trigger\": \"Closed a major deal with a new international client\",\n      \"evaluation\": \"Considered champagne and high-end cocktails, but wanted something more personal and rooted in tradition\",\n      \"conclusion\": \"Chose a premium single malt whisky to mark the achievement and share with colleagues, as it symbolised craftsmanship and success\"\n    },\n    \"hosting_partners\": {\n      \"situation\": \"Hosting international partners\",\n      \"location\": \"Home office in Manchester\",\n      \"trigger\": \"Inviting overseas investors to discuss the next round of funding\",\n      \"evaluation\": \"Compared various spirits that would reflect UK culture; whisky stood out as a distinctly British offering\",\n      \"conclusion\": \"Bought a respected Scottish whisky to showcase local heritage and create a more authentic, memorable experience for guests\"\n    },\n    \"relaxing_weekend\": {\n      \"situation\": \"Relaxing after a long week\",\n      \"location\": \"Apartment balcony overlooking the city\",\n      \"trigger\": \"Needed a way to unwind after late nights preparing pitches and handling staff issues\",\n      \"evaluation\": \"Looked at beer, gin, and wine; whisky appealed because it felt slower, more intentional, and suited to reflection\",\n      \"conclusion\": \"Chose whisky as a ritual drink — poured neat into a favourite glass, symbolising a pause and moment of clarity\"\n    }\n  }\n}\n\nRules:\n- Always choose exactly 3 buying_situations.\n- Return only a single root-level JSON object (no arrays).\n- Do not wrap the JSON in quotes.\n- Do not insert escape characters like \\n or \\\".\n- Ensure all property names and string values use standard double quotes (\").\n- Ensure each buying_situation includes: situation, location, trigger, evaluation, conclusion.\n- Do not stop mid-way; close all braces and brackets.\n- If uncertain, return {}.\n",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        128
+      ],
+      "id": "35245b64-6028-4c55-9b39-15364f1691b7",
+      "name": "AI Agent: Buying Situation"
+    },
+    {
+      "parameters": {
+        "content": "# Phase 2: Generate Veo 3 Prompts",
+        "height": 748,
+        "width": 1152,
+        "color": 4
+      },
+      "id": "d490522d-c53e-4c6b-ad0f-d5ecca37c309",
+      "name": "Sticky Note13",
+      "position": [
+        1552,
+        0
+      ],
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# Phase 3: Generate Video Reel",
+        "height": 748,
+        "width": 1648,
+        "color": 6
+      },
+      "id": "3efad643-7c5d-4613-b7e4-5d1e0617e800",
+      "name": "Sticky Note14",
+      "position": [
+        2720,
+        0
+      ],
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a director of a qualitative research agency that specialises in creating realistic simulated testimonials that capture buying situations for new product concepts.  \n\nYour tasks are to:\n1. Take the persona and their buying situation.\n2. Craft:\n   - A single vivid **persona description**\n   - A **scene appearance** that is realistic and convincing considering the persona background\n   - A **short 6–8 second quote** that captures the emotion/reason for choosing the product\n3. Assemble a **final prompt string** that combines these elements into a realistic video reaction setup.\n\nRespond only with a valid JSON object (no Markdown, no commentary).  \n\nThe JSON must have:  \n- `\"scene_description.persona\"` (character-based background)  \n- `\"scene_description.appearance\"` (physical/behavioral detail in the scene)  \n- `\"quote\"` (the 6–8 second soundbite)  \n- `\"prompt_string\"` (a single ready-to-use string in this format:  \n  `The subject is [persona]. [appearance]. The subject looks directly into the phone camera, engaging with the viewer as if filming a personal story or reaction video. The lighting is natural and imperfect. They say: \"[quote]\"`)\n\nPersona\nName: {{ $('Set personas').item.json.persona.name }}\nAge: {{ $('Set personas').item.json.persona.age }}\nGender: {{ $('Set personas').item.json.persona.gender }}\nLocation: {{ $('Set personas').item.json.persona.location }}\nOccupation: {{ $('Set personas').item.json.persona.occupation }}\nIncome: {{ $('Set personas').item.json.persona.income }}\nBackground: {{ $('Set personas').item.json.persona.background }}\n\nBuying Situation\nSituation: {{ $json.situation }}\nLocation: {{ $json.location }}\nTrigger: {{ $json.trigger }}\nEvaluation: {{ $json.evaluation }}\nConclusion: {{ $json.conclusion }} ",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2144,
+        192
+      ],
+      "id": "f73b2b34-cee8-4c6f-aa62-6a208f21ce95",
+      "name": "AI Agent: Prompt Gen"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fe9aebb2-6096-49ac-ad97-43c0ff8da47b",
+              "name": "prompt",
+              "value": "={{ $json.output.prompt.prompt_string }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2544,
+        112
+      ],
+      "id": "a896ab6e-0e3d-4c06-8b25-68c7f8572eff",
+      "name": "set prompt"
+    },
+    {
+      "parameters": {
+        "content": "### User Input:\n- Upload product concept image\n- Select persona",
+        "height": 128
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        272
+      ],
+      "id": "a35d59c1-3633-4f91-ba45-d4fc1207709a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "### Customization:\n- If you adjust persona names, you will need to adjust them in the form. ",
+        "height": 128,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        672,
+        272
+      ],
+      "id": "8218776a-7389-4bc6-95f5-90f6b1b3c420",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "### Partial Run:\n- Run this block when iterating the prompt gen\n- Do not run the video gen from a partial run. Always start a fresh otherwise the file structure will break.",
+        "height": 176,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2496,
+        256
+      ],
+      "id": "9928bc97-1124-4352-91d7-641826bebe1a",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Url Video": {
+      "main": [
+        [
+          {
+            "node": "Loop: Video Gen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File Video": {
+      "main": [
+        [
+          {
+            "node": "Write Files To Disk For FFmpeg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Videos with FFmpeg": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep File Concatenate": {
+      "main": [
+        [
+          {
+            "node": "Merge Videos with FFmpeg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Files To Disk For FFmpeg": {
+      "main": [
+        [
+          {
+            "node": "Prep File Concatenate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30 sec": {
+      "main": [
+        [
+          {
+            "node": "Get video status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF ALL Completed?": {
+      "main": [
+        [
+          {
+            "node": "Get Url Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 30 sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Reactions": {
+      "main": [
+        [
+          {
+            "node": "loop: generate video prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop: Video Gen": {
+      "main": [
+        [
+          {
+            "node": "Get File Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Video": {
+      "main": [
+        [
+          {
+            "node": "Wait 30 sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get video status": {
+      "main": [
+        [
+          {
+            "node": "Count completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count completed": {
+      "main": [
+        [
+          {
+            "node": "IF ALL Completed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create directory": {
+      "main": [
+        [
+          {
+            "node": "Define personas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Create directory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Define personas": {
+      "main": [
+        [
+          {
+            "node": "Set personas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set personas": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Buying Situation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent: Buying Situation",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Buying Situation",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "loop: generate video prompts": {
+      "main": [
+        [
+          {
+            "node": "set prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent: Prompt Gen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Prompt Gen",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent: Prompt Gen",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Buying Situation": {
+      "main": [
+        [
+          {
+            "node": "Split Reactions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Prompt Gen": {
+      "main": [
+        [
+          {
+            "node": "loop: generate video prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set prompt": {
+      "main": [
+        [
+          {
+            "node": "Loop: Video Gen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "604acf89-7472-4f3b-a265-ebcc97abd4a3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "LfL4AQdEdUw1FDdw",
+  "tags": []
+}

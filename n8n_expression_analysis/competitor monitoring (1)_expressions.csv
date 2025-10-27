@@ -1,0 +1,133 @@
+Expression Name,Expression,Detailed Explanation
+HTTP Request1: parameters.url,"{{ $json[""blog urls""] }}","Accesses JSON data from the previous node: $json[""blog urls""]"
+HTTP Request1: parameters.url,"={{ $json[""blog urls""] }}","Accesses JSON data from the previous node: {{ $json[""blog urls""] }}"
+normalize urls: parameters.assignments.assignments[0].value,"{{ $json.urls && typeof $json.urls === ""string"" && $json.urls.trim() !== """"
+    ? (
+        $json.urls.startsWith(""/"") || $json.urls.startsWith(""./"")
+          ? $('Transform to JSON').item.json[""Url""].split(""/"").slice(0,3).join(""/"") + ""/"" + $json.urls.replace(/^\.?\//,"""").trim()
+          : $json.urls.startsWith(""#"")
+            ? $('Transform to JSON').item.json[""Url""].split(""/"").slice(0,3).join(""/"") + ""/"" + $json.urls.trim()
+            : $json.urls.trim()
+      )
+    : null }}","Uses fallback logic - tries multiple data sources in order: $json.urls && typeof $json.urls === ""string"" && $json.urls.trim() !== """"
+    ? (
+        $json.urls.startsWith(""/"") || $json.urls.startsWith(""./"")
+          ? $('Transform to JSON').item.json[""Url""].split(""/"").slice(0,3).join(""/"") + ""/"" + $json.urls.replace(/^\.?\//,"""").trim()
+          : $json.urls.startsWith(""#"")
+            ? $('Transform to JSON').item.json[""Url""].split(""/"").slice(0,3).join(""/"") + ""/"" + $json.urls.trim()
+            : $json.urls.trim()
+      )
+    : null"
+normalize urls: parameters.assignments.assignments[0].value,"={{
+  $json.urls && typeof $json.urls === ""string"" && $json.urls.trim() !== """"
+    ? (
+        $json.urls.startsWith(""/"") || $json.urls.startsWith(""./"")
+          ? $('Transform to JSON').item.json[""Url""].split(""/"").slice(0,3).join(""/"") + ""/"" + $json.urls.replace(/^\.?\//,"""").trim()
+          : $json.urls.startsWith(""#"")
+            ? $('Transform to JSON').item.json[""Url""].split(""/"").slice(0,3).join(""/"") + ""/"" + $json.urls.trim()
+            : $json.urls.trim()
+      )
+    : null
+}}","Uses fallback logic - tries multiple data sources in order: {{
+  $json.urls && typeof $json.urls === ""string"" && $json.urls.trim() !== """"
+    ? (
+        $json.urls.startsWith(""/"") || $json.urls.startsWith(""./"")
+          ? $('Transform to JSON').item.json[""Url""].split(""/"").slice(0,3).join(""/"") + ""/"" + $json.urls.replace(/^\.?\//,"""").trim()
+          : $json.urls.startsWith(""#"")
+            ? $('Transform to JSON').item.json[""Url""].split(""/"").slice(0,3).join(""/"") + ""/"" + $json.urls.trim()
+            : $json.urls.trim()
+      )
+    : null
+}}"
+Exclude external URLS: parameters.conditions.conditions[0].leftValue,"{{ $('Transform to JSON').all().some(x => $json.normalizedUrl.startsWith(x.json[""Url""])) }}","Sets a variable value using: $('Transform to JSON').all().some(x => $json.normalizedUrl.startsWith(x.json[""Url""]))"
+Exclude external URLS: parameters.conditions.conditions[0].leftValue,"={{ $('Transform to JSON').all().some(x => $json.normalizedUrl.startsWith(x.json[""Url""])) }}","Sets a variable value using: {{ $('Transform to JSON').all().some(x => $json.normalizedUrl.startsWith(x.json[""Url""])) }}"
+Insert rows in a table1: parameters.columns.value.normalized_url,{{ $json.normalizedUrl }},Retrieves the 'normalizedUrl' field from the JSON data of the previous node
+Insert rows in a table1: parameters.columns.value.normalized_url,={{ $json.normalizedUrl }},Retrieves the 'normalizedUrl }}' field from the JSON data of the previous node
+Insert rows in a table1: parameters.columns.value.source_site,{{ $('Transform to JSON').item.json.Url }},"Fetches data from the 'Transform to JSON' node, specifically accessing the Url field"
+Insert rows in a table1: parameters.columns.value.source_site,={{ $('Transform to JSON').item.json.Url }},Sets a variable value using: {{ $('Transform to JSON').item.json.Url }}
+Contains new entries: parameters.conditions.conditions[0].leftValue,{{ ($json.success === true && $items().length > 0).toString() }},Retrieves the 'toString()' field from the JSON data of the previous node
+Contains new entries: parameters.conditions.conditions[0].leftValue,={{ ($json.success === true && $items().length > 0).toString() }},Retrieves the 'toString() }}' field from the JSON data of the previous node
+set new URLs: parameters.assignments.assignments[0].value,{{ $json.normalized_url }},Retrieves the 'normalized_url' field from the JSON data of the previous node
+set new URLs: parameters.assignments.assignments[0].value,={{ $json.normalized_url }},Retrieves the 'normalized_url }}' field from the JSON data of the previous node
+Message a model: parameters.messages.values[0].content,{{ $json.new_urls }},Retrieves the 'new_urls' field from the JSON data of the previous node
+Message a model: parameters.messages.values[0].content,"=Open the link by using the HTTP tool to get the content and generate an SPR from it. Your output must be valid JSON.
+
+Always include metadata about the source:  
+- `source_url` → the page where the content came from {{ $json.new_urls }}
+- `title` → the article/blog title if available (or `""unknown""` if not)  
+- `spr` → the actual distilled SPR list 
+
+# OUTPUT FORMAT
+[
+  {
+    ""source_url"": ""<SOURCE_URL>"",
+    ""title"": ""<TITLE_OR_UNKNOWN>"",
+    ""date"": ""<DATE_OR_UNKNOWN>"",
+     ""spr"": [
+      ""First distilled SPR statement."",
+      ""Second SPR statement."",
+      ""Third SPR statement.""
+    ]
+  }
+] ","Retrieves the '""
+    ]
+  }
+]' field from the JSON data of the previous node"
+Message a model: parameters.messages.values[1].content,"=# MISSION
+You are a Sparse Priming Representation (SPR) writer. An SPR is a particular kind of use of language for advanced NLP, NLU, and NLG tasks, particularly useful for the latest generation of Large Language Models (LLMs). You will be given information by the USER which you are to render as an SPR.
+
+# THEORY
+LLMs are a kind of deep neural network. They have been demonstrated to embed knowledge, abilities, and concepts, ranging from reasoning to planning, and even to theory of mind. These are called latent abilities and latent content, collectively referred to as latent space. The latent space of an LLM can be activated with the correct series of words as inputs, which will create a useful internal state of the neural network. This is not unlike how the right shorthand cues can prime a human mind to think in a certain way. Like human minds, LLMs are associative, meaning you only need to use the correct associations to ""prime"" another model to think in the same way.
+
+# METHODOLOGY
+Render the input as a distilled list of succinct statements, assertions, associations, concepts, analogies, and metaphors. The idea is to capture as much, conceptually, as possible but with as few words as possible. Write it in a way that makes sense to you, as the future audience will be another language model, not a human. Use complete sentences.
+","Message or content field populated with: # MISSION
+You are a Sparse Priming Representation (SPR) writer. An SPR is a particular kind of use of language for advanced NLP, NLU, and NLG tasks, particularly useful for the latest generation of Large Language Models (LLMs). You will be given information by the USER which you are to render as an SPR.
+
+# THEORY
+LLMs are a kind of deep neural network. They have been demonstrated to embed knowledge, abilities, and concepts, ranging from reasoning to planning, and even to theory of mind. These are called latent abilities and latent content, collectively referred to as latent space. The latent space of an LLM can be activated with the correct series of words as inputs, which will create a useful internal state of the neural network. This is not unlike how the right shorthand cues can prime a human mind to think in a certain way. Like human minds, LLMs are associative, meaning you only need to use the correct associations to ""prime"" another model to think in the same way.
+
+# METHODOLOGY
+Render the input as a distilled list of succinct statements, assertions, associations, concepts, analogies, and metaphors. The idea is to capture as much, conceptually, as possible but with as few words as possible. Write it in a way that makes sense to you, as the future audience will be another language model, not a human. Use complete sentences."
+get content: parameters.url,{{ $('Loop Over Items1').item.json.new_urls }},"Fetches data from the 'Loop Over Items1' node, specifically accessing the new_urls field"
+get content: parameters.url,={{ $('Loop Over Items1').item.json.new_urls }},Dynamic expression in httpRequestTool node: {{ $('Loop Over Items1').item.json.new_urls }}
+get content: parameters.onlyContent,"{{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_Only_Content', ``, 'boolean') }}","Message or content field populated with: /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_Only_Content', ``, 'boolean')"
+get content: parameters.onlyContent,"={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_Only_Content', ``, 'boolean') }}","Message or content field populated with: {{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_Only_Content', ``, 'boolean') }}"
+Message a model1: parameters.messages.values[0].content,{{ $json.message.content }},Retrieves the 'content' field from the JSON data of the previous node
+Message a model1: parameters.messages.values[0].content,=Input: {{ $json.message.content }},Retrieves the 'content }}' field from the JSON data of the previous node
+Send a message: parameters.message,{{ $json.message.content }},Retrieves the 'content' field from the JSON data of the previous node
+Send a message: parameters.message,"{{ $('Aggregate1').item.json.content.map(c => '<li>' + c + '</li>').join("""") }}","Fetches data from the 'Aggregate1' node, specifically accessing the content.map(c => '<li>' + c + '</li>').join("""") field"
+Send a message: parameters.message,"=<p>Hi Rhys,</p>
+
+<p>Here’s the daily scoop:</p>
+
+<h3>Executive Summary</h3>
+<p>{{ $json.message.content }}</p>
+
+<h3>Competitor Updates</h3>
+<ul>
+{{ $('Aggregate1').item.json.content.map(c => '<li>' + c + '</li>').join("""") }}
+</ul>
+
+<p>Have a great day,</p>
+
+<hr>
+<p><em>This email was sent automatically with n8n</em></p>
+","Message or content field populated with: <p>Hi Rhys,</p>
+
+<p>Here’s the daily scoop:</p>
+
+<h3>Executive Summary</h3>
+<p>{{ $json.message.content }}</p>
+
+<h3>Competitor Updates</h3>
+<ul>
+{{ $('Aggregate1').item.json.content.map(c => '<li>' + c + '</li>').join("""") }}
+</ul>
+
+<p>Have a great day,</p>
+
+<hr>
+<p><em>This email was sent automatically with n8n</em></p>"
+Message a model2: parameters.messages.values[0].content,"{{ $json.content.join(""\n\n"") }}","Retrieves the 'join(""\n\n"")' field from the JSON data of the previous node"
+Message a model2: parameters.messages.values[0].content,"={{ $json.content.join(""\n\n"") }}","Retrieves the 'join(""\n\n"") }}' field from the JSON data of the previous node"

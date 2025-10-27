@@ -1,0 +1,156 @@
+Expression Name,Expression,Detailed Explanation
+Get Url Video: parameters.url,{{ $json.request_id }},Retrieves the 'request_id' field from the JSON data of the previous node
+Get Url Video: parameters.url,=https://queue.fal.run/fal-ai/veo3/requests/{{ $json.request_id }},Retrieves the 'request_id }}' field from the JSON data of the previous node
+Get File Video: parameters.url,"{{ $node[""Get Url Video""].json.video.url }}","Dynamic expression in httpRequest node: $node[""Get Url Video""].json.video.url"
+Get File Video: parameters.url,"={{ $node[""Get Url Video""].json.video.url }}","Dynamic expression in httpRequest node: {{ $node[""Get Url Video""].json.video.url }}"
+Merge Videos with FFmpeg: parameters.command,{{ $execution.id }},Dynamic expression in executeCommand node: $execution.id
+Merge Videos with FFmpeg: parameters.command,"=cd /tmp/n8n/{{ $execution.id }} && \
+ffmpeg -f concat -safe 0 -i videos.txt -c copy -y final_output.mp4","Dynamic expression in executeCommand node: cd /tmp/n8n/{{ $execution.id }} && \
+ffmpeg -f concat -safe 0 -i videos.txt -c copy -y final_output.mp4"
+Prep File Concatenate: parameters.command,{{ $execution.id }},Dynamic expression in executeCommand node: $execution.id
+Prep File Concatenate: parameters.command,"=cd /tmp/n8n/{{ $execution.id }}
+ls *.mp4 | sort | awk '{print ""file \x27"" $0 ""\x27""}' > videos.txt","Dynamic expression in executeCommand node: cd /tmp/n8n/{{ $execution.id }}
+ls *.mp4 | sort | awk '{print ""file \x27"" $0 ""\x27""}' > videos.txt"
+Write Files To Disk For FFmpeg: parameters.fileName,{{ $execution.id }},Dynamic expression in readWriteFile node: $execution.id
+Write Files To Disk For FFmpeg: parameters.fileName,{{ $binary.data.fileName }},Dynamic expression in readWriteFile node: $binary.data.fileName
+Write Files To Disk For FFmpeg: parameters.fileName,=/tmp/n8n/{{ $execution.id }}/{{ $binary.data.fileName }},Dynamic expression in readWriteFile node: /tmp/n8n/{{ $execution.id }}/{{ $binary.data.fileName }}
+Read/Write Files from Disk: parameters.fileSelector,{{ $execution.id }},Dynamic expression in readWriteFile node: $execution.id
+Read/Write Files from Disk: parameters.fileSelector,=/tmp/n8n/{{ $execution.id }}/final_output.mp4,Dynamic expression in readWriteFile node: /tmp/n8n/{{ $execution.id }}/final_output.mp4
+IF ALL Completed?: parameters.conditions.conditions[0].leftValue,{{ $json.allComplete }},Retrieves the 'allComplete' field from the JSON data of the previous node
+IF ALL Completed?: parameters.conditions.conditions[0].leftValue,={{ $json.allComplete }},Retrieves the 'allComplete }}' field from the JSON data of the previous node
+Create Video: parameters.bodyParameters.parameters[0].value,{{ $json.prompt }},Retrieves the 'prompt' field from the JSON data of the previous node
+Create Video: parameters.bodyParameters.parameters[0].value,={{$json.prompt}},Retrieves the 'prompt}}' field from the JSON data of the previous node
+Get video status: parameters.url,"{{ $json[""status_url""] }}","Accesses JSON data from the previous node: $json[""status_url""]"
+Get video status: parameters.url,"={{ $json[""status_url""] }}","Accesses JSON data from the previous node: {{ $json[""status_url""] }}"
+Create directory: parameters.command,{{ $execution.id }},Dynamic expression in executeCommand node: $execution.id
+Create directory: parameters.command,=mkdir -p /tmp/n8n/{{ $execution.id }},Dynamic expression in executeCommand node: mkdir -p /tmp/n8n/{{ $execution.id }}
+AI Agent: Buying Situation: parameters.text,{{ $json.persona.name }},Retrieves the 'name' field from the JSON data of the previous node
+AI Agent: Buying Situation: parameters.text,{{ $json.persona.age }},Retrieves the 'age' field from the JSON data of the previous node
+AI Agent: Buying Situation: parameters.text,{{ $json.persona.gender }},Retrieves the 'gender' field from the JSON data of the previous node
+AI Agent: Buying Situation: parameters.text,{{ $json.persona.location }},Retrieves the 'location' field from the JSON data of the previous node
+AI Agent: Buying Situation: parameters.text,{{ $json.persona.occupation }},Retrieves the 'occupation' field from the JSON data of the previous node
+AI Agent: Buying Situation: parameters.text,{{ $json.persona.income }},Retrieves the 'income' field from the JSON data of the previous node
+AI Agent: Buying Situation: parameters.text,{{ $json.persona.background }},Retrieves the 'background' field from the JSON data of the previous node
+AI Agent: Buying Situation: parameters.text,"=Role play as {{ $json.persona.name }}, a {{$json.persona.age}} {{$json.persona.gender}} from {{$json.persona.location}}, works as a {{$json.persona.occupation}} earning {{$json.persona.income}}. {{$json.persona.background}}. You have been invited to review a new product concept and reveal some deep, personal, and meaningful insights into when you would buy this offer. Your responses should be great examples of initial reactions to the concept, but also reveal what moments triggered you to search for this product, how you considered competing alternatives, and why ultimately you chose to buy this specific offer.
+
+Respond only with a valid JSON object. No markdown, code blocks, explanation, or escape characters — just raw JSON.
+
+Example output format:
+{
+  ""persona"": ""Rhys UK Entrepreneur"",
+  ""buying_situations"": {
+    ""celebrating_milestone"": {
+      ""situation"": ""Celebrating a business milestone"",
+      ""location"": ""Private members' club in London"",
+      ""trigger"": ""Closed a major deal with a new international client"",
+      ""evaluation"": ""Considered champagne and high-end cocktails, but wanted something more personal and rooted in tradition"",
+      ""conclusion"": ""Chose a premium single malt whisky to mark the achievement and share with colleagues, as it symbolised craftsmanship and success""
+    },
+    ""hosting_partners"": {
+      ""situation"": ""Hosting international partners"",
+      ""location"": ""Home office in Manchester"",
+      ""trigger"": ""Inviting overseas investors to discuss the next round of funding"",
+      ""evaluation"": ""Compared various spirits that would reflect UK culture; whisky stood out as a distinctly British offering"",
+      ""conclusion"": ""Bought a respected Scottish whisky to showcase local heritage and create a more authentic, memorable experience for guests""
+    },
+    ""relaxing_weekend"": {
+      ""situation"": ""Relaxing after a long week"",
+      ""location"": ""Apartment balcony overlooking the city"",
+      ""trigger"": ""Needed a way to unwind after late nights preparing pitches and handling staff issues"",
+      ""evaluation"": ""Looked at beer, gin, and wine; whisky appealed because it felt slower, more intentional, and suited to reflection"",
+      ""conclusion"": ""Chose whisky as a ritual drink — poured neat into a favourite glass, symbolising a pause and moment of clarity""
+    }
+  }
+}
+
+Rules:
+- Always choose exactly 3 buying_situations.
+- Return only a single root-level JSON object (no arrays).
+- Do not wrap the JSON in quotes.
+- Do not insert escape characters like \n or \"".
+- Ensure all property names and string values use standard double quotes ("").
+- Ensure each buying_situation includes: situation, location, trigger, evaluation, conclusion.
+- Do not stop mid-way; close all braces and brackets.
+- If uncertain, return {}.
+",Retrieves the '' field from the JSON data of the previous node
+AI Agent: Prompt Gen: parameters.text,{{ $('Set personas').item.json.persona.name }},"Fetches data from the 'Set personas' node, specifically accessing the persona.name field"
+AI Agent: Prompt Gen: parameters.text,{{ $('Set personas').item.json.persona.age }},"Fetches data from the 'Set personas' node, specifically accessing the persona.age field"
+AI Agent: Prompt Gen: parameters.text,{{ $('Set personas').item.json.persona.gender }},"Fetches data from the 'Set personas' node, specifically accessing the persona.gender field"
+AI Agent: Prompt Gen: parameters.text,{{ $('Set personas').item.json.persona.location }},"Fetches data from the 'Set personas' node, specifically accessing the persona.location field"
+AI Agent: Prompt Gen: parameters.text,{{ $('Set personas').item.json.persona.occupation }},"Fetches data from the 'Set personas' node, specifically accessing the persona.occupation field"
+AI Agent: Prompt Gen: parameters.text,{{ $('Set personas').item.json.persona.income }},"Fetches data from the 'Set personas' node, specifically accessing the persona.income field"
+AI Agent: Prompt Gen: parameters.text,{{ $('Set personas').item.json.persona.background }},"Fetches data from the 'Set personas' node, specifically accessing the persona.background field"
+AI Agent: Prompt Gen: parameters.text,{{ $json.situation }},Retrieves the 'situation' field from the JSON data of the previous node
+AI Agent: Prompt Gen: parameters.text,{{ $json.location }},Retrieves the 'location' field from the JSON data of the previous node
+AI Agent: Prompt Gen: parameters.text,{{ $json.trigger }},Retrieves the 'trigger' field from the JSON data of the previous node
+AI Agent: Prompt Gen: parameters.text,{{ $json.evaluation }},Retrieves the 'evaluation' field from the JSON data of the previous node
+AI Agent: Prompt Gen: parameters.text,{{ $json.conclusion }},Retrieves the 'conclusion' field from the JSON data of the previous node
+AI Agent: Prompt Gen: parameters.text,"=You are a director of a qualitative research agency that specialises in creating realistic simulated testimonials that capture buying situations for new product concepts.  
+
+Your tasks are to:
+1. Take the persona and their buying situation.
+2. Craft:
+   - A single vivid **persona description**
+   - A **scene appearance** that is realistic and convincing considering the persona background
+   - A **short 6–8 second quote** that captures the emotion/reason for choosing the product
+3. Assemble a **final prompt string** that combines these elements into a realistic video reaction setup.
+
+Respond only with a valid JSON object (no Markdown, no commentary).  
+
+The JSON must have:  
+- `""scene_description.persona""` (character-based background)  
+- `""scene_description.appearance""` (physical/behavioral detail in the scene)  
+- `""quote""` (the 6–8 second soundbite)  
+- `""prompt_string""` (a single ready-to-use string in this format:  
+  `The subject is [persona]. [appearance]. The subject looks directly into the phone camera, engaging with the viewer as if filming a personal story or reaction video. The lighting is natural and imperfect. They say: ""[quote]""`)
+
+Persona
+Name: {{ $('Set personas').item.json.persona.name }}
+Age: {{ $('Set personas').item.json.persona.age }}
+Gender: {{ $('Set personas').item.json.persona.gender }}
+Location: {{ $('Set personas').item.json.persona.location }}
+Occupation: {{ $('Set personas').item.json.persona.occupation }}
+Income: {{ $('Set personas').item.json.persona.income }}
+Background: {{ $('Set personas').item.json.persona.background }}
+
+Buying Situation
+Situation: {{ $json.situation }}
+Location: {{ $json.location }}
+Trigger: {{ $json.trigger }}
+Evaluation: {{ $json.evaluation }}
+Conclusion: {{ $json.conclusion }} ","Dynamic expression in agent node: You are a director of a qualitative research agency that specialises in creating realistic simulated testimonials that capture buying situations for new product concepts.  
+
+Your tasks are to:
+1. Take the persona and their buying situation.
+2. Craft:
+   - A single vivid **persona description**
+   - A **scene appearance** that is realistic and convincing considering the persona background
+   - A **short 6–8 second quote** that captures the emotion/reason for choosing the product
+3. Assemble a **final prompt string** that combines these elements into a realistic video reaction setup.
+
+Respond only with a valid JSON object (no Markdown, no commentary).  
+
+The JSON must have:  
+- `""scene_description.persona""` (character-based background)  
+- `""scene_description.appearance""` (physical/behavioral detail in the scene)  
+- `""quote""` (the 6–8 second soundbite)  
+- `""prompt_string""` (a single ready-to-use string in this format:  
+  `The subject is [persona]. [appearance]. The subject looks directly into the phone camera, engaging with the viewer as if filming a personal story or reaction video. The lighting is natural and imperfect. They say: ""[quote]""`)
+
+Persona
+Name: {{ $('Set personas').item.json.persona.name }}
+Age: {{ $('Set personas').item.json.persona.age }}
+Gender: {{ $('Set personas').item.json.persona.gender }}
+Location: {{ $('Set personas').item.json.persona.location }}
+Occupation: {{ $('Set personas').item.json.persona.occupation }}
+Income: {{ $('Set personas').item.json.persona.income }}
+Background: {{ $('Set personas').item.json.persona.background }}
+
+Buying Situation
+Situation: {{ $json.situation }}
+Location: {{ $json.location }}
+Trigger: {{ $json.trigger }}
+Evaluation: {{ $json.evaluation }}
+Conclusion: {{ $json.conclusion }}"
+set prompt: parameters.assignments.assignments[0].value,{{ $json.output.prompt.prompt_string }},Retrieves the 'prompt_string' field from the JSON data of the previous node
+set prompt: parameters.assignments.assignments[0].value,={{ $json.output.prompt.prompt_string }},Retrieves the 'prompt_string }}' field from the JSON data of the previous node

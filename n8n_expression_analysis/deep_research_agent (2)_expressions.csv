@@ -1,0 +1,35 @@
+Expression Name,Expression,Detailed Explanation
+Set Input: parameters.assignments.assignments[0].value,{{ $json.chatInput }},Retrieves the 'chatInput' field from the JSON data of the previous node
+Set Input: parameters.assignments.assignments[0].value,={{ $json.chatInput }},Retrieves the 'chatInput }}' field from the JSON data of the previous node
+AI Agent: parameters.text,{{ $json.user_message }},Retrieves the 'user_message' field from the JSON data of the previous node
+AI Agent: parameters.text,={{ $json.user_message }},Retrieves the 'user_message }}' field from the JSON data of the previous node
+AI Agent: parameters.options.systemMessage,"=You are a deep research assistant. Use tools to gather information (openai_search for research, think_tool for reflection). Keep searches focused, reflect after searches using the think_tool to decide if more searches are needed to satisfy the user's query, and finish with a concise, well-structured research answer.
+
+When finished, produce:
+- reasoning: brief plan and justification
+- action: the primary tool used (one of: openai_search, think_tool, answer_direct)
+- tool_result: the most relevant tool output you used (may be empty for answer_direct)
+- answer: the final research answer/report
+
+Be clear, factual, and professional.","Message or content field populated with: You are a deep research assistant. Use tools to gather information (openai_search for research, think_tool for reflection). Keep searches focused, reflect after searches using the think_tool to decide if more searches are needed to satisfy the user's query, and finish with a concise, well-structured research answer.
+
+When finished, produce:
+- reasoning: brief plan and justification
+- action: the primary tool used (one of: openai_search, think_tool, answer_direct)
+- tool_result: the most relevant tool output you used (may be empty for answer_direct)
+- answer: the final research answer/report
+
+Be clear, factual, and professional."
+Format Output: parameters.assignments.assignments[0].value,{{ $json.output.answer }},Retrieves the 'answer' field from the JSON data of the previous node
+Format Output: parameters.assignments.assignments[0].value,={{ $json.output.answer }},Retrieves the 'answer }}' field from the JSON data of the previous node
+Format Output: parameters.assignments.assignments[1].value,{{ $json.output.reasoning }},Retrieves the 'reasoning' field from the JSON data of the previous node
+Format Output: parameters.assignments.assignments[1].value,={{ $json.output.reasoning }},Retrieves the 'reasoning }}' field from the JSON data of the previous node
+Format Output: parameters.assignments.assignments[2].value,{{ $json.output.action }},Retrieves the 'action' field from the JSON data of the previous node
+Format Output: parameters.assignments.assignments[2].value,={{ $json.output.action }},Retrieves the 'action }}' field from the JSON data of the previous node
+Format Output: parameters.assignments.assignments[3].value,{{ $json.output.tool_result }},Retrieves the 'tool_result' field from the JSON data of the previous node
+Format Output: parameters.assignments.assignments[3].value,={{ $json.output.tool_result }},Retrieves the 'tool_result }}' field from the JSON data of the previous node
+Simple Memory: parameters.sessionKey,{{ $workflow.id }},Dynamic expression in memoryBufferWindow node: $workflow.id
+Simple Memory: parameters.sessionKey,{{ $now }},Dynamic expression in memoryBufferWindow node: $now
+Simple Memory: parameters.sessionKey,={{ $workflow.id }}{{ $now }},Dynamic expression in memoryBufferWindow node: {{ $workflow.id }}{{ $now }}
+openai_search1: parameters.text,"{{ $fromAI(""query"") }}","Dynamic expression in agentTool node: $fromAI(""query"")"
+openai_search1: parameters.text,"={{ $fromAI(""query"") }}","Dynamic expression in agentTool node: {{ $fromAI(""query"") }}"

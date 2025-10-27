@@ -1,0 +1,57 @@
+Expression Name,Expression,Detailed Explanation
+Edit Fields: parameters.assignments.assignments[0].value,=rhys,Sets a variable value using: rhys
+Edit Fields1: parameters.assignments.assignments[0].value,{{ $json.first_name }},Retrieves the 'first_name' field from the JSON data of the previous node
+Edit Fields1: parameters.assignments.assignments[0].value,{{ $json.sir_name }},Retrieves the 'sir_name' field from the JSON data of the previous node
+Edit Fields1: parameters.assignments.assignments[0].value,={{ $json.first_name }} {{ $json.sir_name }},Retrieves the 'sir_name }}' field from the JSON data of the previous node
+Edit Fields3: parameters.assignments.assignments[0].value,"{{ $json[""user""][""profile""][""email""] }}","Accesses JSON data from the previous node: $json[""user""][""profile""][""email""]"
+Edit Fields3: parameters.assignments.assignments[0].value,"={{$json[""user""][""profile""][""email""]}}","Accesses JSON data from the previous node: {{$json[""user""][""profile""][""email""]}}"
+Edit Fields3: parameters.assignments.assignments[1].value,{{ $json.user.profile.location.city }},Retrieves the 'city' field from the JSON data of the previous node
+Edit Fields3: parameters.assignments.assignments[1].value,={{$json.user.profile.location.city}},Retrieves the 'city}}' field from the JSON data of the previous node
+Edit Fields3: parameters.assignments.assignments[2].value,{{ $json.order.items[0].name }},Retrieves the 'name' field from the JSON data of the previous node
+Edit Fields3: parameters.assignments.assignments[2].value,={{$json.order.items[0].name}},Retrieves the 'name}}' field from the JSON data of the previous node
+Edit Fields3: parameters.assignments.assignments[3].value,{{ $json.order.items[1].price }},Retrieves the 'price' field from the JSON data of the previous node
+Edit Fields3: parameters.assignments.assignments[3].value,={{$json.order.items[1].price}},Retrieves the 'price}}' field from the JSON data of the previous node
+Edit Fields5: parameters.assignments.assignments[0].value,{{ $json.price * $json.quantity }},Retrieves the 'quantity' field from the JSON data of the previous node
+Edit Fields5: parameters.assignments.assignments[0].value,={{ $json.price * $json.quantity }},Retrieves the 'quantity }}' field from the JSON data of the previous node
+Edit Fields5: parameters.assignments.assignments[1].value,{{ $json.price * $json.quantity * 0.9 }},Retrieves the '9' field from the JSON data of the previous node
+Edit Fields5: parameters.assignments.assignments[1].value,={{ $json.price * $json.quantity * 0.9 }},Retrieves the '9 }}' field from the JSON data of the previous node
+Edit Fields5: parameters.assignments.assignments[2].value,"{{ $json.status === ""paid"" ? ""✅ Paid"" : ""❌ Unpaid"" }}","Retrieves the 'status === ""paid"" ? ""✅ Paid"" : ""❌ Unpaid""' field from the JSON data of the previous node"
+Edit Fields5: parameters.assignments.assignments[2].value,"={{ $json.status === ""paid"" ? ""✅ Paid"" : ""❌ Unpaid"" }}","Retrieves the 'status === ""paid"" ? ""✅ Paid"" : ""❌ Unpaid"" }}' field from the JSON data of the previous node"
+Edit Fields6: parameters.assignments.assignments[0].value,{{ new Date().toISOString() }},Sets a variable value using: new Date().toISOString()
+Edit Fields6: parameters.assignments.assignments[0].value,={{ new Date().toISOString() }},Sets a variable value using: {{ new Date().toISOString() }}
+Edit Fields6: parameters.assignments.assignments[1].value,{{ new Date().toLocaleString() }},Sets a variable value using: new Date().toLocaleString()
+Edit Fields6: parameters.assignments.assignments[1].value,={{ new Date().toLocaleString() }},Sets a variable value using: {{ new Date().toLocaleString() }}
+Edit Fields6: parameters.assignments.assignments[2].value,{{ $now.plus({ days: 3 }).toISODate() }},Sets a variable value using: $now.plus({ days: 3 }).toISODate()
+Edit Fields6: parameters.assignments.assignments[2].value,={{ $now.plus({ days: 3 }).toISODate() }},Sets a variable value using: {{ $now.plus({ days: 3 }).toISODate() }}
+Edit Fields8: parameters.assignments.assignments[0].value,{{ (() => { const price = $json.price; const tax = $json.taxRate; const total = price + (price * tax); return total.toFixed(2); })() }},Retrieves the 'toFixed(2); })()' field from the JSON data of the previous node
+Edit Fields8: parameters.assignments.assignments[0].value,={{ (() => { const price = $json.price; const tax = $json.taxRate; const total = price + (price * tax); return total.toFixed(2); })() }},Retrieves the 'toFixed(2); })() }}' field from the JSON data of the previous node
+Edit Fields8: parameters.assignments.assignments[1].value,"{{ (() => { return $json.price > 100 ? ""💎 Premium"" : ""💡 Standard""; })() }}","Retrieves the 'price > 100 ? ""💎 Premium"" : ""💡 Standard""; })()' field from the JSON data of the previous node"
+Edit Fields8: parameters.assignments.assignments[1].value,"={{ (() => { return $json.price > 100 ? ""💎 Premium"" : ""💡 Standard""; })() }}","Retrieves the 'price > 100 ? ""💎 Premium"" : ""💡 Standard""; })() }}' field from the JSON data of the previous node"
+Edit Fields8: parameters.assignments.assignments[2].value,"{{ (() => {
+  const price = $json.price;
+  if (price > 100) return ""💎 Premium"";
+  if (price > 50) return ""✨ Mid-range"";
+  return ""💡 Budget"";
+})() }}","Retrieves the 'price;
+  if (price > 100) return ""💎 Premium"";
+  if (price > 50) return ""✨ Mid-range"";
+  return ""💡 Budget"";
+})()' field from the JSON data of the previous node"
+Edit Fields8: parameters.assignments.assignments[2].value,"={{ (() => {
+  const price = $json.price;
+  if (price > 100) return ""💎 Premium"";
+  if (price > 50) return ""✨ Mid-range"";
+  return ""💡 Budget"";
+})() }}","Retrieves the 'price;
+  if (price > 100) return ""💎 Premium"";
+  if (price > 50) return ""✨ Mid-range"";
+  return ""💡 Budget"";
+})() }}' field from the JSON data of the previous node"
+Edit Fields10: parameters.assignments.assignments[0].value,"{{ `Hi ${$json.name}, your total is $${($json.price * $json.qty).toFixed(2)} due by ${$now.plus({ days: 2 }).toISODate()}.` }}",Retrieves the '`' field from the JSON data of the previous node
+Edit Fields10: parameters.assignments.assignments[0].value,"={{ `Hi ${$json.name}, your total is $${($json.price * $json.qty).toFixed(2)} due by ${$now.plus({ days: 2 }).toISODate()}.` }}",Retrieves the '` }}' field from the JSON data of the previous node
+Edit Fields11: parameters.assignments.assignments[0].value,"{{ `${$json[""first_name""]} ${$json[""sir_name""]}` }}","Accesses JSON data from the previous node: `${$json[""first_name""]} ${$json[""sir_name""]}`"
+Edit Fields11: parameters.assignments.assignments[0].value,"=Hi {{ `${$json[""first_name""]} ${$json[""sir_name""]}` }}","Accesses JSON data from the previous node: Hi {{ `${$json[""first_name""]} ${$json[""sir_name""]}` }}"
+Edit Fields11: parameters.assignments.assignments[1].value,"{{ `${$json?.first_name ?? """"} ${$json?.sir_name ?? """"}`.trim() }}",Retrieves the 'trim()' field from the JSON data of the previous node
+Edit Fields11: parameters.assignments.assignments[1].value,"=If you want to handle missing data safely, add trim like this. 
+
+{{ `${$json?.first_name ?? """"} ${$json?.sir_name ?? """"}`.trim() }}",Retrieves the 'trim() }}' field from the JSON data of the previous node

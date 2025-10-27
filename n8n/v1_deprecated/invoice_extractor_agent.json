@@ -1,0 +1,384 @@
+{
+  "name": "invoice_extractor_agent",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Invoice Processer",
+        "formDescription": "Upload invoice and use AI to extract 8 key invoice fields ",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Invoice",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": "pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "68032592-15ed-4918-9af6-813f8ea9180a",
+      "name": "On form submission",
+      "webhookId": "36e8f7ab-8ade-41cf-8c02-fd30bd422ac5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Task\nFrom free‑form invoice text (plain text), extract a small, fixed set of top‑level invoice fields and return them as a flat JSON object.\n\nOutput format (strict)\n- Return a single JSON object only (no wrapper, no comments, no rationale).\n- Include exactly these 8 keys (all must be present, even if unknown), with string values:\n  1) \"company\"\n  2) \"billed_to\"\n  3) \"invoice_number\"\n  4) \"invoice_date\"\n  5) \"total_amount\"\n  6) \"bank_name\"\n  7) \"account_name\"\n  8) \"account_number\"\n- If a field is not explicitly present, set it to \"\" (empty string).\n- Do not include any extra keys or metadata. Do not rename any keys.\n\nGeneral extraction strategy\n- Prefer clearly labeled fields; pick the value closest to the relevant label.\n- Preserve formatting of values: keep currency symbols/separators, leading zeros and prefixes in IDs, and spaces/dashes in account numbers/IBANs.\n- Never fabricate values. If not present, return \"\".\n- For party fields, output only the name (no address/phone/email/URLs).\n\nField rules (abridged)\n1) company (issuer/seller): Prefer explicit issuer/payee blocks (e.g., \"From\", \"Vendor\", \"PAY TO\") or the prominent brand near \"INVOICE\" (avoid template titles). Prefer company over person when both appear.\n2) billed_to (customer/recipient): Look for \"Bill To\"/\"Invoice To\"/\"Customer\"/\"Client\"; prefer company over person. Do not derive from \"PAY TO\".\n3) invoice_number: Use labels like \"Invoice Number\"/\"Invoice No\"/\"Invoice #\"; keep prefixes/hyphens/zeros.\n4) invoice_date: The invoice issue date (not due/service); prefer \"Invoice Date\"; preserve original formatting.\n5) total_amount: Use the grand total (\"TOTAL\"/\"Amount Due\"/\"Balance Due\"); preserve currency formatting.\n6) bank_name: From \"Bank Name\"/\"Bank:\"; use alphabetic bank name, not codes.\n7) account_name: From \"Account Name\"/\"Account Holder\"/\"Beneficiary\".\n8) account_number: From \"Account Number\"/\"Account No\"/\"A/C No\"/IBAN; keep spaces/dashes."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "9808418d-bbb9-48a8-bad0-1b623dd4f48f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"extracted_data\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"invoice_number\": { \"type\": \"string\" },\n        \"invoice_date\": { \"type\": \"string\", \"format\": \"date\" },\n        \"billed_to\": { \"type\": \"string\" },\n        \"company\": { \"type\": \"string\" },\n        \"total_amount\": { \"type\": \"string\", \"pattern\": \"^[0-9]+(\\\\.[0-9]{1,2})?$\" },\n        \"bank_name\": { \"type\": \"string\" },\n        \"account_name\": { \"type\": \"string\" },\n        \"account_number\": { \"type\": \"string\" }\n      },\n      \"required\": [\n        \"invoice_number\",\n        \"invoice_date\",\n        \"billed_to\",\n        \"company\",\n        \"total_amount\",\n        \"bank_name\"\n      ],\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\"extracted_data\"],\n  \"additionalProperties\": false\n}\n",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        768,
+        320
+      ],
+      "id": "d07cd425-b58c-435f-8340-6662af661a93",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        400
+      ],
+      "id": "cd838448-e63f-4a70-9373-3f9dcd6880c3",
+      "name": "GPT-4o-mini",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Invoice",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        192,
+        0
+      ],
+      "id": "c0d2249e-5a20-49f6-a005-f98895743733",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        768,
+        480
+      ],
+      "id": "1ee75ebd-b32c-4a19-afbe-715af5e83ca5",
+      "name": "GPT-4o-mini1",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extracted from invoice: \n{{ $('Extract from File').item.json.text }}\n\nRecorded:\n- invoice_number: {{ $json.output.extracted_data.invoice_number }}\n- invoice_date: {{ $json.output.extracted_data.invoice_date }}\n- billed_to: {{ $json.output.extracted_data.billed_to }}\n- company: {{ $json.output.extracted_data.company }}\n- total_amount: {{ $json.output.extracted_data.total_amount }}\n- bank_name: {{ $json.output.extracted_data.bank_name }}\n- account_number: {{ $json.output.extracted_data.account_number }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an invoice checker. You must identify any discrepancies between an invoice and what was recorded and correct any mistakes. Return them as the same flat JSON object just with any values corrected.\n\nOutput format (strict)\n- Return a single JSON object only (no wrapper, no comments, no rationale).\n- Include exactly these 8 keys (all must be present, even if unknown), with string values:\n  1) \"company\"\n  2) \"billed_to\"\n  3) \"invoice_number\"\n  4) \"invoice_date\"\n  5) \"total_amount\"\n  6) \"bank_name\"\n  7) \"account_name\"\n  8) \"account_number\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "690790f0-349c-45db-8e26-c5a933536fef",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        176,
+        400
+      ],
+      "id": "86321bfa-044e-450f-a445-34f9c341c1de",
+      "name": "GPT-4o-mini2",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"extracted_data\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"invoice_number\": { \"type\": \"string\" },\n        \"invoice_date\": { \"type\": \"string\", \"format\": \"date\" },\n        \"billed_to\": { \"type\": \"string\" },\n        \"company\": { \"type\": \"string\" },\n        \"total_amount\": { \"type\": \"string\", \"pattern\": \"^[0-9]+(\\\\.[0-9]{1,2})?$\" },\n        \"bank_name\": { \"type\": \"string\" },\n        \"account_name\": { \"type\": \"string\" },\n        \"account_number\": { \"type\": \"string\" }\n      },\n      \"required\": [\n        \"invoice_number\",\n        \"invoice_date\",\n        \"billed_to\",\n        \"company\",\n        \"total_amount\",\n        \"bank_name\"\n      ],\n      \"additionalProperties\": false\n    }\n  },\n  \"required\": [\"extracted_data\"],\n  \"additionalProperties\": false\n}\n",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1056,
+        320
+      ],
+      "id": "e99903b2-84e3-4f60-813f-dca4776fb097",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1056,
+        480
+      ],
+      "id": "1537cf13-042e-4e90-96b6-7654a5d07eff",
+      "name": "GPT-4o-mini3",
+      "credentials": {
+        "openAiApi": {
+          "id": "aEwEH5APyXx6cq8g",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Invoice Extractor",
+        "height": 832,
+        "width": 1728,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -96
+      ],
+      "id": "3fa98dea-14d8-46c3-a104-a6c8c96cf4da",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "### Data Schema Validation",
+        "height": 336,
+        "width": 784
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        656,
+        272
+      ],
+      "id": "d343d48a-ca1c-4193-9f56-581fd6e68283",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "### Inteligence",
+        "height": 288,
+        "width": 384
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        288
+      ],
+      "id": "033f7eb0-6cb2-4fa3-99d1-e4316f4a2139",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        []
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7ad335e1-17c7-49be-8420-bc40763f3baf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "ElzR7nYW5y9QFpVv",
+  "tags": []
+}

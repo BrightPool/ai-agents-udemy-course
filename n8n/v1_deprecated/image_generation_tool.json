@@ -1,0 +1,191 @@
+{
+  "name": "image_generation_tool",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"role\": \"user\",\n      \"parts\": [\n        {\n          \"text\": \"{{ $json.query }}\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        352
+      ],
+      "id": "39116774-5b2d-4173-91ff-cf3163211227",
+      "name": "HTTP Request1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "V6o4bVqjUJirOGZu",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ba88f5c5-490c-436e-8a87-4a0a73b7ee88",
+              "name": "base64",
+              "value": "={{ $json.candidates[0].content.parts.find(p => p.inlineData?.data)?.inlineData.data }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        688,
+        352
+      ],
+      "id": "620831fa-6e6c-4d58-882c-6a08226a3ca7",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "base64",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        352
+      ],
+      "id": "9a050156-dcc4-4210-9dd5-337a2bd55570",
+      "name": "Convert to File1"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "n8n-images",
+        "fileName": "={{ $execution.id }}",
+        "additionalFields": {}
+      },
+      "id": "7a2f3823-5c6c-4b81-a014-354c58f0efc3",
+      "name": "Save Image",
+      "position": [
+        1104,
+        352
+      ],
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "credentials": {
+        "s3": {
+          "id": "HTSXiGZxjjSKcfcw",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item;\n\n// Pull bucket + fileName directly from Save Image node JSON\nconst bucket = item.json.bucket || \"n8n-images\";\nconst filename = item.json.fileName || `${$execution.id}`;\n\n// Make it URL-safe\nconst urlSafeFilename = encodeURIComponent(filename);\n\n// Build the public R2 URL\nconst baseUrl = \"https://pub-4d0fa4dcae024134a92f78452a920d99.r2.dev\";\nconst fullUrl = `${baseUrl}/${urlSafeFilename}`;\n\nreturn {\n  bucket,\n  filename,\n  url: fullUrl\n};\n"
+      },
+      "id": "d599d994-2499-44aa-9fec-735938d819e4",
+      "name": "Get URL",
+      "position": [
+        1312,
+        352
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "Save Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Image": {
+      "main": [
+        [
+          {
+            "node": "Get URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5be8ede5-4c12-4a37-b308-fa9131e8b337",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fb04b4346f624bab301ba87af3de742ec86c55ec1dfa2ee5f5fef9aebaad9741"
+  },
+  "id": "WbojFEc16TZdvABm",
+  "tags": []
+}
