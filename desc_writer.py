@@ -248,6 +248,18 @@ def main(argv: List[str]) -> int:
         return 0
 
     for video in videos:
+        # Skip if description already exists and has non-empty content
+        desc_path = video.parent / f"{video.stem}.description.txt"
+        try:
+            if desc_path.exists():
+                existing = desc_path.read_text(encoding="utf-8")
+                if any(ln.strip() for ln in existing.splitlines()):
+                    print(f"\n↷ Skipping (description exists): {video}")
+                    continue
+        except Exception:
+            # If reading fails, proceed to regenerate description
+            pass
+
         print(f"\n→ Processing: {video}")
         try:
             result = process_video(video)
