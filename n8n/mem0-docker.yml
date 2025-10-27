@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  neo4j:
+    image: neo4j:5.23
+    container_name: coach-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/testpassword
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+
+  mem0:
+    image: mem0/mem0-api-server:latest
+    container_name: coach-mem0
+    restart: unless-stopped
+    depends_on:
+      - neo4j
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USERNAME: neo4j
+      NEO4J_PASSWORD: testpassword
+      QDRANT_PATH: /app/qdrant_local
+      QDRANT_COLLECTION_NAME: memories
+      EMBEDDING_DIMS: 1536
+    ports:
+      - "8000:8000"
+    volumes:
+      - qdrant_local:/app/qdrant_local
+      - mem0_history:/app/history
+      - /tmp/main_override.py:/app/main.py:ro
+    command: sh -c "pip install langchain-neo4j rank-bm25 && uvicorn main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  neo4j_data:
+  qdrant_local:
+  mem0_history:
