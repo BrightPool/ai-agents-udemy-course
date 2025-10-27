@@ -1,7 +1,6 @@
 services:
   mem0-server:
     image: mem0/mem0-api-server:latest
-    container_name: mem0-server
     restart: unless-stopped
     depends_on:
       qdrant:
@@ -34,7 +33,6 @@ services:
 
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: mem0-qdrant
     restart: unless-stopped
     ports:
       - "6333:6333"
@@ -53,7 +51,6 @@ services:
 
   neo4j:
     image: neo4j:5
-    container_name: mem0-neo4j
     restart: unless-stopped
     environment:
       - NEO4J_AUTH=${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-mem0-graph}

@@ -1,48 +1,32 @@
-"""Functional helpers for working with the structured invoice extractor."""
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable
+from langchain_openai import ChatOpenAI
 
-from __future__ import annotations
-
-from typing import Any, Dict, Optional
-
-from langchain_core.runnables import RunnableConfig
-
-from agent.invoice_program import (
-    InvoiceExtractionResult,
-    aextract_invoice,
-    extract_invoice,
-)
+from agent.models import InvoiceExtractionResult
 
 
-def run_extract_invoice(
-    invoice_text: str,
-    *,
-    config: Optional[RunnableConfig] = None,
-) -> InvoiceExtractionResult:
-    """Run the shared invoice extractor against arbitrary text."""
-    return extract_invoice(invoice_text, config=config)
+def build_prompt() -> ChatPromptTemplate:
+    """Build the prompt for the chatbot."""
+    return ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                (
+                    "You are an expert financial operations analyst. "
+                    "Extract the requested invoice information. "
+                    "Always respond using the structured schema provided by the tool. "
+                    "Return null for any field that is not explicitly stated. "
+                    "Normalise dates to ISO 8601 when practical and keep amounts coupled "
+                    "with their currency symbols or codes."
+                ),
+            ),
+            ("Invoice text:\n----------------\n{invoice_text}\n----------------"),
+        ]
+    )
 
 
-async def arun_extract_invoice(
-    invoice_text: str,
-    *,
-    config: Optional[RunnableConfig] = None,
-) -> InvoiceExtractionResult:
-    """Asynchronous helper mirroring :func:`run_extract_invoice`."""
-    return await aextract_invoice(invoice_text, config=config)
-
-
-def extract_invoice_dict(
-    invoice_text: str,
-    *,
-    config: Optional[RunnableConfig] = None,
-) -> Dict[str, Any]:
-    """Convenience helper that returns the structured output as a dictionary."""
-    result = run_extract_invoice(invoice_text, config=config)
-    return result.model_dump(exclude_none=True, exclude_defaults=True)
-
-
-__all__ = [
-    "arun_extract_invoice",
-    "extract_invoice_dict",
-    "run_extract_invoice",
-]
+def create_structured_chain() -> Runnable:
+    """Create the structured chain."""
+    return build_prompt() | ChatOpenAI(model="gpt-5-nano").with_structured_output(
+        InvoiceExtractionResult
+    )

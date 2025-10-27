@@ -1,27 +1,23 @@
-"""LangGraph interface for the structured invoice extraction workflow."""
-
-from __future__ import annotations
-
-import json
-from typing import Annotated, Dict, List, Optional, TypedDict
+from typing import Annotated, List, Optional, TypedDict
 
 from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
-from agent.invoice_program import extract_invoice, format_extraction_result
+from agent.models import InvoiceExtractionResult
+from agent.utils import create_structured_chain
 
 
-class InvoiceExtractionState(TypedDict, total=False):
-    """LangGraph state for invoice extraction conversations."""
+class State(TypedDict, total=False):
+    """State for the chatbot."""
 
     messages: Annotated[List[AnyMessage], add_messages]
+    extraction_result: Optional[InvoiceExtractionResult]
 
 
-def run_invoice_extraction(
-    state: InvoiceExtractionState,
-) -> Dict[str, List[AnyMessage]]:
-    """Execute structured invoice extraction and return an AI response."""
+def chatbot(state: State) -> State:
+    """Chatbot node."""
+    # Get the most recent human message:
     invoice_text: Optional[str] = None
     for msg in reversed(state.get("messages", [])):
         if isinstance(msg, HumanMessage) and isinstance(msg.content, str):
@@ -33,45 +29,26 @@ def run_invoice_extraction(
             "messages": [
                 AIMessage(
                     content="Please provide the raw invoice text so I can extract fields."
-                ),
-            ]
-        }
-
-    try:
-        result = extract_invoice(invoice_text)
-    except Exception as exc:  # pragma: no cover - surfaced to the user at runtime
-        return {
-            "messages": [
-                AIMessage(
-                    content=(
-                        "Invoice extraction failed while contacting the language model.\n"
-                        f"Reason: {exc}"
-                    )
                 )
             ]
         }
 
-    formatted = format_extraction_result(result)
-    payload = result.model_dump(exclude_none=True, exclude_defaults=True)
-    content = formatted
-    if payload:
-        content += "\n\nJSON Output:\n" + json.dumps(payload, indent=2, sort_keys=True)
+    extraction_result = create_structured_chain().invoke({"invoice_text": invoice_text})
 
-    message = AIMessage(
-        content=content,
-        additional_kwargs={"structured_output": payload} if payload else {},
-    )
-
-    return {"messages": [message]}
+    return {
+        "messages": [
+            AIMessage(
+                content=f"""The invoice has been extracted successfully. The formatted result is: {extraction_result.model_dump_json()}"""
+            )
+        ],
+        "extraction_result": extraction_result,
+    }  # type: ignore
 
 
 graph = (
-    StateGraph(InvoiceExtractionState)
-    .add_node("extract", run_invoice_extraction)
-    .add_edge(START, "extract")
-    .add_edge("extract", END)
-    .compile(name="Invoice Extraction Agent")
+    StateGraph(State)
+    .add_node("chatbot", chatbot)
+    .add_edge(START, "chatbot")
+    .add_edge("chatbot", END)
+    .compile(name="LangGraph Cloud Template")
 )
-
-
-__all__ = ["graph", "InvoiceExtractionState"]

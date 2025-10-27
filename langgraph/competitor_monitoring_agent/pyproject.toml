@@ -12,6 +12,8 @@ dependencies = [
     "langchain-openai>=0.2.1",
     "langgraph>=0.2.6",
     "langgraph-cli[inmem]>=0.4.2",
+    "psycopg[binary]>=3.2.1",
+    "pygsheets>=2.0.6",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.1",
 ]

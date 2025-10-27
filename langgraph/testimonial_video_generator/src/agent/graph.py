@@ -13,16 +13,17 @@ import json
 import os
 import shutil
 import subprocess
-import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
+from typing import Any, Dict, List, Literal, TypedDict, cast
 
+import fal_client  # type: ignore[import-untyped]
 import httpx
 from dotenv import load_dotenv
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.utils import convert_to_secret_str
+from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, StateGraph
 
 from agent.models import (
@@ -39,13 +40,6 @@ if _env_file.exists():
     load_dotenv(_env_file)
 
 
-class Context(TypedDict):
-    """Execution context passed via RunnableConfig.context."""
-
-    anthropic_api_key: str
-    max_iterations: int
-
-
 class VideoAgentState(TypedDict, total=False):
     """Mutable state for the video agent across DAG nodes.
 
@@ -54,7 +48,7 @@ class VideoAgentState(TypedDict, total=False):
 
     # Inputs
     persona_selection: str
-    image_path: Optional[str]
+    image_path: str | None
 
     # Derived
     execution_id: str
@@ -72,31 +66,78 @@ class VideoAgentState(TypedDict, total=False):
     prompt_strings: List[str]
 
     # Phase 3
-    fal_requests: List[Dict[str, str]]  # {request_id, status_url}
-    all_complete: bool
-    statuses: List[str]
+    run_results: List[Dict[str, Any]]
     video_urls: List[str]
     downloaded_files: List[str]
     final_output_path: str
 
     # Final
     result: Dict[str, str]
+    # Diagnostics
+    warnings: List[str]
 
 
-def _get_llm() -> ChatAnthropic:
-    """Construct the Anthropic chat model using environment variables."""
-    api_key_value = os.getenv("ANTHROPIC_API_KEY")
-    return ChatAnthropic(
-        model_name="claude-3-5-sonnet-20241022",
-        api_key=convert_to_secret_str(api_key_value or ""),
+def _get_llm(openai_api_key: str | None = None) -> ChatOpenAI:
+    """Construct the OpenAI chat model using provided key or environment variable."""
+    api_key_value = openai_api_key or os.getenv("OPENAI_API_KEY")
+    if not api_key_value:
+        raise ValueError("OPENAI_API_KEY must be provided or set in environment")
+    return ChatOpenAI(
+        model="gpt-5-mini",
+        api_key=convert_to_secret_str(api_key_value),
         temperature=0.1,
         timeout=60,
-        stop=None,
     )
 
 
 def _ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
+
+
+def _ensure_fal_key(fal_key: str | None = None) -> str:
+    """Ensure the fal SDK sees a valid API key and return it."""
+    key = fal_key or os.getenv("FAL_KEY") or os.getenv("FAL_API_KEY")
+    if not key:
+        raise RuntimeError(
+            "Missing FAL_KEY or FAL_API_KEY environment variable for fal client, or provide fal_key in context."
+        )
+    # fal_client looks for FAL_KEY specifically
+    os.environ.setdefault("FAL_KEY", key)
+    return key
+
+
+FAL_QUEUE_SLUG = "fal-ai/veo3"
+
+
+def _extract_video_url(payload: Dict[str, Any]) -> str | None:
+    video_section = payload.get("video")
+    if isinstance(video_section, dict):
+        for key in ("url", "video_url"):
+            value = video_section.get(key)
+            if isinstance(value, str):
+                return value
+    for key in ("video_url", "url"):
+        value = payload.get(key)
+        if isinstance(value, str):
+            return value
+    return None
+
+
+def _as_dict(data: Any) -> Dict[str, Any]:
+    if isinstance(data, dict):
+        return data
+    for attr in ("model_dump", "dict", "to_dict"):
+        method = getattr(data, attr, None)
+        if callable(method):
+            try:
+                result = method()
+            except Exception:  # pragma: no cover - best effort
+                continue
+            if isinstance(result, dict):
+                return result
+    if hasattr(data, "__dict__"):
+        return dict(getattr(data, "__dict__"))
+    return {}
 
 
 def init_and_create_directory(state: VideoAgentState) -> VideoAgentState:
@@ -119,7 +160,7 @@ def init_and_create_directory(state: VideoAgentState) -> VideoAgentState:
 def define_personas(state: VideoAgentState) -> VideoAgentState:
     """Define a catalog of personas to mirror the n8n node."""
     personas: Dict[str, Dict[str, str]] = {
-        "Omar US Developer": {
+        "developer": {
             "name": "Omar Ali",
             "age": "32",
             "gender": "Male",
@@ -130,7 +171,7 @@ def define_personas(state: VideoAgentState) -> VideoAgentState:
                 "This individual's life revolves around exploration and understanding. They are deeply curious about the world, people, and how things work, often delving into complex topics such as philosophy, history, and the human psyche. Their online presence is a reflection of their inner world - an active, thoughtful space where they seek to make connections, exchange ideas, and learn from others. They love the act of learning and self-improvement. They have a strong desire to make things better for themselves and the world around them, expressed through their writing and interactions. This person is committed to their craft, valuing beauty and truth, and finds joy in the small, everyday aspects of life. They are fascinated by the power of human connection and the potential for growth within communities. They are known for their inquisitive nature, often posing questions and seeking different perspectives to broaden their understanding of the world. They have an open mind and are constantly seeking a deeper understanding of complex concepts and human behavior. Their curiosity is a constant source of inspiration, driving them to explore new ideas, challenge their beliefs, and make meaningful connections with others."
             ),
         },
-        "Sarah UK Nurse": {
+        "nurse": {
             "name": "Sarah Thomspon",
             "age": "55",
             "gender": "Woman",
@@ -141,7 +182,7 @@ def define_personas(state: VideoAgentState) -> VideoAgentState:
                 "Sarah is a dedicated Registered Nurse with over thirty years of experience in the NHS. Raised in a working-class family, she was inspired to pursue nursing by her strong desire to help others and provide compassionate care. She is married, owns her home, and is a devout Christian, finding strength in her faith and family. Sarah is a strong advocate for her patients and believes healthcare is a fundamental right. She enjoys reading, gardening, and spending time outdoors, which helps her manage the stress that comes with her demanding job. Throughout her career, she has consistently strived to improve her skills and provide the best possible care to her patients."
             ),
         },
-        "Emily US Foodie": {
+        "foodie": {
             "name": "Emily Carter",
             "age": "21",
             "gender": "Female",
@@ -152,7 +193,7 @@ def define_personas(state: VideoAgentState) -> VideoAgentState:
                 "Emily Carter is a 21-year-old college student at UCLA, majoring in Digital Marketing. Originally from a small town in Oregon, she moved to Los Angeles to pursue her passion for marketing and content creation. She's an avid foodie, constantly exploring LA's diverse culinary landscape and documenting her experiences on TikTok and Instagram. Her content focuses on restaurant reviews, food trends, and lifestyle content, and she hopes to work in social media marketing after graduation."
             ),
         },
-        "Clara US Health Coach": {
+        "health-coach": {
             "name": "Clara Johnson",
             "age": "35",
             "gender": "Female",
@@ -163,9 +204,9 @@ def define_personas(state: VideoAgentState) -> VideoAgentState:
                 "Clara, a certified holistic health coach, was raised in a culturally diverse household where natural wellness was a way of life. Inspired by her family's practices, she pursued a certification in holistic health and launched her coaching business in NYC. Through her work at NaturalHealth Inc., Clara focuses on promoting holistic beauty methods, integrating wellness with skincare, and educating others on the benefits of natural products. She is passionate about community workshops and uses her platform to share DIY beauty techniques, encouraging others to embrace natural wellness. She is a Buddhist who believes beauty comes from within and enjoys meditation, nature walks, and creating healthy meals."
             ),
         },
-        "Jordan US Tattoo Artist": {
+        "tattoo-artist": {
             "name": "Jordan McCulloch",
-            "age": "Age 5",
+            "age": "Age 55",
             "gender": "Male",
             "location": "Portland, OR, USA",
             "occupation": "Tattoo Artist",
@@ -187,12 +228,18 @@ def set_persona(state: VideoAgentState) -> VideoAgentState:
     return {"persona": personas[selection]}
 
 
-def generate_buying_situations(state: VideoAgentState) -> VideoAgentState:
+def generate_buying_situations(
+    state: VideoAgentState, config: RunnableConfig
+) -> VideoAgentState:
     """Ask the LLM to propose three buying situations for the persona."""
     persona = state.get("persona")
     if persona is None:
         raise KeyError("persona missing; ensure set_persona ran before this node")
-    llm = _get_llm()
+
+    # Extract API key from context
+    ctx = getattr(config, "context", {})
+    openai_api_key = ctx.get("openai_api_key") if isinstance(ctx, dict) else None
+    llm = _get_llm(openai_api_key)
     system = SystemMessage(
         content=(
             "Role play as {name}, a {age} {gender} from {location}, works as a {occupation} "
@@ -252,7 +299,9 @@ def generate_buying_situations(state: VideoAgentState) -> VideoAgentState:
     }
 
 
-def generate_prompt_for_current(state: VideoAgentState) -> VideoAgentState:
+def generate_prompt_for_current(
+    state: VideoAgentState, config: RunnableConfig
+) -> VideoAgentState:
     """Generate a Veo3 prompt for the current buying situation."""
     persona = state.get("persona")
     if persona is None:
@@ -264,7 +313,11 @@ def generate_prompt_for_current(state: VideoAgentState) -> VideoAgentState:
     if not (0 <= idx < len(situations_list)):
         raise IndexError("situation_index out of range")
     situation = situations_list[idx]
-    llm = _get_llm()
+
+    # Extract API key from context
+    ctx = getattr(config, "context", {})
+    openai_api_key = ctx.get("openai_api_key") if isinstance(ctx, dict) else None
+    llm = _get_llm(openai_api_key)
 
     template = (
         "You are a director of a qualitative research agency that specialises in creating realistic simulated testimonials that capture buying situations for new product concepts.\n\n"
@@ -293,7 +346,9 @@ def generate_prompt_for_current(state: VideoAgentState) -> VideoAgentState:
     )
 
     structured_llm = llm.with_structured_output(PromptOutput)
-    response = cast(PromptOutput, structured_llm.invoke([SystemMessage(content=template)]))
+    response = cast(
+        PromptOutput, structured_llm.invoke([SystemMessage(content=template)])
+    )
 
     existing_prompts = cast(List[PromptOutput], state.get("prompts_json", []))
     prompts_json: List[PromptOutput] = [*existing_prompts, response]
@@ -321,89 +376,66 @@ def increment_prompt_index(state: VideoAgentState) -> VideoAgentState:
     return {"situation_index": state.get("situation_index", 0) + 1}
 
 
-def _fal_headers() -> Dict[str, str]:
-    # Allow flexible header config to match n8n generic header auth
-    name = os.getenv("FAL_AUTH_HEADER_NAME", "Authorization")
-    value = os.getenv("FAL_AUTH_HEADER_VALUE")
-    if not value:
-        # Try common convention
-        api_key = os.getenv("FAL_API_KEY")
-        if api_key:
-            value = f"Key {api_key}"
-    return {name: value} if value else {}
+def submit_fal_requests(
+    state: VideoAgentState, config: RunnableConfig
+) -> VideoAgentState:
+    """Run Veo3 requests synchronously and capture their outputs (KISS)."""
+    # Ensure API key is available to fal client
+    ctx = getattr(config, "context", {})
+    fal_key = ctx.get("fal_key") if isinstance(ctx, dict) else None
+    _ensure_fal_key(fal_key)
 
-
-def submit_fal_requests(state: VideoAgentState) -> VideoAgentState:
-    """Submit prompt strings to the FAL queue API and collect request IDs."""
-    base_url = os.getenv("FAL_QUEUE_URL", "https://queue.fal.run/fal-ai/veo3")
-    headers = _fal_headers()
     prompt_strings = state.get("prompt_strings", [])
-    fal_requests: List[Dict[str, str]] = []
-    with httpx.Client(timeout=60) as client:
-        for prompt in prompt_strings:
-            resp = client.post(base_url, headers=headers, json={"prompt": prompt})
-            resp.raise_for_status()
-            data = resp.json()
-            # Standard fields from FAL queue
-            request_id = data.get("request_id") or data.get("id")
-            status_url = data.get("status_url") or data.get("status")
-            if not request_id or not status_url:
-                raise ValueError(f"Unexpected FAL response: {data}")
-            fal_requests.append({"request_id": request_id, "status_url": status_url})
-    return {"fal_requests": fal_requests}
-
-
-def wait_30_seconds(state: VideoAgentState) -> VideoAgentState:
-    """Sleep for 30 seconds between polling attempts."""
-    time.sleep(30)
-    return {}
-
-
-def poll_statuses(state: VideoAgentState) -> VideoAgentState:
-    """Poll FAL status endpoints and mark completion when all are done."""
-    headers = _fal_headers()
-    statuses: List[str] = []
-    with httpx.Client(timeout=30) as client:
-        for req in state.get("fal_requests", []):
-            url = req["status_url"]
-            resp = client.get(url, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            statuses.append(str(data.get("status", "")).upper())
-    all_complete = all(s == "COMPLETED" for s in statuses) if statuses else False
-    return {"statuses": statuses, "all_complete": all_complete}
-
-
-def all_completed_router(
-    state: VideoAgentState,
-) -> Literal["fetch_video_urls", "wait_again"]:
-    """Route to fetch URLs if completed, otherwise wait again."""
-    return "fetch_video_urls" if state.get("all_complete") else "wait_again"
-
-
-def fetch_video_urls(state: VideoAgentState) -> VideoAgentState:
-    """Fetch finalized video URLs from FAL request endpoints."""
-    base_url = os.getenv(
-        "FAL_REQUEST_URL_BASE", "https://queue.fal.run/fal-ai/veo3/requests"
-    )
-    headers = _fal_headers()
+    run_results: List[Dict[str, Any]] = []
     video_urls: List[str] = []
-    with httpx.Client(timeout=60) as client:
-        for req in state.get("fal_requests", []):
-            rid = req["request_id"]
-            url = f"{base_url}/{rid}"
-            resp = client.get(url, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-            # n8n expects data.video.url
-            video_url = (
-                data.get("video", {}).get("url")
-                if isinstance(data.get("video"), dict)
-                else data.get("video_url") or data.get("url")
+    warnings: List[str] = (
+        state.get("warnings", []).copy() if state.get("warnings") else []
+    )
+
+    for prompt in prompt_strings:
+        try:
+            # Use subscribe (queue) per fal docs; returns final result
+            result = fal_client.subscribe(
+                "fal-ai/veo3/fast",
+                arguments={
+                    "prompt": prompt,
+                    "duration": "8s",
+                    "auto_fix": True,
+                    "resolution": "720p",
+                },
+                with_logs=False,
             )
-            if not video_url:
-                raise ValueError(f"No video URL in response: {data}")
-            video_urls.append(str(video_url))
+            result_dict = _as_dict(result)
+            run_results.append(result_dict)
+            url = _extract_video_url(result_dict)
+            if isinstance(url, str) and url:
+                video_urls.append(url)
+            else:
+                # Try generic keys
+                gen = result_dict.get("url") or result_dict.get("video_url")
+                if isinstance(gen, str) and gen:
+                    video_urls.append(gen)
+                else:
+                    warnings.append("No video URL in fal result")
+        except Exception as exc:  # pragma: no cover - network failure path
+            warnings.append(f"FAL run failed: {exc}")
+
+    # Provide video_urls so downstream can skip collection
+    return {"run_results": run_results, "video_urls": video_urls, "warnings": warnings}
+
+
+def collect_video_urls(state: VideoAgentState) -> VideoAgentState:
+    """Collect video URLs directly from fal_client results (KISS)."""
+    run_results = state.get("run_results", [])
+    video_urls: List[str] = []
+    for payload in run_results:
+        url = _extract_video_url(payload)
+        if not url:
+            # If the endpoint returns the URL at top-level, try generic keys
+            url = payload.get("url") or payload.get("video_url")  # type: ignore[assignment]
+        if not isinstance(url, str) or not url:
+            raise ValueError("No video URL returned from fal run")
+        video_urls.append(url)
     return {"video_urls": video_urls}
 
 
@@ -443,7 +475,7 @@ def prepare_concat_file(state: VideoAgentState) -> VideoAgentState:
     return {}
 
 
-def _which(cmd: str) -> Optional[str]:
+def _which(cmd: str) -> str | None:
     return shutil.which(cmd)
 
 
@@ -500,7 +532,7 @@ def prompt_loop_router(
 
 # Build the graph mirroring the n8n flow
 graph = (
-    StateGraph(VideoAgentState, context_schema=Context)
+    StateGraph(VideoAgentState)
     # Phase 0: Init + input
     .add_node("init_and_create_directory", init_and_create_directory)
     .add_node("define_personas", define_personas)
@@ -512,9 +544,7 @@ graph = (
     .add_node("increment_prompt_index", increment_prompt_index)
     # Phase 3: Video generation and merging
     .add_node("submit_fal_requests", submit_fal_requests)
-    .add_node("wait_30_seconds", wait_30_seconds)
-    .add_node("poll_statuses", poll_statuses)
-    .add_node("fetch_video_urls", fetch_video_urls)
+    .add_node("collect_video_urls", collect_video_urls)
     .add_node("download_videos", download_videos)
     .add_node("prepare_concat_file", prepare_concat_file)
     .add_node("merge_videos_ffmpeg", merge_videos_ffmpeg)
@@ -536,18 +566,9 @@ graph = (
     )
     .add_edge("increment_prompt_index", "generate_prompt_for_current")
     # Submit requests -> wait -> poll -> branch until all complete
-    .add_edge("submit_fal_requests", "wait_30_seconds")
-    .add_edge("wait_30_seconds", "poll_statuses")
-    .add_conditional_edges(
-        "poll_statuses",
-        all_completed_router,
-        {
-            "fetch_video_urls": "fetch_video_urls",
-            "wait_again": "wait_30_seconds",
-        },
-    )
+    .add_edge("submit_fal_requests", "collect_video_urls")
     # After completion: fetch URLs -> download -> prepare -> merge -> complete
-    .add_edge("fetch_video_urls", "download_videos")
+    .add_edge("collect_video_urls", "download_videos")
     .add_edge("download_videos", "prepare_concat_file")
     .add_edge("prepare_concat_file", "merge_videos_ffmpeg")
     .add_edge("merge_videos_ffmpeg", "complete")

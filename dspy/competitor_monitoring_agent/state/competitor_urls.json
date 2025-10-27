@@ -1,0 +1,64 @@
+{
+  "urls": {
+    "https://askrally.com/article/case-study-goodinnovation": {
+      "source_site": "https://askrally.com",
+      "date_found": "2025-10-27T12:22:26.448338+00:00"
+    },
+    "https://askrally.com/article/base-memories": {
+      "source_site": "https://askrally.com",
+      "date_found": "2025-10-27T12:22:26.448346+00:00"
+    },
+    "https://askrally.com/article/askrally-personas-sound-human": {
+      "source_site": "https://askrally.com",
+      "date_found": "2025-10-27T12:22:26.448349+00:00"
+    },
+    "https://askrally.com/articles?page=2": {
+      "source_site": "https://askrally.com",
+      "date_found": "2025-10-27T12:22:26.448352+00:00"
+    },
+    "https://askrally.com/articles?page=6": {
+      "source_site": "https://askrally.com",
+      "date_found": "2025-10-27T12:22:26.448354+00:00"
+    },
+    "https://askrally.com/workflow/enrich-audience-with-youtube-comments": {
+      "source_site": "https://askrally.com/workflows",
+      "date_found": "2025-10-27T12:22:26.448356+00:00"
+    },
+    "https://askrally.com/workflow/generate-bulk-clone-csv-from-yt-comments": {
+      "source_site": "https://askrally.com/workflows",
+      "date_found": "2025-10-27T12:22:26.448358+00:00"
+    },
+    "https://askrally.com/workflow/slack-sentiment-analysis": {
+      "source_site": "https://askrally.com/workflows",
+      "date_found": "2025-10-27T12:22:26.448360+00:00"
+    },
+    "https://askrally.com/workflows?page=2&search=&playbook=": {
+      "source_site": "https://askrally.com/workflows",
+      "date_found": "2025-10-27T12:22:26.448362+00:00"
+    },
+    "https://askrally.com/workflows?page=3&search=&playbook=": {
+      "source_site": "https://askrally.com/workflows",
+      "date_found": "2025-10-27T12:22:26.448364+00:00"
+    },
+    "https://askrally.com/playbook/video-testing": {
+      "source_site": "https://askrally.com/playbooks",
+      "date_found": "2025-10-27T12:22:26.448366+00:00"
+    },
+    "https://askrally.com/playbook/message-and-claims-testing": {
+      "source_site": "https://askrally.com/playbooks",
+      "date_found": "2025-10-27T12:46:29.490589+00:00"
+    },
+    "https://askrally.com/playbook/package-testing": {
+      "source_site": "https://askrally.com/playbooks",
+      "date_found": "2025-10-27T12:46:29.490594+00:00"
+    },
+    "https://askrally.com/playbook/logo-design-testing": {
+      "source_site": "https://askrally.com/playbooks",
+      "date_found": "2025-10-27T12:46:29.490596+00:00"
+    },
+    "https://askrally.com/playbooks?page=2": {
+      "source_site": "https://askrally.com/playbooks",
+      "date_found": "2025-10-27T12:46:29.490598+00:00"
+    }
+  }
+}

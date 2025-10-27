@@ -275,7 +275,18 @@ def generate_image(
             temperature=0,
             max_tokens=None,
             timeout=None,
-            max_retries=2,
+            max_retries=3,  # Built-in retry for API calls
+        ).with_retry(
+            retry_if_exception_type=(
+                Exception,  # Retry on all exceptions (network, rate limit, etc.)
+            ),
+            wait_exponential_jitter=True,  # Add jitter to avoid thundering herd
+            stop_after_attempt=3,  # Try up to 3 times total
+            exponential_jitter_params={
+                "initial": 1,  # Start with 1 second delay
+                "max": 10,  # Max 10 seconds between retries
+                "exp_base": 2,  # Exponential backoff base
+            },
         )
         messages = []
 

@@ -6,6 +6,7 @@ uv.lock
 .langgraph_api
 .vscode/settings.json
 .DS_Store
+*.mp4
 
 # C extensions
 *.so
@@ -209,3 +210,5 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+node_modules/
+dspy-env/

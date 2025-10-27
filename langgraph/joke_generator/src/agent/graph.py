@@ -6,10 +6,8 @@ An AI-powered joke generator with audience evaluation capabilities using LangGra
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import Any, Dict, Literal, cast
 
-from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.utils import convert_to_secret_str
 from langchain_openai import ChatOpenAI
@@ -22,20 +20,6 @@ from src.agent.models import (
     Context,
     JokeGeneratorState,
 )
-
-# Load environment variables from .env file if it exists
-_current_file = Path(__file__)
-_project_root = _current_file.parent.parent.parent  # Navigate to project root
-_env_file = _project_root / ".env"
-
-if _env_file.exists():
-    load_dotenv(_env_file)
-    print(f"✅ Loaded environment variables from {_env_file}")  # noqa: T201
-else:
-    print(f"ℹ️  No .env file found at {_env_file}")  # noqa: T201
-    print(  # noqa: T201
-        "   Environment variables will be loaded from system environment or runtime context"
-    )
 
 
 def get_llm(
@@ -165,19 +149,6 @@ def audience_evaluator_node(
         "audience_reactions": response.reactions,
         "audience_score": avg_score,
     }
-
-
-def should_continue(
-    state: JokeGeneratorState,
-) -> Literal["audience_evaluator", "__end__"]:
-    """Decide whether to continue to audience evaluation or end."""
-    # If evaluate_only and a joke is provided, still proceed to evaluation
-    return "audience_evaluator"
-
-
-def should_end(state: JokeGeneratorState) -> Literal["__end__"]:
-    """End the graph after audience evaluation."""
-    return "__end__"
 
 
 # Define the graph
