@@ -6,6 +6,7 @@ uv.lock
 .langgraph_api
 .vscode/settings.json
 .DS_Store
+*.mp4
 
 # C extensions
 *.so
